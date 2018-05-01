@@ -1,1 +1,5 @@
 *.swp
+*.hi
+*.o
+Lexer.hs
+Parser.hs
