@@ -1,0 +1,14 @@
+program
+    with
+        number l=100;
+        number nvertex = 5;
+    do
+        rotatel(1);
+        for i from 1 to nvertex do
+            forward(l);
+            rotatel(70);
+            forward(l);
+            rotater(70+360/nvertex);
+        end;
+    end;
+end;

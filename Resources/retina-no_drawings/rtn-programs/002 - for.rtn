@@ -1,0 +1,9 @@
+program
+    with
+    do
+        for i from 1 to 100 do
+            forward(i * 2); # Traza una línea por 50 puntos
+            rotater(90); # Gira 90 grados sentido horario
+        end;
+    end;
+end;
