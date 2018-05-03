@@ -20,29 +20,41 @@ tokens :-
 type Pos = (Int, Int)
 
 data Token =
-  CantStopTkn { TknPos :: (Int, Int) }
+  CantStopTkn { tknPos :: (Int, Int) }
 
   deriving Show
 
 
-data AlexUserState = undefined
+
+alexEOF :: Alex [Token]
+alexEOF = return []
+
+--------- User State
+data AlexUserState = AlexUserState
 
 alexInitUserState :: AlexUserState
 alexInitUserState = undefined
 
 
+
+getPos :: AlexInput -> Pos
+getPos ((AlexPn _ line col), _, _, _) = (line, col)
+
+
 newToken :: (Pos -> Token) -> AlexAction [Token]
 newToken tknConstr = \alexIn _ -> do
-    let pos = getPosition alexIn
+    let pos = getPos alexIn
     tokens <- alexMonadScan
     return $ (tknConstr pos):tokens
 
 
+getInput :: IO String
+getInput = undefined
 
 main = do
-    code <- undefined
-    alexed <- runAlex code (alexMonadScan >>=
-                (lt -> Alex (\s -> Right (s, (s,lt)))))
+    code <- getInput
+    let alexed = runAlex code (alexMonadScan >>=
+                (\lt -> Alex (\s -> Right (s, (s,lt)))))
     case alexed of
         Left msg -> undefined
         Right (state, tokens) -> undefined
