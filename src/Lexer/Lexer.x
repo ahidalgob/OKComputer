@@ -11,18 +11,50 @@ $Alpha = [a-zA-Z]		-- alphabetic characters
 
 tokens :-
   $white+				                    ; -- skip white spaces
-
-  cantstop                                {newToken CantStopTkn}
+  "#".*                             ; -- skip comments
+  
+  -- Instructions
+  youbegin                                {newToken YouBeginTkn}        -- Block Start
+  whereiend                               {newToken WhereIEndTkn}       -- Block End
+  if                                      {newToken IfTkn}              -- Selection
+  ifyouhavetoask                          {newToken IfYouHaveToAskTkn}  -- Selection
+  otherside                               {newToken OthersideTkn}       -- Selection
+  cantstop                                {newToken CantStopTkn}        -- While Iteration
+  breakthru                               {newToken BreakthruTkn}       -- Break
+  onemoretime                             {newToken OneMoreTimeTkn}     -- For Iteration
+  to                                      {newToken ToTkn}              -- For Iteration
+  readmymind                              {newToken ReadMyMindTkn}      -- Data entry/read
+  go                                      {newToken GoTkn}              -- Data exit/write
+  goslowly                                {newToken GoSlowlyTkn}        -- Data exit/writeln
+  neworder                                {newToken NewOrderTkn}        -- Method/Proc
+  dafunk                                  {newToken DaFunkTkn}          -- Method with return/Function
+  getback                                 {newToken GetBackTkn}         -- Return
+  intothevoid                             {newToken IntoTheVoidTkn}     -- Void
+  newlife                                 {newToken NewLifeTkn}         -- Calloc
+  saveme                                  {newToken SaveMeTkn}          -- Malloc
+  keepyourselfalive                       {newToken KeepAliveTkn}       -- Realloc
+  amnesiac                                {newToken AmnesiacTkn}        -- Free
+  exitmusic                               {newToken ExitMusicTkn}       -- Exit
+  aroundtheworld                          {newToken AroundTheWorldTkn}  -- Import
+  holeinmysoul                            {newToken HoleInMySoulTkn}    -- Templates
 
   -- Type Tokens
   int                                     {newToken IntTkn}
   float                                   {newToken FloatTkn}
-
-
-
-  -- Operations Tokens
+  char                                    {newToken CharTkn}
+  boolean                                 {newToken BooleanTkn}
   true                                    {newToken TrueTkn}
   false                                   {newToken FalseTkn}
+  \[                                      {newToken ArrayStartTkn}
+  \]                                      {newToken ArrayEndTkn}
+  band                                    {newToken BandTkn}            -- Registers/structs
+  union                                   {newToken UnionTkn}
+  \&                                      {newToken PointerTkn}         -- Pointers
+  duets                                   {newToken DuetsTkn}           -- Tuple
+  left                                    {newToken LeftTkn}
+  right                                   {newToken RightTkn}
+
+  -- Operations Tokens
   mod                                     {newToken ModTkn}
   div                                     {newToken DivTkn}
   not                                     {newToken NotTkn}
@@ -38,7 +70,7 @@ tokens :-
   \-                                      {newToken MinusTkn}
   \%                                      {newToken RestTkn}
   \/                                      {newToken DivExacTkn}
-  \/\=                                    {newToken DifTkn}
+  \!\=                                    {newToken DifTkn}
   \>\=                                    {newToken GreaterEqualTkn}
   \<\=                                    {newToken LessEqualTkn}
   \>                                      {newToken GreaterTkn}
