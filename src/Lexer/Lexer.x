@@ -78,13 +78,81 @@ tokens :-
   \-\>                                    {newToken TypeTkn}
   \=                                      {newToken AssignTkn}
 
+  -- Strings
+  -- $digit+(\.[$digit]+)?                   {newTokenWithString NumLiteralTkn} -- Cadenas de Digitos  
+  -- [a-z][a-zA-Z\_0-9]*                    {newTokenWithString IdTkn} -- Identificadores
+  -- [a-z][a-zA-Z\_0-9]*\(                  {newFuncIdTkn} -- Identificadores de funciones
+  -- \"([^\\\"\n]|\\\\|\\\"|\\n)*\"              {newTokenWithString StringTkn} -- Strings Correctos
 
 {
 
 type Pos = (Int, Int)
 
 data Token =
-  CantStopTknn { TknnPos :: (Int, Int) }
+
+  YouBeginTkn         { TknPos :: (Int, Int) }  |
+  WhereIEndTkn        { TknPos :: (Int, Int) }  |
+  IfTkn               { TknPos :: (Int, Int) }  |
+  IfYouHaveToAskTkn   { TknPos :: (Int, Int) }  |
+  OthersideTkn        { TknPos :: (Int, Int) }  |
+  CantStopTkn         { TknPos :: (Int, Int) }  |
+  BreakthruTkn        { TknPos :: (Int, Int) }  |
+  OneMoreTimeTkn      { TknPos :: (Int, Int) }  |
+  ToTkn               { TknPos :: (Int, Int) }  |
+  ReadMyMindTkn       { TknPos :: (Int, Int) }  |
+  GoTkn               { TknPos :: (Int, Int) }  |
+  GoSlowlyTkn         { TknPos :: (Int, Int) }  |
+  NewOrderTkn         { TknPos :: (Int, Int) }  |
+  DaFunkTkn           { TknPos :: (Int, Int) }  |
+  GetBackTkn          { TknPos :: (Int, Int) }  |
+  IntoTheVoidTkn      { TknPos :: (Int, Int) }  |
+  NewLifeTkn          { TknPos :: (Int, Int) }  |
+  SaveMeTkn           { TknPos :: (Int, Int) }  |
+  KeepAliveTkn        { TknPos :: (Int, Int) }  |
+  AmnesiacTkn         { TknPos :: (Int, Int) }  |
+  ExitMusicTkn        { TknPos :: (Int, Int) }  |
+  AroundTheWorldTkn   { TknPos :: (Int, Int) }  |
+  HoleInMySoulTkn     { TknPos :: (Int, Int) }  |
+  IntTkn              { TknPos :: (Int, Int) }  |
+  FloatTkn            { TknPos :: (Int, Int) }  |
+  CharTkn             { TknPos :: (Int, Int) }  |
+  BooleanTkn          { TknPos :: (Int, Int) }  |
+  TrueTkn             { TknPos :: (Int, Int) }  |
+  FalseTkn            { TknPos :: (Int, Int) }  |
+  ArrayStartTkn       { TknPos :: (Int, Int) }  |
+  ArrayEndTkn         { TknPos :: (Int, Int) }  |
+  BandTkn             { TknPos :: (Int, Int) }  |
+  UnionTkn            { TknPos :: (Int, Int) }  |
+  PointerTkn          { TknPos :: (Int, Int) }  |
+  DuetsTkn            { TknPos :: (Int, Int) }  |
+  LeftTkn             { TknPos :: (Int, Int) }  |
+  RightTkn            { TknPos :: (Int, Int) }  |
+  ModTkn              { TknPos :: (Int, Int) }  |
+  DivTkn              { TknPos :: (Int, Int) }  |
+  NotTkn              { TknPos :: (Int, Int) }  |
+  AndTkn              { TknPos :: (Int, Int) }  |
+  OrTkn               { TknPos :: (Int, Int) }  |
+  CommaTkn            { TknPos :: (Int, Int) }  |
+  ParenOpenTkn        { TknPos :: (Int, Int) }  |
+  ParenCloseTkn       { TknPos :: (Int, Int) }  |
+  SemicolonTkn        { TknPos :: (Int, Int) }  |
+  PlusTkn             { TknPos :: (Int, Int) }  |
+  EqualTkn            { TknPos :: (Int, Int) }  |
+  ProductTkn          { TknPos :: (Int, Int) }  |
+  MinusTkn            { TknPos :: (Int, Int) }  |
+  RestTkn             { TknPos :: (Int, Int) }  |
+  DivExacTkn          { TknPos :: (Int, Int) }  |
+  DifTkn              { TknPos :: (Int, Int) }  |
+  GreaterEqualTkn     { TknPos :: (Int, Int) }  |
+  LessEqualTkn        { TknPos :: (Int, Int) }  |
+  GreaterTkn          { TknPos :: (Int, Int) }  |
+  LessTkn             { TknPos :: (Int, Int) }  |
+  TypeTkn             { TknPos :: (Int, Int) }  |
+  AssignTkn           { TknPos :: (Int, Int) }
+  -- NumLiteralTkn    { TknPos :: (Int, Int), TknString :: String }
+  -- IdTkn            { TknPos :: (Int, Int), TknString :: String }
+  -- FuncIdTkn        { TknPos :: (Int, Int), TknString :: String }
+  -- StringTkn        { TknPos :: (Int, Int), TknString :: String }
 
   deriving Show
 
