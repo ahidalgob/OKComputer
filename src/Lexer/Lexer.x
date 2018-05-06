@@ -1,5 +1,5 @@
 {
-module Lexer(Token(..)) where
+module Lexer(Token(..), Alex(Alex), alexMonadScan, AlexState(..), AlexUserState, runAlex) where
 }
 
 %wrapper "monadUserState"
@@ -11,8 +11,8 @@ $Alpha = [a-zA-Z]		-- alphabetic characters
 
 tokens :-
   $white+				                    ; -- skip white spaces
-  "#".*                             ; -- skip comments
-  
+  "#".*                                     ; -- skip comments
+
   -- Instructions
   youbegin                                {newToken YouBeginTkn}        -- Block Start
   whereiend                               {newToken WhereIEndTkn}       -- Block End
@@ -62,11 +62,11 @@ tokens :-
   or                                      {newToken OrTkn}
   \,                                      {newToken CommaTkn}
   \(                                      {newToken ParenOpenTkn}
-  \)                                      {newToken ParenCloseTkn}    
+  \)                                      {newToken ParenCloseTkn}
   \;                                      {newToken SemicolonTkn}
   \+                                      {newToken PlusTkn}
   \=\=                                    {newToken EqualTkn}
-  \*                                      {newToken ProductTkn}    
+  \*                                      {newToken ProductTkn}
   \-                                      {newToken MinusTkn}
   \%                                      {newToken RestTkn}
   \/                                      {newToken DivExacTkn}
@@ -79,10 +79,11 @@ tokens :-
   \=                                      {newToken AssignTkn}
 
   -- Strings
-  -- $digit+(\.[$digit]+)?                   {newTokenWithString NumLiteralTkn} -- Cadenas de Digitos  
-  -- [a-z][a-zA-Z\_0-9]*                    {newTokenWithString IdTkn} -- Identificadores
-  -- [a-z][a-zA-Z\_0-9]*\(                  {newFuncIdTkn} -- Identificadores de funciones
-  -- \"([^\\\"\n]|\\\\|\\\"|\\n)*\"              {newTokenWithString StringTkn} -- Strings Correctos
+  $digit+(\.[$digit]+)?                   {newStringToken NumLiteralTkn}  -- Numbers
+  $Alpha[a-zA-Z\_0-9]*                          {newStringToken IdTkn}          -- Id
+  -- \"([^\\\"\n]|\\\\|\\\"|\\n)*\"       {newStringToken StringTkn}      -- Strings Correctos
+
+  .                                       {invalidCharacter}
 
 {
 
@@ -90,69 +91,68 @@ type Pos = (Int, Int)
 
 data Token =
 
-  YouBeginTkn         { TknPos :: (Int, Int) }  |
-  WhereIEndTkn        { TknPos :: (Int, Int) }  |
-  IfTkn               { TknPos :: (Int, Int) }  |
-  IfYouHaveToAskTkn   { TknPos :: (Int, Int) }  |
-  OthersideTkn        { TknPos :: (Int, Int) }  |
-  CantStopTkn         { TknPos :: (Int, Int) }  |
-  BreakthruTkn        { TknPos :: (Int, Int) }  |
-  OneMoreTimeTkn      { TknPos :: (Int, Int) }  |
-  ToTkn               { TknPos :: (Int, Int) }  |
-  ReadMyMindTkn       { TknPos :: (Int, Int) }  |
-  GoTkn               { TknPos :: (Int, Int) }  |
-  GoSlowlyTkn         { TknPos :: (Int, Int) }  |
-  NewOrderTkn         { TknPos :: (Int, Int) }  |
-  DaFunkTkn           { TknPos :: (Int, Int) }  |
-  GetBackTkn          { TknPos :: (Int, Int) }  |
-  IntoTheVoidTkn      { TknPos :: (Int, Int) }  |
-  NewLifeTkn          { TknPos :: (Int, Int) }  |
-  SaveMeTkn           { TknPos :: (Int, Int) }  |
-  KeepAliveTkn        { TknPos :: (Int, Int) }  |
-  AmnesiacTkn         { TknPos :: (Int, Int) }  |
-  ExitMusicTkn        { TknPos :: (Int, Int) }  |
-  AroundTheWorldTkn   { TknPos :: (Int, Int) }  |
-  HoleInMySoulTkn     { TknPos :: (Int, Int) }  |
-  IntTkn              { TknPos :: (Int, Int) }  |
-  FloatTkn            { TknPos :: (Int, Int) }  |
-  CharTkn             { TknPos :: (Int, Int) }  |
-  BooleanTkn          { TknPos :: (Int, Int) }  |
-  TrueTkn             { TknPos :: (Int, Int) }  |
-  FalseTkn            { TknPos :: (Int, Int) }  |
-  ArrayStartTkn       { TknPos :: (Int, Int) }  |
-  ArrayEndTkn         { TknPos :: (Int, Int) }  |
-  BandTkn             { TknPos :: (Int, Int) }  |
-  UnionTkn            { TknPos :: (Int, Int) }  |
-  PointerTkn          { TknPos :: (Int, Int) }  |
-  DuetsTkn            { TknPos :: (Int, Int) }  |
-  LeftTkn             { TknPos :: (Int, Int) }  |
-  RightTkn            { TknPos :: (Int, Int) }  |
-  ModTkn              { TknPos :: (Int, Int) }  |
-  DivTkn              { TknPos :: (Int, Int) }  |
-  NotTkn              { TknPos :: (Int, Int) }  |
-  AndTkn              { TknPos :: (Int, Int) }  |
-  OrTkn               { TknPos :: (Int, Int) }  |
-  CommaTkn            { TknPos :: (Int, Int) }  |
-  ParenOpenTkn        { TknPos :: (Int, Int) }  |
-  ParenCloseTkn       { TknPos :: (Int, Int) }  |
-  SemicolonTkn        { TknPos :: (Int, Int) }  |
-  PlusTkn             { TknPos :: (Int, Int) }  |
-  EqualTkn            { TknPos :: (Int, Int) }  |
-  ProductTkn          { TknPos :: (Int, Int) }  |
-  MinusTkn            { TknPos :: (Int, Int) }  |
-  RestTkn             { TknPos :: (Int, Int) }  |
-  DivExacTkn          { TknPos :: (Int, Int) }  |
-  DifTkn              { TknPos :: (Int, Int) }  |
-  GreaterEqualTkn     { TknPos :: (Int, Int) }  |
-  LessEqualTkn        { TknPos :: (Int, Int) }  |
-  GreaterTkn          { TknPos :: (Int, Int) }  |
-  LessTkn             { TknPos :: (Int, Int) }  |
-  TypeTkn             { TknPos :: (Int, Int) }  |
-  AssignTkn           { TknPos :: (Int, Int) }
-  -- NumLiteralTkn    { TknPos :: (Int, Int), TknString :: String }
-  -- IdTkn            { TknPos :: (Int, Int), TknString :: String }
-  -- FuncIdTkn        { TknPos :: (Int, Int), TknString :: String }
-  -- StringTkn        { TknPos :: (Int, Int), TknString :: String }
+  YouBeginTkn         { tknPos :: (Int, Int) }  |
+  WhereIEndTkn        { tknPos :: (Int, Int) }  |
+  IfTkn               { tknPos :: (Int, Int) }  |
+  IfYouHaveToAskTkn   { tknPos :: (Int, Int) }  |
+  OthersideTkn        { tknPos :: (Int, Int) }  |
+  CantStopTkn         { tknPos :: (Int, Int) }  |
+  BreakthruTkn        { tknPos :: (Int, Int) }  |
+  OneMoreTimeTkn      { tknPos :: (Int, Int) }  |
+  ToTkn               { tknPos :: (Int, Int) }  |
+  ReadMyMindTkn       { tknPos :: (Int, Int) }  |
+  GoTkn               { tknPos :: (Int, Int) }  |
+  GoSlowlyTkn         { tknPos :: (Int, Int) }  |
+  NewOrderTkn         { tknPos :: (Int, Int) }  |
+  DaFunkTkn           { tknPos :: (Int, Int) }  |
+  GetBackTkn          { tknPos :: (Int, Int) }  |
+  IntoTheVoidTkn      { tknPos :: (Int, Int) }  |
+  NewLifeTkn          { tknPos :: (Int, Int) }  |
+  SaveMeTkn           { tknPos :: (Int, Int) }  |
+  KeepAliveTkn        { tknPos :: (Int, Int) }  |
+  AmnesiacTkn         { tknPos :: (Int, Int) }  |
+  ExitMusicTkn        { tknPos :: (Int, Int) }  |
+  AroundTheWorldTkn   { tknPos :: (Int, Int) }  |
+  HoleInMySoulTkn     { tknPos :: (Int, Int) }  |
+  IntTkn              { tknPos :: (Int, Int) }  |
+  FloatTkn            { tknPos :: (Int, Int) }  |
+  CharTkn             { tknPos :: (Int, Int) }  |
+  BooleanTkn          { tknPos :: (Int, Int) }  |
+  TrueTkn             { tknPos :: (Int, Int) }  |
+  FalseTkn            { tknPos :: (Int, Int) }  |
+  ArrayStartTkn       { tknPos :: (Int, Int) }  |
+  ArrayEndTkn         { tknPos :: (Int, Int) }  |
+  BandTkn             { tknPos :: (Int, Int) }  |
+  UnionTkn            { tknPos :: (Int, Int) }  |
+  PointerTkn          { tknPos :: (Int, Int) }  |
+  DuetsTkn            { tknPos :: (Int, Int) }  |
+  LeftTkn             { tknPos :: (Int, Int) }  |
+  RightTkn            { tknPos :: (Int, Int) }  |
+  ModTkn              { tknPos :: (Int, Int) }  |
+  DivTkn              { tknPos :: (Int, Int) }  |
+  NotTkn              { tknPos :: (Int, Int) }  |
+  AndTkn              { tknPos :: (Int, Int) }  |
+  OrTkn               { tknPos :: (Int, Int) }  |
+  CommaTkn            { tknPos :: (Int, Int) }  |
+  ParenOpenTkn        { tknPos :: (Int, Int) }  |
+  ParenCloseTkn       { tknPos :: (Int, Int) }  |
+  SemicolonTkn        { tknPos :: (Int, Int) }  |
+  PlusTkn             { tknPos :: (Int, Int) }  |
+  EqualTkn            { tknPos :: (Int, Int) }  |
+  ProductTkn          { tknPos :: (Int, Int) }  |
+  MinusTkn            { tknPos :: (Int, Int) }  |
+  RestTkn             { tknPos :: (Int, Int) }  |
+  DivExacTkn          { tknPos :: (Int, Int) }  |
+  DifTkn              { tknPos :: (Int, Int) }  |
+  GreaterEqualTkn     { tknPos :: (Int, Int) }  |
+  LessEqualTkn        { tknPos :: (Int, Int) }  |
+  GreaterTkn          { tknPos :: (Int, Int) }  |
+  LessTkn             { tknPos :: (Int, Int) }  |
+  TypeTkn             { tknPos :: (Int, Int) }  |
+  AssignTkn           { tknPos :: (Int, Int) }  |
+  NumLiteralTkn       { tknPos :: (Int, Int), tknString :: String } |
+  IdTkn               { tknPos :: (Int, Int), tknString :: String }
+  -- StringTkn        { tknPos :: (Int, Int), tknString :: String }
 
   deriving Show
 
@@ -162,33 +162,48 @@ alexEOF :: Alex [Token]
 alexEOF = return []
 
 --------- User State
-data AlexUserState = AlexUserState
+data AlexUserState = AlexUserState {invalidC :: [(Char, Pos)]} deriving Show
 
 alexInitUserState :: AlexUserState
-alexInitUserState = undefined
+alexInitUserState = AlexUserState []
+
+pushInvalidC :: Char -> Pos -> Alex ()
+pushInvalidC c pos = do
+  ust <- alexGetUserState
+  alexSetUserState ust{invalidC = (c,pos):invalidC ust}
 
 
 
 getPos :: AlexInput -> Pos
 getPos ((AlexPn _ line col), _, _, _) = (line, col)
 
+getCurrentInput :: AlexInput -> String
+getCurrentInput (_, _, _, s) = s
+
+
+
 
 newToken :: (Pos -> Token) -> AlexAction [Token]
-newToken TknnConstr = \alexIn _ -> do
-    let pos = getPos alexIn
-    tokens <- alexMonadScan
-    return $ (TknnConstr pos):tokens
+newToken tknConstr = \alexIn _ -> do
+  let pos = getPos alexIn
+  tokens <- alexMonadScan
+  return $ (tknConstr pos):tokens
 
 
-getInput :: IO String
-getInput = undefined
+newStringToken :: (Pos -> String -> Token) -> AlexAction [Token]
+newStringToken tknConstr = \alexIn len -> do
+  let pos = getPos alexIn
+      s = take len $ getCurrentInput alexIn
+  tokens <- alexMonadScan
+  return $ (tknConstr pos s):tokens
 
-main = do
-    code <- getInput
-    let alexed = runAlex code (alexMonadScan >>=
-                (\lt -> Alex (\s -> Right (s, (s,lt)))))
-    case alexed of
-        Left msg -> undefined
-        Right (state, tokens) -> undefined
+
+invalidCharacter :: AlexAction [Token]
+invalidCharacter = \alexIn _ -> do
+  let pos = getPos alexIn
+      c = head $ getCurrentInput alexIn
+  pushInvalidC c pos
+  alexMonadScan
+
 
 }
