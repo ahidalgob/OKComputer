@@ -128,7 +128,7 @@ Notacion: breakthru
 	
 # Repeticion determinada:
 
-	onemoretime i=5 to i<10
+	onemoretime int i=5; i<10; i=i+1 
 		youbegin
 			...
 		whereiend
