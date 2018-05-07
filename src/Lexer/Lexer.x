@@ -14,6 +14,7 @@ tokens :-
 <0>  "#".*                                      ; -- skip comments
 
   -- Instructions
+<0>  maintheme                               {newToken MainThemeTkn}       -- File Start
 <0>  youbegin                                {newToken YouBeginTkn}        -- Block Start
 <0>  whereiend                               {newToken WhereIEndTkn}       -- Block End
 <0>  if                                      {newToken IfTkn}              -- Selection
@@ -43,8 +44,8 @@ tokens :-
 <0>  float                                   {newToken FloatTkn}
 <0>  char                                    {newToken CharTkn}
 <0>  boolean                                 {newToken BooleanTkn}
-<0>  true                                    {newToken TrueTkn}
-<0>  false                                   {newToken FalseTkn}
+<0>  ok                                      {newToken OkTkn}              -- True
+<0>  notok                                   {newToken NotOkTkn}           -- False
 <0>  \[                                      {newToken ArrayStartTkn}
 <0>  \]                                      {newToken ArrayEndTkn}
 <0>  band                                    {newToken BandTkn}            -- Registers/structs
@@ -95,6 +96,7 @@ type Pos = (Int, Int)
 
 data Token =
 
+  MainThemeTkn        { tknPos :: (Int, Int) }  |
   YouBeginTkn         { tknPos :: (Int, Int) }  |
   WhereIEndTkn        { tknPos :: (Int, Int) }  |
   IfTkn               { tknPos :: (Int, Int) }  |
@@ -122,8 +124,8 @@ data Token =
   FloatTkn            { tknPos :: (Int, Int) }  |
   CharTkn             { tknPos :: (Int, Int) }  |
   BooleanTkn          { tknPos :: (Int, Int) }  |
-  TrueTkn             { tknPos :: (Int, Int) }  |
-  FalseTkn            { tknPos :: (Int, Int) }  |
+  OkTkn               { tknPos :: (Int, Int) }  |
+  NotOkTkn            { tknPos :: (Int, Int) }  |
   ArrayStartTkn       { tknPos :: (Int, Int) }  |
   ArrayEndTkn         { tknPos :: (Int, Int) }  |
   BandTkn             { tknPos :: (Int, Int) }  |
