@@ -80,6 +80,7 @@ Todos los programas en OKComputer deben tener un procedimiento maintheme() que p
 
 # Tuplas
   Tuplas de dos elementos. Deben estar entre parentesis (1,2) y pueden contener cualquier tipo
+  
   Notacion: duets
   
   Notacion para elemento izquierdo: left
@@ -97,16 +98,17 @@ Todas las instrucciones vienen seguidas de bloques de instruccion:
 Comenzar una seleccion condicional con if:
 
  	if (true) 
-   		youbegin
-   			...
-    		whereiend
+		youbegin
+		...
+		whereiend
+
 Comenzar una seleccion con varios condicionales:
 
   	if (a)
   	  ...
   	ifyouhavetoask (b)
   	  ...
-  	otherwise
+  	otherside
    	 ...
 	 
 Notacion: "ifyouhavetoask" es equivalente al "elseif" y "otherside" es equivalente al "else" en otros lenguajes.
@@ -148,32 +150,21 @@ Notacion: "onemoretime" es euivalente al "for" en otros lenguajes
  
  	goslowly(n)
 	
-# Procedimientos y Funciones
-# Procedimiento
- Debe ser declarado, recibe cualquier numero de argumentos (incluyendo vacio) 
- 	
- 	neworder newproc(int a, boolean b, char c)
-		youbegin
-			...
-		whereiend
- 
- Notacion: neworder nombre(#argumentos)
-
-# Funcion
-  Debe ser declarado, recibe cualquier numero de argumentos y retorna un resultado (puede ser void)
+# Funciones
+  Debe ser declarado, recibe cualquier numero de argumentos y retorna un resultado (puede ser vacio, tipo procedimiento)
   
-  	dafunk newfunc(int a, boolean b, char c)
+  	dafunk newfunc(int a, boolean b, char c)::int a
 		youbegin
 			getback a
 		whereiend
-  Notacion: dafunc nombre(#argumentos)
+  Notacion: dafunk nombre(#argumentos)
   
   Para retornar un resultado, equivalente al return, "getback"
   
   Para retornar vacio, equivalente al void, "intothevoid"
 
 # Operadores aritmeticos
-	+ - * / div mod - (prefijo)
+	+ - * / div mod -(prefijo)
 
 # Operadores de comparacion
 	> < >= <= == !=
@@ -192,3 +183,6 @@ amnesiac() equivalente al "free" en C
 
 # Forzar salida del programa
   "exitmusic" equivalente al exit, en cualquier parte del programa, termina la ejecución.
+
+# Modulos
+  "aroundtheworld" equivalente al import, para traer funciones de otros archivos
