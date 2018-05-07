@@ -31,20 +31,6 @@
   
   
 Estructura de un programa en OKComputer:
-
-maintheme(x)
-
-  youbegin
-    int a = 0
-    float b
-    b = 10
-    cantstop (b < 15)
-      youbegin
-        go("Numero actual: ")
-        go(b)
-        b = b +1
-      whereiend
-  whereiend
       
 Todos los programas en OKComputer deben tener un procedimiento maintheme() que puede recibir cualquier numero de argumentos. Todos los bloques comienzan por "youbegin" y terminan por "whereiend". Esto aplica para funciones, procedimientos y cualquier tipo de instruccion de seleccion e iteracion (excepto las seguidas por solo una orden de instruccion).
 
