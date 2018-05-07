@@ -173,13 +173,13 @@ Notacion: "onemoretime" es euivalente al "for" en otros lenguajes
   Para retornar vacio, equivalente al void, "intothevoid"
 
 # Operadores aritmeticos
-+ - * / div mod - (prefijo)
+	+ - * / div mod - (prefijo)
 
 # Operadores de comparacion
-> < >= <= == !=
+	> < >= <= == !=
 
 # Operadores logicos
-and or not
+	and or not
 
 # Crear variables
 newlife() equivalente al "calloc" en C
