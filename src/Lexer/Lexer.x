@@ -23,7 +23,7 @@ tokens :-
 <0>  cantstop                                {newToken CantStopTkn}        -- While Iteration
 <0>  breakthru                               {newToken BreakthruTkn}       -- Break
 <0>  onemoretime                             {newToken OneMoreTimeTkn}     -- For Iteration
-<0>  to                                      {newToken ToTkn}              -- For Iteration
+<0>  \;                                      {newToken SemiColonTkn}       -- For Iteration
 <0>  readmymind                              {newToken ReadMyMindTkn}      -- Data entry/read
 <0>  go                                      {newToken GoTkn}              -- Data exit/write
 <0>  goslowly                                {newToken GoSlowlyTkn}        -- Data exit/writeln
@@ -105,7 +105,7 @@ data Token =
   CantStopTkn         { tknPos :: (Int, Int) }  |
   BreakthruTkn        { tknPos :: (Int, Int) }  |
   OneMoreTimeTkn      { tknPos :: (Int, Int) }  |
-  ToTkn               { tknPos :: (Int, Int) }  |
+  SemiColonTkn        { tknPos :: (Int, Int) }  |
   ReadMyMindTkn       { tknPos :: (Int, Int) }  |
   GoTkn               { tknPos :: (Int, Int) }  |
   GoSlowlyTkn         { tknPos :: (Int, Int) }  |
