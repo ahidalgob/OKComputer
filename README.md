@@ -31,7 +31,9 @@
   
   
 Estructura de un programa en OKComputer:
+
 maintheme(x)
+
   youbegin
     int a = 0
     float b
