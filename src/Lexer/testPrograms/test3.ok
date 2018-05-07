@@ -1,0 +1,13 @@
+maintheme(x)
+
+  youbegin
+    int a = 0
+    float b
+    b = 10
+    cantstop (b < 15)
+      youbegin
+        go("Numero actual: ")
+        go(b)
+        b = b +1
+      whereiend
+  whereiend
