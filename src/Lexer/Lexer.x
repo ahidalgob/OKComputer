@@ -26,9 +26,10 @@ tokens :-
 <0>  \;                                      {newToken SemiColonTkn}       -- For Iteration
 <0>  readmymind                              {newToken ReadMyMindTkn}      -- Data entry/read
 <0>  go                                      {newToken GoTkn}              -- Data exit/write
+<0>  gomental                                {newToken GoMentalTkn}        -- Data exit/write without blanks
 <0>  goslowly                                {newToken GoSlowlyTkn}        -- Data exit/writeln
-<0>  neworder                                {newToken NewOrderTkn}        -- Method/Proc
 <0>  dafunk                                  {newToken DaFunkTkn}          -- Method with return/Function
+<0>  \:                                      {newToken ColonTkn}           -- Method with return/Function
 <0>  getback                                 {newToken GetBackTkn}         -- Return
 <0>  intothevoid                             {newToken IntoTheVoidTkn}     -- Void
 <0>  newlife                                 {newToken NewLifeTkn}         -- Calloc
@@ -64,7 +65,6 @@ tokens :-
 <0>  \,                                      {newToken CommaTkn}
 <0>  \(                                      {newToken ParenOpenTkn}
 <0>  \)                                      {newToken ParenCloseTkn}
-<0>  \;                                      {newToken SemicolonTkn}
 <0>  \+                                      {newToken PlusTkn}
 <0>  \=\=                                    {newToken EqualTkn}
 <0>  \*                                      {newToken ProductTkn}

@@ -4,7 +4,6 @@ type Pos = (Int, Int)
 
 data Token =
 
-  MainThemeTkn        { tknPos :: (Int, Int) }  |
   YouBeginTkn         { tknPos :: (Int, Int) }  |
   WhereIEndTkn        { tknPos :: (Int, Int) }  |
   IfTkn               { tknPos :: (Int, Int) }  |
@@ -16,9 +15,10 @@ data Token =
   SemiColonTkn        { tknPos :: (Int, Int) }  |
   ReadMyMindTkn       { tknPos :: (Int, Int) }  |
   GoTkn               { tknPos :: (Int, Int) }  |
+  GoMentalTkn         { tknPos :: (Int, Int) }  |
   GoSlowlyTkn         { tknPos :: (Int, Int) }  |
-  NewOrderTkn         { tknPos :: (Int, Int) }  |
   DaFunkTkn           { tknPos :: (Int, Int) }  |
+  ColonTkn            { tknPos :: (Int, Int) }  |
   GetBackTkn          { tknPos :: (Int, Int) }  |
   IntoTheVoidTkn      { tknPos :: (Int, Int) }  |
   NewLifeTkn          { tknPos :: (Int, Int) }  |
@@ -50,7 +50,6 @@ data Token =
   CommaTkn            { tknPos :: (Int, Int) }  |
   ParenOpenTkn        { tknPos :: (Int, Int) }  |
   ParenCloseTkn       { tknPos :: (Int, Int) }  |
-  SemicolonTkn        { tknPos :: (Int, Int) }  |
   PlusTkn             { tknPos :: (Int, Int) }  |
   EqualTkn            { tknPos :: (Int, Int) }  |
   ProductTkn          { tknPos :: (Int, Int) }  |
