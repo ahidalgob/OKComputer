@@ -14,7 +14,6 @@ tokens :-
 <0>  "#".*                                      ; -- skip comments
 
   -- Instructions
-<0>  maintheme                               {newToken MainThemeTkn}       -- File Start
 <0>  youbegin                                {newToken YouBeginTkn}        -- Block Start
 <0>  whereiend                               {newToken WhereIEndTkn}       -- Block End
 <0>  if                                      {newToken IfTkn}              -- Selection
