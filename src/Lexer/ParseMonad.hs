@@ -161,12 +161,6 @@ pushInvalidC c pos = do
 
 
 
-getPos :: AlexInput -> Pos
-getPos ((AlexPn _ line col), _, _, _) = (line, col)
-
-getCurrentInput :: AlexInput -> String
-getCurrentInput (_, _, _, s) = s
-
 
 
 

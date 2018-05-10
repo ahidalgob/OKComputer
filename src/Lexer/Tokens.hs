@@ -1,7 +1,5 @@
 module Tokens where
 
-type Pos = (Int, Int)
-
 data Token =
 
   YouBeginTkn         { tknPos :: (Int, Int) }  |

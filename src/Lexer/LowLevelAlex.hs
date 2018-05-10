@@ -60,11 +60,18 @@ type Byte = Word8
 -- -----------------------------------------------------------------------------
 -- The input type
 
-
+type Pos = (Int, Int)
 type AlexInput = (AlexPosn,     -- current position,
                   Char,         -- previous char
                   [Byte],       -- pending bytes on current char
                   String)       -- current input string
+
+
+getPos :: AlexInput -> Pos
+getPos ((AlexPn _ line col), _, _, _) = (line, col)
+
+getCurrentInput :: AlexInput -> String
+getCurrentInput (_, _, _, s) = s
 
 ignorePendingBytes :: AlexInput -> AlexInput
 ignorePendingBytes (p,c,_ps,s) = (p,c,[],s)
