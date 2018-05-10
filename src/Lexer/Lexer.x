@@ -1,8 +1,8 @@
 {
-module Lexer(Token(..), Alex(Alex), alexMonadScan, AlexState(..), AlexUserState, runAlex) where
+module Lexer(Token(..), Alex(Alex), alexMonadScan, ParseState(..), AlexUserState, runAlex) where
 import Tokens
-
 import ParseMonad
+import LowLevelAlex
 
 }
 
