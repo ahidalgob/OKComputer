@@ -37,6 +37,7 @@
 
   -- Type Tokens
   int                                     { IntTkn}
+  pointer 								  { PointerTkn } 		-- Apuntador, agregar a LEXER
   float                                   { FloatTkn}
   char                                    { CharTkn}
   boolean                                 { BooleanTkn}
@@ -78,6 +79,7 @@
   id 									  { IdTkn _ _}
   n 									  { NumLiteralTkn _ _}
   newline 								  { }
+  c 									  { } -- char
   string								  { }
 
 
@@ -99,25 +101,50 @@ IMPORTS : IMPORT newline IMPORTS	{ }
 
 IMPORT : aroundtheworld	IDS		{ }
 
-LDECLARACIONES : DECLARACION newline LDECLARACIONES { }
-			   | DECLARACION					{ }
+LDECLARACIONES : DECLARACIONTIPO newline LDECLARACIONES { }
+			   | DECLARACIONTIPO					{ }
 
-DECLARACION : TIPO IDS { }
-			| TIPO IDS '=' EXPRESION { }
-			| TIPO IDS '=' EXPRESION ',' DECLARACION { }
-			| TUPLA { }
-			| ARREGLO { }
-			| ESTRUCTURA { }
+DECLARACIONTIPO : TIPO DECLARACION { }
+				| TUPLA { }
+				| ARREGLO { }
+				| ESTRUCTURA { }
 
-LFUNCIONES : FUNCION newline LFUNCIONES { }
-		   | FUNCION { }
+DECLARACION : IDS 	{ }
+			| IDS '=' EXPRESION 	{ }
+			| IDS '=' EXPRESION ',' DECLARACION 	{ }
 
-FUNCION : youbegin whereiend { }
+LFUNCIONES : FUNCIONINIC newline LFUNCIONES { }
+		   | FUNCIONINIC { }
+
+FUNCIONINIC : dafunk id '(' LPARAMETROSFUNC ')' ':' PARAMETROFUNCION youbegin DENTROFUNCION whereiend { }
+
+PARAMETROFUNCION : TIPO id { }
+			  	 | TIPO id '[' ']'	{ }
+			  	 | duets id '(' ')'		{ }
+			  	 | id id 		{ } 			-- Structs
+
+DENTROFUNCION : DECLARACIONTIPO newline DENTROFUNCION { }
+		 	  | INSTRUCCION newline DENTROFUNCION { }
+		 	  | DECLARACIONTIPO 			   { }
+		 	  | INSTRUCCION 			   { }
+
+LPARAMETROSFUNC : PARAMETROFUNCION ',' LPARAMETROSFUNC { }
+				| PARAMETROFUNCION 	{ }
+
+INSTRUCCION : go IMPRIMIR 		{ }
+			| goslowly IMPRIMIR 	{ }
+			| gomental IMPRIMIR		{ }
+
+IMPRIMIR : string ',' IMPRIMIR 	{ }
+		 | id ',' 	  IMPRIMIR  { }
+		 | string 				{ }
+		 | id 					{ }
 
 IDS : id ',' IDS { }
 	| id 	{ }
 
 TIPO : int { }
+	 | pointer 	{ }
 	 | float { }
 	 | boolean { }
 	 | char { }
@@ -128,11 +155,49 @@ ARREGLO : TIPO id '[' n ']'		{ }
 
 ESTRUCTURA : band id id '(' LDECLARACIONES ')'		{ }
 		   | union id id '(' LDECLARACIONES ')'	{ }
-		   | id id '(' LPARAMETROS ')'	{ }
+		   | id id '(' LPARAMETROSESTRUC ')'	{ }
 
 TUPLA : duets id '(' TIPO ',' TIPO ',' n ')'		{ }
 	  | duets id '(' TIPO ',' TIPO ',' id ')' 	{ }
 
-EXPRESION : n 	{ }
+EXPRESION : id 	{ }
+		  | n 	{ }
+		  | string	{ }
+		  | c 	{ }
+		  | ok 	{ }
+		  | notok 	{ }
+		  | '(' EXPRESION ')' { }
+		  | EXPRESION '<' EXPRESION { }
+		  | EXPRESION '>' EXPRESION { }
+		  | EXPRESION '<=' EXPRESION { }
+		  | EXPRESION '>=' EXPRESION { }
+		  | EXPRESION '==' EXPRESION { }
+		  | EXPRESION '!=' EXPRESION { }
+		  | not EXPRESION { }
+		  | EXPRESION and EXPRESION { }
+		  | EXPRESION or EXPRESION { }
+		  | '-' EXPRESION	{ }
+		  | EXPRESION '+' EXPRESION { }
+		  | EXPRESION '-' EXPRESION { }
+		  | EXPRESION '*' EXPRESION { }
+		  | EXPRESION '/' EXPRESION { }
+		  | EXPRESION '%' EXPRESION { }
+		  | EXPRESION mod EXPRESION { }
+		  | EXPRESION div EXPRESION { }
+		  | EXPRESIONTUPLA 			{ }
+		  | EXPRESIONARREGLO 		{ }
+		  | EXPRESIONESTRUCTURA 	{ }
 
-LPARAMETROS : right 	{ }
+EXPRESIONTUPLA : left id '(' n ')'	{ } -- x = left tupla1(2)
+			   | right id '(' n ')'	{ } -- x = right tupla1(1)
+			   | left id '(' id ')'	{ } 
+			   | right id '(' id ')'	{ } 
+
+EXPRESIONARREGLO : id '[' n ']'		{ }
+				 | id '[' id ']'	{ }
+
+EXPRESIONESTRUCTURA : id '(' id ')' 	{ }
+
+LPARAMETROSESTRUC : id '=' EXPRESION ',' LPARAMETROSESTRUC 	{ }
+				  | id '=' EXPRESION 		{ }
+
