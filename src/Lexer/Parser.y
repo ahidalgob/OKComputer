@@ -109,9 +109,14 @@ DECLARACIONTIPO : TIPO DECLARACION { }
 				| ARREGLO { }
 				| ESTRUCTURA { }
 
-DECLARACION : IDS 	{ }
-			| IDS '=' EXPRESION 	{ }
-			| IDS '=' EXPRESION ',' DECLARACION 	{ }
+-- DECLARACION : IDS 	{ }
+--			| IDS '=' EXPRESION 	{ }
+--			| IDS '=' EXPRESION ',' DECLARACION 	{ }
+
+DECLARACION : id '=' EXPRESION { }
+            | id '=' EXPRESION ',' DECLARACION { }
+            | id                 { }
+            | id ',' DECLARACION { }
 
 LFUNCIONES : FUNCIONINIC newline LFUNCIONES { }
 		   | FUNCIONINIC { }
