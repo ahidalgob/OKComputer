@@ -1,9 +1,10 @@
 {
 module Lexer(Token(..), Alex(Alex), alexMonadScan, AlexState(..), AlexUserState, runAlex) where
 import Tokens
-}
 
-%wrapper "monadUserState"
+import ParseMonad
+
+}
 
 
 $digit = 0-9            -- digits
@@ -90,62 +91,55 @@ tokens :-
 
   .                                             {invalidCharacter}
 
+--"
 {
 
 
-alexEOF :: Alex [Token]
-alexEOF = return []
-
-
---------- User State
-data AlexUserState = AlexUserState {
-                        invalidC :: [(Char, Pos)],
-                        strPos :: Pos,
-                        str :: String
-                        } deriving Show
-
-alexInitUserState :: AlexUserState
-alexInitUserState = AlexUserState{invalidC=[], strPos=(0,0), str=""}
-
-
-pushStrC :: Char -> Alex ()
-pushStrC c = do
-  ust <- alexGetUserState
-  alexSetUserState ust{str = c:str ust}
-
-getAndClearStr :: Alex String
-getAndClearStr = do
-  ust <- alexGetUserState
-  let s = str ust
-  alexSetUserState ust{str=""}
-  return $ reverse s
-
-setStrPos :: Pos -> Alex ()
-setStrPos pos = do
-  ust <- alexGetUserState
-  alexSetUserState ust{strPos = pos}
-
-getStrPos :: Alex Pos
-getStrPos = do
-  ust <- alexGetUserState
-  return $ strPos ust
 
 
 
-pushInvalidC :: Char -> Pos -> Alex ()
-pushInvalidC c pos = do
-  ust <- alexGetUserState
-  alexSetUserState ust{invalidC = (c,pos):invalidC ust}
 
 
 
-getPos :: AlexInput -> Pos
-getPos ((AlexPn _ line col), _, _, _) = (line, col)
-
-getCurrentInput :: AlexInput -> String
-getCurrentInput (_, _, _, s) = s
 
 
+
+
+
+alexMonadScan = do
+  inp__ <- alexGetInput
+  sc <- alexGetStartCode
+  case alexScan inp__ sc of
+    AlexEOF -> alexEOF
+    AlexError ((AlexPn _ line column),_,_,_) -> alexError $ "lexical error at line " ++ (show line) ++ ", column " ++ (show column)
+    AlexSkip  inp__' _len -> do
+        alexSetInput inp__'
+        alexMonadScan
+    AlexToken inp__' len action -> do
+        alexSetInput inp__'
+        action (ignorePendingBytes inp__) len
+
+-- -----------------------------------------------------------------------------
+-- Useful token actions
+
+type AlexAction result = AlexInput -> Int -> Alex result
+
+-- just ignore this token and scan another one
+-- skip :: AlexAction result
+skip _input _len = alexMonadScan
+
+-- ignore this token, but set the start code to a new value
+-- begin :: Int -> AlexAction result
+begin code _input _len = do alexSetStartCode code; alexMonadScan
+
+-- perform an action for this token, and set the start code to a new value
+andBegin :: AlexAction result -> Int -> AlexAction result
+(action `andBegin` code) input__ len = do
+  alexSetStartCode code
+  action input__ len
+
+token :: (AlexInput -> Int -> token) -> AlexAction token
+token t input__ len = return (t input__ len)
 
 
 
@@ -183,6 +177,7 @@ invalidCharacter = \alexIn _ -> do
       c = head $ getCurrentInput alexIn
   pushInvalidC c pos
   alexMonadScan
+
 
 
 }
