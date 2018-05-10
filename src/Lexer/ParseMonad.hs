@@ -43,11 +43,11 @@ initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
                               alex_str = ""}
 
 
-type ParseM a = StateT ParseState (Except String) a
+type ParseM a = StateT ParseState (ExceptT String IO) a
 
 
-runParseM :: String -> ParseM a -> Either String (a, ParseState)
-runParseM s f  = runExcept $ runStateT f (initParseState s)
+runParseM :: String -> ParseM a -> IO(Either String (a, ParseState))
+runParseM s f  = runExceptT $ runStateT f (initParseState s)
 
 
 getAlexInput :: ParseM AlexInput

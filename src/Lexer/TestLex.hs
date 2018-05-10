@@ -3,7 +3,7 @@ import System.Environment
 
 main = do
   code <- getArgs >>= readFile.head
-  let alexed = runParseM code alexMonadScan
+  alexed <- runParseM code alexMonadScan
   case alexed of
       Left msg -> print msg
       Right (tokens, state) -> do
