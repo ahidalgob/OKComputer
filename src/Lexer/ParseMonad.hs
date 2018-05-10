@@ -2,8 +2,8 @@ module ParseMonad where
 import Tokens
 import LowLevelAlex
 
-
-
+import Control.Monad.State.Lazy
+import Control.Monad.Except
 
 # 1 "/usr/include/stdc-predef.h" 1 3 4
 # 17 "/usr/include/stdc-predef.h" 3 4
@@ -19,149 +19,69 @@ import LowLevelAlex
 -- This code is in the PUBLIC DOMAIN; you may copy it freely and use
 -- it for any purpose whatsoever.
 
-
-import Control.Applicative as App (Applicative (..))
-import qualified Control.Monad (ap)
+-- Compile with -funbox-strict-fields for best results!
 
 import Data.Char (ord)
 
 
 
-
-
--- -----------------------------------------------------------------------------
--- Default monad
-
-
 data ParseState = ParseState {
-        alex_pos :: !AlexPosn,  -- position at current input location
-        alex_inp :: String,     -- the current input
-        alex_chr :: !Char,      -- the character before the input
-        alex_bytes :: [Byte],
-        alex_scd :: !Int        -- the current startcode
+        alex_inp :: AlexInput,    -- the current input
+        alex_scd :: !Int,          -- the current startcode
 
-      , alex_ust :: AlexUserState -- AlexUserState will be defined in the user program
-
+        alex_invalidC :: [(Char, Pos)],
+        alex_strPos :: Pos,
+        alex_str :: String
     }
 
--- Compile with -funbox-strict-fields for best results!
 
-runAlex :: String -> Alex a -> Either String a
-runAlex input__ (Alex f)
-   = case f (ParseState {alex_pos = alexStartPos,
-                        alex_inp = input__,
-                        alex_chr = '\n',
-                        alex_bytes = [],
-
-                        alex_ust = alexInitUserState,
-
-                        alex_scd = 0}) of Left msg -> Left msg
-                                          Right ( _, a ) -> Right a
-
-newtype Alex a = Alex { unAlex :: ParseState -> Either String (ParseState, a) }
-
-instance Functor Alex where
-  fmap f a = Alex $ \s -> case unAlex a s of
-                            Left msg -> Left msg
-                            Right (s', a') -> Right (s', f a')
-
-instance Applicative Alex where
-  pure a   = Alex $ \s -> Right (s, a)
-  fa <*> a = Alex $ \s -> case unAlex fa s of
-                            Left msg -> Left msg
-                            Right (s', f) -> case unAlex a s' of
-                                               Left msg -> Left msg
-                                               Right (s'', b) -> Right (s'', f b)
-
-instance Monad Alex where
-  m >>= k  = Alex $ \s -> case unAlex m s of
-                                Left msg -> Left msg
-                                Right (s',a) -> unAlex (k a) s'
-  return = App.pure
-
-alexGetInput :: Alex AlexInput
-alexGetInput
- = Alex $ \s@ParseState{alex_pos=pos,alex_chr=c,alex_bytes=bs,alex_inp=inp__} ->
-        Right (s, (pos,c,bs,inp__))
-
-alexSetInput :: AlexInput -> Alex ()
-alexSetInput (pos,c,bs,inp__)
- = Alex $ \s -> case s{alex_pos=pos,alex_chr=c,alex_bytes=bs,alex_inp=inp__} of
-                  state__@(ParseState{}) -> Right (state__, ())
-
-alexError :: String -> Alex a
-alexError message = Alex $ const $ Left message
-
-alexGetStartCode :: Alex Int
-alexGetStartCode = Alex $ \s@ParseState{alex_scd=sc} -> Right (s, sc)
-
-alexSetStartCode :: Int -> Alex ()
-alexSetStartCode sc = Alex $ \s -> Right (s{alex_scd=sc}, ())
+initParseState :: String -> ParseState
+initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
+                              alex_scd = 0,
+                              alex_invalidC = [],
+                              alex_strPos = (0,0),
+                              alex_str = ""}
 
 
-alexGetUserState :: Alex AlexUserState
-alexGetUserState = Alex $ \s@ParseState{alex_ust=ust} -> Right (s,ust)
+type ParseM a = StateT ParseState (Except String) a
 
-alexSetUserState :: AlexUserState -> Alex ()
-alexSetUserState ss = Alex $ \s -> Right (s{alex_ust=ss}, ())
+
+runParseM :: String -> ParseM a -> Either String (a, ParseState)
+runParseM s f  = runExcept $ runStateT f (initParseState s)
+
+
+getAlexInput :: ParseM AlexInput
+getAlexInput = gets alex_inp
+
+setAlexInput :: AlexInput -> ParseM ()
+setAlexInput inp = modify (\s -> s{alex_inp=inp})
+
+parseMError :: String -> ParseM a
+parseMError message = throwError message
+
+getAlexStartCode :: ParseM Int
+getAlexStartCode = gets alex_scd
+
+setAlexStartCode:: Int -> ParseM ()
+setAlexStartCode sc = modify (\s -> s{alex_scd=sc})
 
 
 
+pushStrC :: Char -> ParseM ()
+pushStrC c = modify (\s -> s{alex_str = c:alex_str s})
 
-
-
-
-
-
-
-
-alexEOF :: Alex [Token]
-alexEOF = return []
-
-
---------- User State
-data AlexUserState = AlexUserState {
-                        invalidC :: [(Char, Pos)],
-                        strPos :: Pos,
-                        str :: String
-                        } deriving Show
-
-alexInitUserState :: AlexUserState
-alexInitUserState = AlexUserState{invalidC=[], strPos=(0,0), str=""}
-
-
-pushStrC :: Char -> Alex ()
-pushStrC c = do
-  ust <- alexGetUserState
-  alexSetUserState ust{str = c:str ust}
-
-getAndClearStr :: Alex String
+getAndClearStr :: ParseM String
 getAndClearStr = do
-  ust <- alexGetUserState
-  let s = str ust
-  alexSetUserState ust{str=""}
-  return $ reverse s
+  str <- gets alex_str
+  modify (\s -> s{alex_str = ""})
+  return $ reverse str
 
-setStrPos :: Pos -> Alex ()
-setStrPos pos = do
-  ust <- alexGetUserState
-  alexSetUserState ust{strPos = pos}
+setStrPos :: Pos -> ParseM ()
+setStrPos pos = modify (\s -> s{alex_strPos = pos})
 
-getStrPos :: Alex Pos
-getStrPos = do
-  ust <- alexGetUserState
-  return $ strPos ust
+getStrPos :: ParseM Pos
+getStrPos = gets alex_strPos
 
-
-
-pushInvalidC :: Char -> Pos -> Alex ()
-pushInvalidC c pos = do
-  ust <- alexGetUserState
-  alexSetUserState ust{invalidC = (c,pos):invalidC ust}
-
-
-
-
-
-
+pushInvalidC :: Char -> Pos -> ParseM ()
+pushInvalidC c pos = modify (\s -> s{alex_invalidC = (c,pos):alex_invalidC s})
 

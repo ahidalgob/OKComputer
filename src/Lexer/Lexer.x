@@ -1,5 +1,5 @@
 {
-module Lexer(Token(..), Alex(Alex), alexMonadScan, ParseState(..), AlexUserState, runAlex) where
+module Lexer(Token(..), ParseM, alexMonadScan, ParseState(..), runParseM) where
 import Tokens
 import ParseMonad
 import LowLevelAlex
@@ -101,28 +101,28 @@ tokens :-
 
 
 
-
-
+alexEOF :: ParseM [Token]
+alexEOF = return []
 
 
 
 alexMonadScan = do
-  inp__ <- alexGetInput
-  sc <- alexGetStartCode
+  inp__ <- getAlexInput
+  sc <- getAlexStartCode
   case alexScan inp__ sc of
     AlexEOF -> alexEOF
-    AlexError ((AlexPn _ line column),_,_,_) -> alexError $ "lexical error at line " ++ (show line) ++ ", column " ++ (show column)
+    AlexError ((AlexPn _ line column),_,_,_) -> parseMError $ "lexical error at line " ++ (show line) ++ ", column " ++ (show column)
     AlexSkip  inp__' _len -> do
-        alexSetInput inp__'
+        setAlexInput inp__'
         alexMonadScan
     AlexToken inp__' len action -> do
-        alexSetInput inp__'
+        setAlexInput inp__'
         action (ignorePendingBytes inp__) len
 
 -- -----------------------------------------------------------------------------
 -- Useful token actions
 
-type AlexAction result = AlexInput -> Int -> Alex result
+type AlexAction result = AlexInput -> Int -> ParseM result
 
 -- just ignore this token and scan another one
 -- skip :: AlexAction result
@@ -130,16 +130,28 @@ skip _input _len = alexMonadScan
 
 -- ignore this token, but set the start code to a new value
 -- begin :: Int -> AlexAction result
-begin code _input _len = do alexSetStartCode code; alexMonadScan
+begin code _input _len = do setAlexStartCode code; alexMonadScan
 
 -- perform an action for this token, and set the start code to a new value
 andBegin :: AlexAction result -> Int -> AlexAction result
 (action `andBegin` code) input__ len = do
-  alexSetStartCode code
+  setAlexStartCode code
   action input__ len
 
 token :: (AlexInput -> Int -> token) -> AlexAction token
 token t input__ len = return (t input__ len)
+
+
+
+
+------------------------------------------------------------
+------------------------- End of Alex Required functions
+
+
+
+
+
+
 
 
 
@@ -157,7 +169,7 @@ newStringToken tknConstr = \alexIn len -> do
 
 beginString :: AlexAction [Token]
 beginString = \alexIn _ -> do
-  alexSetStartCode 1 -- ???
+  setAlexStartCode 1 -- ???
   setStrPos $ getPos alexIn
   alexMonadScan
 
@@ -165,10 +177,10 @@ addCharToString = \alexIn _ -> do
   pushStrC (head $ getCurrentInput alexIn)
   alexMonadScan
 
-endString = \alexIn _ -> do
+endString = \_ _ -> do
   s <- getAndClearStr
   pos <- getStrPos
-  alexSetStartCode 0
+  setAlexStartCode 0
   (StringTkn pos s :) <$> alexMonadScan
 
 invalidCharacter :: AlexAction [Token]

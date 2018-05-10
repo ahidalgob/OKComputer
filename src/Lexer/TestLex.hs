@@ -3,10 +3,9 @@ import System.Environment
 
 main = do
   code <- getArgs >>= readFile.head
-  let alexed = runAlex code (alexMonadScan >>=
-              (\lt -> Alex (\s -> Right (s, (s,lt)))))
+  let alexed = runParseM code alexMonadScan
   case alexed of
       Left msg -> print msg
-      Right (state, tokens) -> do
-          print (alex_ust state)
+      Right (tokens, state) -> do
+          print (alex_invalidC state)
           mapM_ print tokens
