@@ -18,13 +18,13 @@
   cantstop                                { CantStopTkn $$ }        -- While Iteration
   breakthru                               { BreakthruTkn _ }       -- Break
   onemoretime                             { OneMoreTimeTkn $$ }     -- For Iteration
-  ';'                                       { SemiColonTkn _ }       -- For Iteration
+  ';'                                     { SemiColonTkn _ }       -- For Iteration
   readmymind                              { ReadMyMindTkn $$ }      -- Data entry/read
   go                                      { GoTkn $$ }              -- Data exit/write
   gomental								  { GoMental $$ }
   goslowly                                { GoSlowlyTkn $$ }        -- Data exit/writeln
-  dafunk                                  { DaFunkTkn}          -- Method with return/Function
-  ':'    	                                  { ColonTkn}           -- Method with return/Function
+  dafunk                                  { DaFunkTkn $$}          -- Method with return/Function
+  ':'    	                              { ColonTkn}           -- Method with return/Function
   getback                                 { GetBackTkn}         -- Return
   intothevoid                             { IntoTheVoidTkn}     -- Void
   newlife                                 { NewLifeTkn}         -- Calloc
@@ -77,7 +77,8 @@
   -- Otros
   id 									  { IdTkn _ _}
   n 									  { NumLiteralTkn _ _}
-  -- string								  { que va aqui?? }
+  newline 								  { }
+  string								  { }
 
 
 %left or
@@ -90,18 +91,48 @@
 %%
 -- Start
 START : IMPORTS LDECLARACIONES LFUNCIONES { }
+	  | LDECLARACIONES LFUNCIONES		  { }
+	  | LFUNCIONES						  { }
 
-IMPORTS : IMPORT IMPORTS	{ }
-		| {-empty-}			{ }
+IMPORTS : IMPORT newline IMPORTS	{ }
+		| IMPORT			{ }
 
-IMPORT : aroundtheworld			{ }
+IMPORT : aroundtheworld	IDS		{ }
 
-LDECLARACIONES : DECLARACION LDECLARACIONES { }
-			   | {-empty-}					{ }
+LDECLARACIONES : DECLARACION newline LDECLARACIONES { }
+			   | DECLARACION					{ }
 
-DECLARACION : id { }
+DECLARACION : TIPO IDS { }
+			| TIPO IDS '=' EXPRESION { }
+			| TIPO IDS '=' EXPRESION ',' DECLARACION { }
+			| TUPLA { }
+			| ARREGLO { }
+			| ESTRUCTURA { }
 
-LFUNCIONES : FUNCION LFUNCIONES { }
-		   | {-empty-} { }
+LFUNCIONES : FUNCION newline LFUNCIONES { }
+		   | FUNCION { }
 
 FUNCION : youbegin whereiend { }
+
+IDS : id ',' IDS { }
+	| id 	{ }
+
+TIPO : int { }
+	 | float { }
+	 | boolean { }
+	 | char { }
+	 | string { }
+
+ARREGLO : TIPO id '[' n ']'		{ }
+		| TIPO id '[' id ']'	{ }
+
+ESTRUCTURA : band id id '(' LDECLARACIONES ')'		{ }
+		   | union id id '(' LDECLARACIONES ')'	{ }
+		   | id id '(' LPARAMETROS ')'	{ }
+
+TUPLA : duets id '(' TIPO ',' TIPO ',' n ')'		{ }
+	  | duets id '(' TIPO ',' TIPO ',' id ')' 	{ }
+
+EXPRESION : n 	{ }
+
+LPARAMETROS : right 	{ }
