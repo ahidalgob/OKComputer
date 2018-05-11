@@ -92,19 +92,19 @@
 
 %%
 -- Start
-START : IMPORTS LDECLARACIONES LFUNCIONES { }
-	  | LDECLARACIONES LFUNCIONES		  { }
+START : IMPORTS newline LDECLARACIONES newline LFUNCIONES { }
+	  | LDECLARACIONES newline LFUNCIONES		  { }
 	  | LFUNCIONES						  { }
 
-IMPORTS : IMPORT newline IMPORTS	{ }
+IMPORTS : IMPORT IMPORTS	{ }
 		| IMPORT			{ }
 
-IMPORT : aroundtheworld	IDS		{ }
+IMPORT : aroundtheworld	IDS	newline	{ }
 
-LDECLARACIONES : DECLARACION newline LDECLARACIONES { }
+LDECLARACIONES : DECLARACION LDECLARACIONES { }
 			   | DECLARACION					{ }
 
-DECLARACION : TIPO DECLARACIONTIPO { }
+DECLARACION : TIPO DECLARACIONTIPO newline { }
 				| TUPLA { }
 				| ARREGLO { }
 				| ESTRUCTURA { }
@@ -124,43 +124,43 @@ LFUNCIONES : FUNCIONINIC newline LFUNCIONES { }
 
 -- Probablemente vaya newline antes del youbegin y whereiend
 
-FUNCIONINIC : dafunk id '(' LPARAMETROSFUNC ')' ':' PARAMETROFUNCION youbegin DENTROFUNCION whereiend { }
-			| dafunk id '(' LPARAMETROSFUNC ')' ':' intothevoid youbegin DENTROFUNCION whereiend { }
-			| dafunk id '(' ')' ':' PARAMETROFUNCION youbegin DENTROFUNCION whereiend { }
-			| dafunk id '(' ')' ':' intothevoid youbegin DENTROFUNCION whereiend { }
+FUNCIONINIC : dafunk id '(' LPARAMETROSFUNC ')' ':' PARAMETROFUNCION newline youbegin newline DENTROFUNCION newline whereiend  { }
+			| dafunk id '(' LPARAMETROSFUNC ')' ':' intothevoid newline youbegin newline DENTROFUNCION newline whereiend  { }
+			| dafunk id '(' ')' ':' PARAMETROFUNCION newline youbegin newline DENTROFUNCION newline whereiend  { }
+			| dafunk id '(' ')' ':' intothevoid newline youbegin newline DENTROFUNCION newline whereiend { }
 
 PARAMETROFUNCION : TIPO id { }
 			  	 | TIPO id '[' ']'	{ }
 			  	 | duets id '(' ')'		{ }
 			  	 | id id 		{ } 			-- Structs
 
-DENTROFUNCION : DECLARACION newline DENTROFUNCION { }
-		 	  | INSTRUCCION newline DENTROFUNCION { }
+DENTROFUNCION : DECLARACION DENTROFUNCION { }
+		 	  | INSTRUCCION DENTROFUNCION { }
 		 	  | DECLARACION 			   { }
 		 	  | INSTRUCCION 			   { }
 
 LPARAMETROSFUNC : PARAMETROFUNCION ',' LPARAMETROSFUNC { }
 				| PARAMETROFUNCION 	{ }
 
--- Probablemente vaya newline antes del youbegin y whereiend
-INSTRUCCION : go IMPRIMIR 		{ }
-			| goslowly IMPRIMIR 	{ }
-			| gomental IMPRIMIR		{ }
-      		| amnesiac '(' id ')' { }
-     		| readmymind '(' id ')' { }
-     		| if EXPRESION youbegin DENTROFUNCION whereiend { }
-      		| if EXPRESION youbegin DENTROFUNCION whereiend IFELSE { }      -- No se si necesitaria newline
-      		| cantstop EXPRESION youbegin DENTROFUNCION whereiend { }
-      		| onemoretime TIPO id '=' EXPRESION ';' EXPRESION ';'EXPRESION youbegin DENTROFUNCION whereiend { }
-      		| id '=' EXPRESION { }
-      		| getback EXPRESION { }
-      		| breakthru 	{ }
-      		| exitmusic 	{ }
+-- Probablemente vaya newline antes del youbegin y whereiend PUESTOS
+INSTRUCCION : go '(' IMPRIMIR ')' newline	{ }
+			| goslowly '(' IMPRIMIR ')' newline	{ }
+			| gomental '(' IMPRIMIR ')'	newline	{ }
+      		| amnesiac '(' id ')' newline { }
+     		| readmymind '(' id ')' newline { }
+     		| if EXPRESION newline youbegin newline DENTROFUNCION whereiend newline { }
+      		| if EXPRESION newline youbegin newline DENTROFUNCION whereiend newline IFELSE { }      -- No se si necesitaria newline
+      		| cantstop EXPRESION newline youbegin newline DENTROFUNCION newline whereiend newline { }
+      		| onemoretime TIPO id '=' EXPRESION ';' EXPRESION ';'EXPRESION newline youbegin newline DENTROFUNCION whereiend newline { }
+      		| id '=' EXPRESION newline { }
+      		| getback EXPRESION newline { }
+      		| breakthru newline	{ }
+      		| exitmusic newline	{ }
 
 
 
-IFELSE : ifyouhavetoask EXPRESION youbegin DENTROFUNCION whereiend IFELSE { }
-       | otherside youbegin DENTROFUNCION whereiend { }
+IFELSE : ifyouhavetoask EXPRESION newline youbegin newline DENTROFUNCION whereiend newline IFELSE { }
+       | otherside newline youbegin newline DENTROFUNCION newline whereiend newline{ }
 
 -- ONEMORETIMEDEC : TIPO id '=' E
 
