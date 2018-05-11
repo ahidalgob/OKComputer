@@ -28,12 +28,12 @@
   getback                                 { GetBackTkn}         -- Return
   intothevoid                             { IntoTheVoidTkn}     -- Void
   newlife                                 { NewLifeTkn}         -- Calloc
-  saveme                                  { SaveMeTkn}          -- Malloc
-  keepyourselfalive                       { KeepAliveTkn}       -- Realloc
+--  saveme                                  { SaveMeTkn}          -- Malloc
+--  keepyourselfalive                       { KeepAliveTkn}       -- Realloc
   amnesiac                                { AmnesiacTkn}        -- Free
   exitmusic                               { ExitMusicTkn}       -- Exit
   aroundtheworld                          { AroundTheWorldTkn}  -- Import
-  holeinmysoul                            { HoleInMySoulTkn}    -- Templates
+--  holeinmysoul                            { HoleInMySoulTkn}    -- Templates
 
   -- Type Tokens
   int                                     { IntTkn}
@@ -47,7 +47,7 @@
   ']'                                      { ArrayEndTkn}
   band                                    { BandTkn}            -- Registers/structs
   union                                   { UnionTkn}
-  '&'                                      { PointerTkn}         -- Pointers
+--  '&'                                      { PointerTkn}         -- Pointers
   duets                                   { DuetsTkn}           -- Tuple
   left                                    { LeftTkn}
   right                                   { RightTkn}
@@ -72,7 +72,7 @@
   '<='                                    { LessEqualTkn}
   '>'                                      { GreaterTkn}
   '<'                                      { LessTkn}
-  '->'                                    { TypeTkn}
+ -- '->'                                    { TypeTkn}
   '='                                      { AssignTkn}
 
   -- Otros
@@ -101,44 +101,68 @@ IMPORTS : IMPORT newline IMPORTS	{ }
 
 IMPORT : aroundtheworld	IDS		{ }
 
-LDECLARACIONES : DECLARACIONTIPO newline LDECLARACIONES { }
-			   | DECLARACIONTIPO					{ }
+LDECLARACIONES : DECLARACION newline LDECLARACIONES { }
+			   | DECLARACION					{ }
 
-DECLARACIONTIPO : TIPO DECLARACION { }
+DECLARACION : TIPO DECLARACIONTIPO { }
 				| TUPLA { }
 				| ARREGLO { }
 				| ESTRUCTURA { }
+        		| newlife id { }      -- No estoy claro todavia como haremos esto
 
 -- DECLARACION : IDS 	{ }
 --			| IDS '=' EXPRESION 	{ }
 --			| IDS '=' EXPRESION ',' DECLARACION 	{ }
 
-DECLARACION : id '=' EXPRESION { }
-            | id '=' EXPRESION ',' DECLARACION { }
+DECLARACIONTIPO : id '=' EXPRESION { }
+            | id '=' EXPRESION ',' DECLARACIONTIPO { }
             | id                 { }
-            | id ',' DECLARACION { }
+            | id ',' DECLARACIONTIPO { }
 
 LFUNCIONES : FUNCIONINIC newline LFUNCIONES { }
 		   | FUNCIONINIC { }
 
+-- Probablemente vaya newline antes del youbegin y whereiend
+
 FUNCIONINIC : dafunk id '(' LPARAMETROSFUNC ')' ':' PARAMETROFUNCION youbegin DENTROFUNCION whereiend { }
+			| dafunk id '(' LPARAMETROSFUNC ')' ':' intothevoid youbegin DENTROFUNCION whereiend { }
+			| dafunk id '(' ')' ':' PARAMETROFUNCION youbegin DENTROFUNCION whereiend { }
+			| dafunk id '(' ')' ':' intothevoid youbegin DENTROFUNCION whereiend { }
 
 PARAMETROFUNCION : TIPO id { }
 			  	 | TIPO id '[' ']'	{ }
 			  	 | duets id '(' ')'		{ }
 			  	 | id id 		{ } 			-- Structs
 
-DENTROFUNCION : DECLARACIONTIPO newline DENTROFUNCION { }
+DENTROFUNCION : DECLARACION newline DENTROFUNCION { }
 		 	  | INSTRUCCION newline DENTROFUNCION { }
-		 	  | DECLARACIONTIPO 			   { }
+		 	  | DECLARACION 			   { }
 		 	  | INSTRUCCION 			   { }
 
 LPARAMETROSFUNC : PARAMETROFUNCION ',' LPARAMETROSFUNC { }
 				| PARAMETROFUNCION 	{ }
 
+-- Probablemente vaya newline antes del youbegin y whereiend
 INSTRUCCION : go IMPRIMIR 		{ }
 			| goslowly IMPRIMIR 	{ }
 			| gomental IMPRIMIR		{ }
+      		| amnesiac '(' id ')' { }
+     		| readmymind '(' id ')' { }
+     		| if EXPRESION youbegin DENTROFUNCION whereiend { }
+      		| if EXPRESION youbegin DENTROFUNCION whereiend IFELSE { }      -- No se si necesitaria newline
+      		| cantstop EXPRESION youbegin DENTROFUNCION whereiend { }
+      		| onemoretime TIPO id '=' EXPRESION ';' EXPRESION ';'EXPRESION youbegin DENTROFUNCION whereiend { }
+      		| id '=' EXPRESION { }
+      		| getback EXPRESION { }
+      		| breakthru 	{ }
+      		| exitmusic 	{ }
+
+
+
+IFELSE : ifyouhavetoask EXPRESION youbegin DENTROFUNCION whereiend IFELSE { }
+       | otherside youbegin DENTROFUNCION whereiend { }
+
+-- ONEMORETIMEDEC : TIPO id '=' E
 
 IMPRIMIR : string ',' IMPRIMIR 	{ }
 		 | id ',' 	  IMPRIMIR  { }
