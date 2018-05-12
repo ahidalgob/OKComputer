@@ -4,6 +4,8 @@
 {
 	module Parser where
 	import Lexer
+    import ParseMonad
+    import Tokens
 }
 
 %name parse
@@ -85,148 +87,148 @@
 
 %left or
 %left and
-%nonassoc '>' '<' '==' '!=' '>=' '<=' 
+%nonassoc '>' '<' '==' '!=' '>=' '<='
 %left '+' '-'
 %left '*' '/' '%' mod div
 %nonassoc not
 
 %%
 -- Start
-START : IMPORTS newline LDECLARACIONES newline LFUNCIONES { }
-	  | LDECLARACIONES newline LFUNCIONES		  { }
-	  | LFUNCIONES						  { }
+START : IMPORTS newline LDECLARATIONS newline LFUNCTIONS { }
+	  | LDECLARATIONS newline LFUNCTIONS		  { }
+	  | LFUNCTIONS						  { }
 
 IMPORTS : IMPORT IMPORTS	{ }
 		| IMPORT			{ }
 
 IMPORT : aroundtheworld	IDS	newline	{ }
 
-LDECLARACIONES : DECLARACION LDECLARACIONES { }
-			   | DECLARACION					{ }
+LDECLARATIONS : DECLARATION LDECLARATIONS { }
+			   | DECLARATION					{ }
 
-DECLARACION : TIPO DECLARACIONTIPO newline { }
-				| TUPLA { }
-				| ARREGLO { }
-				| ESTRUCTURA { }
+DECLARATION : TYPE DECLARATIONTYPE newline { }
+				| TUPLE { }
+				| ARRAY { }
+				| STRUCT { }
         		| newlife id { }      -- No estoy claro todavia como haremos esto
 
--- DECLARACION : IDS 	{ }
---			| IDS '=' EXPRESION 	{ }
---			| IDS '=' EXPRESION ',' DECLARACION 	{ }
+-- DECLARATION : IDS 	{ }
+--			| IDS '=' EXPRESSION 	{ }
+--			| IDS '=' EXPRESSION ',' DECLARATION 	{ }
 
-DECLARACIONTIPO : id '=' EXPRESION { }
-            | id '=' EXPRESION ',' DECLARACIONTIPO { }
+DECLARATIONTYPE : id '=' EXPRESSION { }
+            | id '=' EXPRESSION ',' DECLARATIONTYPE { }
             | id                 { }
-            | id ',' DECLARACIONTIPO { }
+            | id ',' DECLARATIONTYPE { }
 
-LFUNCIONES : FUNCIONINIC newline LFUNCIONES { }
+LFUNCTIONS : FUNCIONINIC newline LFUNCTIONS { }
 		   | FUNCIONINIC { }
 
 -- Probablemente vaya newline antes del youbegin y whereiend
 
-FUNCIONINIC : dafunk id '(' LPARAMETROSFUNC ')' ':' PARAMETROFUNCION newline youbegin newline DENTROFUNCION newline whereiend  { }
-			| dafunk id '(' LPARAMETROSFUNC ')' ':' intothevoid newline youbegin newline DENTROFUNCION newline whereiend  { }
-			| dafunk id '(' ')' ':' PARAMETROFUNCION newline youbegin newline DENTROFUNCION newline whereiend  { }
-			| dafunk id '(' ')' ':' intothevoid newline youbegin newline DENTROFUNCION newline whereiend { }
+FUNCIONINIC : dafunk id '(' LPARAMETERSFUNC ')' ':' PARAMETROFUNCION newline youbegin newline INSIDEFUNCTION newline whereiend  { }
+			| dafunk id '(' LPARAMETERSFUNC ')' ':' intothevoid newline youbegin newline INSIDEFUNCTION newline whereiend  { }
+			| dafunk id '(' ')' ':' PARAMETROFUNCION newline youbegin newline INSIDEFUNCTION newline whereiend  { }
+			| dafunk id '(' ')' ':' intothevoid newline youbegin newline INSIDEFUNCTION newline whereiend { }
 
-PARAMETROFUNCION : TIPO id { }
-			  	 | TIPO id '[' ']'	{ }
+PARAMETROFUNCION : TYPE id { }
+			  	 | TYPE id '[' ']'	{ }
 			  	 | duets id '(' ')'		{ }
 			  	 | id id 		{ } 			-- Structs
 
-DENTROFUNCION : DECLARACION DENTROFUNCION { }
-		 	  | INSTRUCCION DENTROFUNCION { }
-		 	  | DECLARACION 			   { }
-		 	  | INSTRUCCION 			   { }
+INSIDEFUNCTION : DECLARATION INSIDEFUNCTION { }
+		 	  | INSTRUCTION INSIDEFUNCTION { }
+		 	  | DECLARATION 			   { }
+		 	  | INSTRUCTION 			   { }
 
-LPARAMETROSFUNC : PARAMETROFUNCION ',' LPARAMETROSFUNC { }
+LPARAMETERSFUNC : PARAMETROFUNCION ',' LPARAMETERSFUNC { }
 				| PARAMETROFUNCION 	{ }
 
 -- Probablemente vaya newline antes del youbegin y whereiend PUESTOS
-INSTRUCCION : go '(' IMPRIMIR ')' newline	{ }
-			| goslowly '(' IMPRIMIR ')' newline	{ }
-			| gomental '(' IMPRIMIR ')'	newline	{ }
+INSTRUCTION : go '(' PRINT ')' newline	{ }
+			| goslowly '(' PRINT ')' newline	{ }
+			| gomental '(' PRINT ')'	newline	{ }
       		| amnesiac '(' id ')' newline { }
      		| readmymind '(' id ')' newline { }
-     		| if EXPRESION newline youbegin newline DENTROFUNCION whereiend newline { }
-      		| if EXPRESION newline youbegin newline DENTROFUNCION whereiend newline IFELSE { }      -- No se si necesitaria newline
-      		| cantstop EXPRESION newline youbegin newline DENTROFUNCION newline whereiend newline { }
-      		| onemoretime TIPO id '=' EXPRESION ';' EXPRESION ';'EXPRESION newline youbegin newline DENTROFUNCION whereiend newline { }
-      		| id '=' EXPRESION newline { }
-      		| getback EXPRESION newline { }
+     		| if EXPRESSION newline youbegin newline INSIDEFUNCTION whereiend newline { }
+      		| if EXPRESSION newline youbegin newline INSIDEFUNCTION whereiend newline IFELSE { }      -- No se si necesitaria newline
+      		| cantstop EXPRESSION newline youbegin newline INSIDEFUNCTION newline whereiend newline { }
+      		| onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';'EXPRESSION newline youbegin newline INSIDEFUNCTION whereiend newline { }
+      		| id '=' EXPRESSION newline { }
+      		| getback EXPRESSION newline { }
       		| breakthru newline	{ }
       		| exitmusic newline	{ }
 
 
 
-IFELSE : ifyouhavetoask EXPRESION newline youbegin newline DENTROFUNCION whereiend newline IFELSE { }
-       | otherside newline youbegin newline DENTROFUNCION newline whereiend newline{ }
+IFELSE : ifyouhavetoask EXPRESSION newline youbegin newline INSIDEFUNCTION whereiend newline IFELSE { }
+       | otherside newline youbegin newline INSIDEFUNCTION newline whereiend newline{ }
 
--- ONEMORETIMEDEC : TIPO id '=' E
+-- ONEMORETIMEDEC : TYPE id '=' E
 
-IMPRIMIR : string ',' IMPRIMIR 	{ }
-		 | id ',' 	  IMPRIMIR  { }
+PRINT : string ',' PRINT 	{ }
+		 | id ',' 	  PRINT  { }
 		 | string 				{ }
 		 | id 					{ }
 
 IDS : id ',' IDS { }
 	| id 	{ }
 
-TIPO : int { }
+TYPE : int { }
 	 | pointer 	{ }
 	 | float { }
 	 | boolean { }
 	 | char { }
 	 | string { }
 
-ARREGLO : TIPO id '[' n ']'		{ }
-		| TIPO id '[' id ']'	{ }
+ARRAY : TYPE id '[' n ']'		{ }
+		| TYPE id '[' id ']'	{ }
 
-ESTRUCTURA : band id id '(' LDECLARACIONES ')'		{ }
-		   | union id id '(' LDECLARACIONES ')'	{ }
-		   | id id '(' LPARAMETROSESTRUC ')'	{ }
+STRUCT : band id id '(' LDECLARATIONS ')'		{ }
+		   | union id id '(' LDECLARATIONS ')'	{ }
+		   | id id '(' LPARAMETERSSTRUCT ')'	{ }
 
-TUPLA : duets id '(' TIPO ',' TIPO ',' n ')'		{ }
-	  | duets id '(' TIPO ',' TIPO ',' id ')' 	{ }
+TUPLE : duets id '(' TYPE ',' TYPE ',' n ')'		{ }
+	  | duets id '(' TYPE ',' TYPE ',' id ')' 	{ }
 
-EXPRESION : id 	{ }
+EXPRESSION : id 	{ }
 		  | n 	{ }
 		  | string	{ }
 		  | c 	{ }
 		  | ok 	{ }
 		  | notok 	{ }
-		  | '(' EXPRESION ')' { }
-		  | EXPRESION '<' EXPRESION { }
-		  | EXPRESION '>' EXPRESION { }
-		  | EXPRESION '<=' EXPRESION { }
-		  | EXPRESION '>=' EXPRESION { }
-		  | EXPRESION '==' EXPRESION { }
-		  | EXPRESION '!=' EXPRESION { }
-		  | not EXPRESION { }
-		  | EXPRESION and EXPRESION { }
-		  | EXPRESION or EXPRESION { }
-		  | '-' EXPRESION	{ }
-		  | EXPRESION '+' EXPRESION { }
-		  | EXPRESION '-' EXPRESION { }
-		  | EXPRESION '*' EXPRESION { }
-		  | EXPRESION '/' EXPRESION { }
-		  | EXPRESION '%' EXPRESION { }
-		  | EXPRESION mod EXPRESION { }
-		  | EXPRESION div EXPRESION { }
-		  | EXPRESIONTUPLA 			{ }
-		  | EXPRESIONARREGLO 		{ }
-		  | EXPRESIONESTRUCTURA 	{ }
+		  | '(' EXPRESSION ')' { }
+		  | EXPRESSION '<' EXPRESSION { }
+		  | EXPRESSION '>' EXPRESSION { }
+		  | EXPRESSION '<=' EXPRESSION { }
+		  | EXPRESSION '>=' EXPRESSION { }
+		  | EXPRESSION '==' EXPRESSION { }
+		  | EXPRESSION '!=' EXPRESSION { }
+		  | not EXPRESSION { }
+		  | EXPRESSION and EXPRESSION { }
+		  | EXPRESSION or EXPRESSION { }
+		  | '-' EXPRESSION	{ }
+		  | EXPRESSION '+' EXPRESSION { }
+		  | EXPRESSION '-' EXPRESSION { }
+		  | EXPRESSION '*' EXPRESSION { }
+		  | EXPRESSION '/' EXPRESSION { }
+		  | EXPRESSION '%' EXPRESSION { }
+		  | EXPRESSION mod EXPRESSION { }
+		  | EXPRESSION div EXPRESSION { }
+		  | EXPRESSIONTUPLE 			{ }
+		  | EXPRESSIONARRAY 		{ }
+		  | EXPRESSIONSTRUCT 	{ }
 
-EXPRESIONTUPLA : left id '(' n ')'	{ } -- x = left tupla1(2)
+EXPRESSIONTUPLE : left id '(' n ')'	{ } -- x = left tupla1(2)
 			   | right id '(' n ')'	{ } -- x = right tupla1(1)
-			   | left id '(' id ')'	{ } 
-			   | right id '(' id ')'	{ } 
+			   | left id '(' id ')'	{ }
+			   | right id '(' id ')'	{ }
 
-EXPRESIONARREGLO : id '[' n ']'		{ }
+EXPRESSIONARRAY : id '[' n ']'		{ }
 				 | id '[' id ']'	{ }
 
-EXPRESIONESTRUCTURA : id '(' id ')' 	{ }
+EXPRESSIONSTRUCT : id '(' id ')' 	{ }
 
-LPARAMETROSESTRUC : id '=' EXPRESION ',' LPARAMETROSESTRUC 	{ }
-				  | id '=' EXPRESION 		{ }
+LPARAMETERSSTRUCT : id '=' EXPRESSION ',' LPARAMETERSSTRUCT 	{ }
+				  | id '=' EXPRESSION 		{ }
 
