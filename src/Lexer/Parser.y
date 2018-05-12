@@ -2,14 +2,17 @@
 -- Parser
 
 {
-	module Parser where
-	import Lexer
-    import ParseMonad
-    import Tokens
+module Parser where
+import Lexer
+import ParseMonad
+import Tokens
 }
 
 %name parse
 %tokentype { Token }
+%monad { ParseMonad }
+%error { parseError }
+%lexer { \cont -> (alexGetToken >>= tkn -> cont tkn) }{ EOFTkn }
 
 %token
   youbegin                                { YouBeginTkn _ }        -- Block Start
