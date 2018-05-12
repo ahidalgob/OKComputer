@@ -63,6 +63,8 @@ data Token =
   AssignTkn           { tknPos :: (Int, Int) }  |
   NumLiteralTkn       { tknPos :: (Int, Int), tknString :: String } |
   IdTkn               { tknPos :: (Int, Int), tknString :: String } |
-  StringTkn           { tknPos :: (Int, Int), tknString :: String }
+  StringTkn           { tknPos :: (Int, Int), tknString :: String } |
+
+  EOFTkn
 
   deriving Show

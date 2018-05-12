@@ -42,12 +42,13 @@ initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
                               alex_strPos = (0,0),
                               alex_str = ""}
 
+type ParseMError = String
 
-type ParseM a = StateT ParseState (ExceptT String IO) a
+type ParseM a = ExceptT ParseMError (StateT ParseState IO) a
 
 
-runParseM :: String -> ParseM a -> IO(Either String (a, ParseState))
-runParseM s f  = runExceptT $ runStateT f (initParseState s)
+runParseM :: ParseM a -> String -> IO(Either String a, ParseState)
+runParseM f s = runStateT (runExceptT f) (initParseState s)
 
 
 getAlexInput :: ParseM AlexInput
@@ -55,9 +56,6 @@ getAlexInput = gets alex_inp
 
 setAlexInput :: AlexInput -> ParseM ()
 setAlexInput inp = modify (\s -> s{alex_inp=inp})
-
-parseMError :: String -> ParseM a
-parseMError message = throwError message
 
 getAlexStartCode :: ParseM Int
 getAlexStartCode = gets alex_scd

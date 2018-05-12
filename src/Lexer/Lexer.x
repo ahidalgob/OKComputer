@@ -1,9 +1,9 @@
 {
-module Lexer(Token(..), ParseM, alexMonadScan, ParseState(..), runParseM) where
+module Lexer(alexMonadScan, alexGetToken) where
 import Tokens
 import ParseMonad
 import LowLevelAlex
-
+import Control.Monad.Except
 }
 
 
@@ -101,23 +101,32 @@ tokens :-
 
 
 
-alexEOF :: ParseM [Token]
-alexEOF = return []
+alexEOF :: ParseM Token
+alexEOF = return EOFTkn
 
 
-
-alexMonadScan = do
+alexGetToken :: ParseM Token
+alexGetToken = do
   inp__ <- getAlexInput
   sc <- getAlexStartCode
   case alexScan inp__ sc of
     AlexEOF -> alexEOF
-    AlexError ((AlexPn _ line column),_,_,_) -> parseMError $ "lexical error at line " ++ (show line) ++ ", column " ++ (show column)
+    AlexError ((AlexPn _ line column),_,_,_) -> throwError $ "lexical error at line " ++ (show line) ++ ", column " ++ (show column)
     AlexSkip  inp__' _len -> do
         setAlexInput inp__'
-        alexMonadScan
+        alexGetToken
     AlexToken inp__' len action -> do
         setAlexInput inp__'
         action (ignorePendingBytes inp__) len
+
+alexMonadScan :: ParseM [Token]
+alexMonadScan = do
+  tkn <- alexGetToken
+  case tkn of
+       EOFTkn -> return []
+       _ -> (tkn:) <$> alexMonadScan
+
+
 
 -- -----------------------------------------------------------------------------
 -- Useful token actions
@@ -155,40 +164,39 @@ token t input__ len = return (t input__ len)
 
 
 
-newToken :: (Pos -> Token) -> AlexAction [Token]
-newToken tknConstr = \alexIn _ -> do
-  let pos = getPos alexIn
-  (tknConstr pos :) <$> alexMonadScan
+newToken :: (Pos -> Token) -> AlexAction Token
+newToken tknConstr = \alexIn _ -> return $ tknConstr $ getPos alexIn
 
-
-newStringToken :: (Pos -> String -> Token) -> AlexAction [Token]
+newStringToken :: (Pos -> String -> Token) -> AlexAction Token
 newStringToken tknConstr = \alexIn len -> do
   let pos = getPos alexIn
       s = take len $ getCurrentInput alexIn
-  (tknConstr pos s :) <$> alexMonadScan
+  return $ tknConstr pos s
 
-beginString :: AlexAction [Token]
+beginString :: AlexAction Token
 beginString = \alexIn _ -> do
   setAlexStartCode 1 -- ???
   setStrPos $ getPos alexIn
-  alexMonadScan
+  alexGetToken
 
+addCharToString :: AlexAction Token
 addCharToString = \alexIn _ -> do
   pushStrC (head $ getCurrentInput alexIn)
-  alexMonadScan
+  alexGetToken
 
+endString :: AlexAction Token
 endString = \_ _ -> do
   s <- getAndClearStr
   pos <- getStrPos
   setAlexStartCode 0
-  (StringTkn pos s :) <$> alexMonadScan
+  return $ StringTkn pos s
 
-invalidCharacter :: AlexAction [Token]
+invalidCharacter :: AlexAction Token
 invalidCharacter = \alexIn _ -> do
   let pos = getPos alexIn
       c = head $ getCurrentInput alexIn
   pushInvalidC c pos
-  alexMonadScan
+  alexGetToken
 
 
 
