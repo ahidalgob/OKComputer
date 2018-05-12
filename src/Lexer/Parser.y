@@ -83,7 +83,7 @@ import Tokens
   -- Otros
   id 									  { IdTkn _ _}
   n 									  { NumLiteralTkn _ _}
-  newline 								  { }
+  newline 								  { NewLineTkn }
   c 									  { } -- char
   string								  { }
 
@@ -94,7 +94,7 @@ import Tokens
 %left '+' '-'
 %left '*' '/' '%' mod div
 %nonassoc not
-
+-- TODO unary minus sign
 %%
 -- Start
 START : IMPORTS newline LDECLARATIONS newline LFUNCTIONS { }
@@ -113,7 +113,7 @@ DECLARATION : TYPE DECLARATIONTYPE newline { }
 				| TUPLE { }
 				| ARRAY { }
 				| STRUCT { }
-        		| newlife id { }      -- No estoy claro todavia como haremos esto
+        | newlife id { }      -- No estoy claro todavia como haremos esto
 
 -- DECLARATION : IDS 	{ }
 --			| IDS '=' EXPRESSION 	{ }
@@ -235,3 +235,6 @@ EXPRESSIONSTRUCT : id '(' id ')' 	{ }
 LPARAMETERSSTRUCT : id '=' EXPRESSION ',' LPARAMETERSSTRUCT 	{ }
 				  | id '=' EXPRESSION 		{ }
 
+
+LINES0 : {- empty -}              {}
+       | LINES0 newline           {}

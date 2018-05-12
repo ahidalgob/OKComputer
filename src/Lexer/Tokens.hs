@@ -65,6 +65,7 @@ data Token =
   IdTkn               { tknPos :: (Int, Int), tknString :: String } |
   StringTkn           { tknPos :: (Int, Int), tknString :: String } |
 
+  NewLineTkn          { tknPos :: (Int, Int) } |
   EOFTkn
 
   deriving Show

@@ -12,6 +12,7 @@ $Alpha = [a-zA-Z]       -- alphabetic characters
 -- ...
 
 tokens :-
+<0> \n                                       {newToken NewLineTkn}
 <0>  $white+                                    ; -- skip white spaces
 <0>  "#".*                                      ; -- skip comments
 
@@ -83,17 +84,14 @@ tokens :-
   -- String Tokens
 <0>         $digit+(\.[$digit]+)?                       {newStringToken NumLiteralTkn}  -- Numbers
 <0>         $Alpha[a-zA-Z\_0-9]*                        {newStringToken IdTkn}          -- Id
-<0>         \"                                          {beginString}
-<string>    ([^\"] | \n)                                {addCharToString}
-<string>    \"                                          {endString}
+<0>         \"                                          {beginString}         --"
+<string>    ([^\"] | \n)                                {addCharToString}     --"
+<string>    \"                                          {endString}           --"
 
-  -- \"([^\\\"\n]|\\\\|\\\"|\\n)*\"             {newStringToken StringTkn}      -- Strings Correctos
 
-  .                                             {invalidCharacter}
+  .                                           {invalidCharacter}
 
---"
 {
-
 
 
 
