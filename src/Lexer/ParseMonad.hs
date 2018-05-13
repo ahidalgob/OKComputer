@@ -32,7 +32,7 @@ data ParseState = ParseState {
         alex_invalidC :: [(Char, Pos)],
         alex_strPos :: Pos,
         alex_str :: String
-    }
+} deriving Show
 
 
 initParseState :: String -> ParseState

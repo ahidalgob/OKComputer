@@ -1,5 +1,5 @@
 # Fibonnaci en OKComputer.
-maintheme(int n)::intothevoid
+dafunk maintheme(int n) : intothevoid
  youbegin
 
   int first = 0
@@ -14,7 +14,7 @@ maintheme(int n)::intothevoid
   onemoretime (c = 0) ; (c < n) ; (c=c+1)
   youbegin
     if (c <= 1)
-        next = c          
+        next = c
         # Permitir no tener que hacer bloques si es una sola instruccion
     otherside
       youbegin

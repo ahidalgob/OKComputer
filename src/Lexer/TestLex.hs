@@ -1,6 +1,6 @@
 import Lexer
 import ParseMonad
--- import Parser
+import Parser
 import System.Environment
 
 lexer code = do
@@ -12,9 +12,9 @@ lexer code = do
           mapM_ print tokens
 
 parser code = do
-  --(alexed, state) <- runParseM parse code
-  return ()
+  res <- runParseM parse code
+  print res
 
 main = do
   code <- getArgs >>= readFile.head
-  lexer code
+  parser code

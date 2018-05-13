@@ -6,14 +6,14 @@ import LowLevelAlex
 import Control.Monad.Except
 }
 
-
+$ignore = [\ \t] -- check against [\ \t\n\f\v\r].
 $digit = 0-9            -- digits
 $Alpha = [a-zA-Z]       -- alphabetic characters
 -- ...
 
 tokens :-
-<0> \n                                       {newToken NewLineTkn}
-<0>  $white+                                    ; -- skip white spaces
+<0> \n                                       {newLine}
+<0>  $ignore+                                   ; -- skip white spaces
 <0>  "#".*                                      ; -- skip comments
 
   -- Instructions
@@ -89,7 +89,7 @@ tokens :-
 <string>    \"                                          {endString}           --"
 
 
-  .                                           {invalidCharacter}
+  .                                          {invalidCharacter}
 
 {
 
@@ -163,13 +163,19 @@ token t input__ len = return (t input__ len)
 
 
 newToken :: (Pos -> Token) -> AlexAction Token
-newToken tknConstr = \alexIn _ -> return $ tknConstr $ getPos alexIn
+newToken tknConstr = \alexIn _ -> (liftIO $ print $ tknConstr (0,0)) >> (return $ tknConstr $ getPos alexIn)
 
 newStringToken :: (Pos -> String -> Token) -> AlexAction Token
 newStringToken tknConstr = \alexIn len -> do
   let pos = getPos alexIn
       s = take len $ getCurrentInput alexIn
   return $ tknConstr pos s
+
+newLine :: AlexAction Token
+newLine = \alexIn _ -> do
+  let pos = getPos alexIn
+  liftIO $ print (NewLineTkn pos)
+  return $ NewLineTkn pos
 
 beginString :: AlexAction Token
 beginString = \alexIn _ -> do

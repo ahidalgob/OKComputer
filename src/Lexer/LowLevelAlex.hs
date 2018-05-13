@@ -70,6 +70,9 @@ type AlexInput = (AlexPosn,     -- current position,
 getPos :: AlexInput -> Pos
 getPos ((AlexPn _ line col), _, _, _) = (line, col)
 
+getPreviousChar :: AlexInput -> Char
+getPreviousChar (_, c, _, _) = c
+
 getCurrentInput :: AlexInput -> String
 getCurrentInput (_, _, _, s) = s
 
