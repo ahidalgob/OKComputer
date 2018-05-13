@@ -151,22 +151,22 @@ LPARAMETERSFUNC : {- empty -}                 { }
                 | NONEMPTYLPARAMETERSFUNC     { }
 
 NONEMPTYLPARAMETERSFUNC : FUNCTIONPARAMETER ',' NONEMPTYLPARAMETERSFUNC { }
-                        | FUNCTIONPARAMETER   { }
+                        | FUNCTIONPARAMETER                             { }
 
 -- Probablemente vaya newline antes del youbegin y whereiend PUESTOS
 INSTRUCTION : go '(' PRINT ')' newline  { }
-      | goslowly '(' PRINT ')' newline  { }
-      | gomental '(' PRINT ')'  newline  { }
-          | amnesiac '(' id ')' newline { }
-         | readmymind '(' id ')' newline { }
-         | if EXPRESSION newline youbegin INSIDEFUNCTION whereiend newline { }
-          | if EXPRESSION newline youbegin INSIDEFUNCTION whereiend newline IFELSE { }      -- No se si necesitaria newline
-          | cantstop EXPRESSION newline youbegin INSIDEFUNCTION newline whereiend newline { }
-          | onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';'EXPRESSION newline youbegin INSIDEFUNCTION whereiend newline { }
-          | id '=' EXPRESSION newline { }
-          | getback EXPRESSION newline { }
-          | breakthru newline  { }
-          | exitmusic newline  { }
+            | goslowly '(' PRINT ')' newline  { }
+            | gomental '(' PRINT ')'  newline  { }
+            | amnesiac '(' id ')' newline { }
+            | readmymind '(' id ')' newline { }
+            | if EXPRESSION newline youbegin INSIDEFUNCTION whereiend newline { }
+            | if EXPRESSION newline youbegin INSIDEFUNCTION whereiend newline IFELSE { }      -- No se si necesitaria newline
+            | cantstop EXPRESSION newline youbegin INSIDEFUNCTION newline whereiend newline { }
+            | onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';'EXPRESSION newline youbegin INSIDEFUNCTION whereiend newline { }
+            | id '=' EXPRESSION newline { }
+            | getback EXPRESSION newline { }
+            | breakthru newline  { }
+            | exitmusic newline  { }
 
 
 

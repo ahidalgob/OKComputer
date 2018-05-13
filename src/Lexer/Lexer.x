@@ -163,7 +163,10 @@ token t input__ len = return (t input__ len)
 
 
 newToken :: (Pos -> Token) -> AlexAction Token
-newToken tknConstr = \alexIn _ -> (liftIO $ print $ tknConstr (0,0)) >> (return $ tknConstr $ getPos alexIn)
+newToken tknConstr = \alexIn _ -> do
+  let pos = getPos alexIn
+  liftIO $ print $ tknConstr pos
+  return $ tknConstr pos
 
 newStringToken :: (Pos -> String -> Token) -> AlexAction Token
 newStringToken tknConstr = \alexIn len -> do
