@@ -8,6 +8,8 @@ Parser: LexerAndParser/Parser.y
 	happy LexerAndParser/Parser.y
 
 clean:
+	-rm -f *.hi
+	-rm -f *.o
 	-rm -f LexerAndParser/*.hi
 	-rm -f LexerAndParser/*.o
 	-rm -f LexerAndParser/Lexer.hs
