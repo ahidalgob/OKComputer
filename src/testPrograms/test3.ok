@@ -1,4 +1,4 @@
-maintheme(x)
+dafunk maintheme(int x) : intothevoid
 
   youbegin
     int a = 0

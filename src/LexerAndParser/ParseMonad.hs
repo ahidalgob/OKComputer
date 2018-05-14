@@ -31,7 +31,9 @@ data ParseState = ParseState {
 
         alex_invalidC :: [(Char, Pos)],
         alex_strPos :: Pos,
-        alex_str :: String
+        alex_str :: String,
+
+        last_new_line :: Bool
 } deriving Show
 
 
@@ -40,7 +42,8 @@ initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
                               alex_scd = 0,
                               alex_invalidC = [],
                               alex_strPos = (0,0),
-                              alex_str = ""}
+                              alex_str = "",
+                              last_new_line = True}
 
 type ParseMError = String
 
@@ -82,4 +85,10 @@ getStrPos = gets alex_strPos
 
 pushInvalidC :: Char -> Pos -> ParseM ()
 pushInvalidC c pos = modify (\s -> s{alex_invalidC = (c,pos):alex_invalidC s})
+
+getLastNewLine :: ParseM Bool
+getLastNewLine = gets last_new_line
+
+setLastNewLine :: Bool -> ParseM ()
+setLastNewLine b = modify (\s -> s{last_new_line = b})
 

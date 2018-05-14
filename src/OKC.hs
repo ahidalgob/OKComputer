@@ -16,5 +16,7 @@ parser code = do
   print res
 
 main = do
-  code <- getArgs >>= readFile.head
-  parser code
+  [option, file] <- getArgs
+  case option of
+       "-l" -> readFile file >>= lexer
+       "-p" -> readFile file >>= parser

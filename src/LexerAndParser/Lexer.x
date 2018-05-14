@@ -165,20 +165,26 @@ token t input__ len = return (t input__ len)
 newToken :: (Pos -> Token) -> AlexAction Token
 newToken tknConstr = \alexIn _ -> do
   let pos = getPos alexIn
-  liftIO $ print $ tknConstr pos
+  --liftIO $ print $ tknConstr pos
+  setLastNewLine False
   return $ tknConstr pos
 
 newStringToken :: (Pos -> String -> Token) -> AlexAction Token
 newStringToken tknConstr = \alexIn len -> do
   let pos = getPos alexIn
       s = take len $ getCurrentInput alexIn
+  setLastNewLine False
   return $ tknConstr pos s
 
 newLine :: AlexAction Token
 newLine = \alexIn _ -> do
-  let pos = getPos alexIn
-  liftIO $ print (NewLineTkn pos)
-  return $ NewLineTkn pos
+  lastnl <- getLastNewLine
+  case lastnl of
+    False -> do let pos = getPos alexIn
+                --liftIO $ print (NewLineTkn pos)
+                setLastNewLine True
+                return $ NewLineTkn pos
+    True -> alexGetToken
 
 beginString :: AlexAction Token
 beginString = \alexIn _ -> do
@@ -196,6 +202,7 @@ endString = \_ _ -> do
   s <- getAndClearStr
   pos <- getStrPos
   setAlexStartCode 0
+  setLastNewLine False
   return $ StringTkn pos s
 
 invalidCharacter :: AlexAction Token

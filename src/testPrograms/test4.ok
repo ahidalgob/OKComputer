@@ -1,4 +1,8 @@
-dafunk maintheme( ) : intothevoid
+
+
+dafunk maintheme(int n, int x) : intothevoid
  youbegin
 
  whereiend
+
+dafunk maintheme( ) : intothevoid youbegin whereiend
