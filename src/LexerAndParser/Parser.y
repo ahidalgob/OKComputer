@@ -49,6 +49,8 @@ import Control.Monad.Except
   boolean                                 { BooleanTkn _ }
   ok                                      { OkTkn _ }              -- True
   notok                                   { NotOkTkn _ }           -- False
+  '{'                                     { OpenBraceTkn _ }
+  '}'                                     { CloseBraceTkn _ }
   '['                                     { ArrayStartTkn _ }
   ']'                                     { ArrayEndTkn _ }
   band                                    { BandTkn _ }            -- Registers/structs
@@ -88,6 +90,13 @@ import Control.Monad.Except
   -- c                                       {% liftIO $ print " -> " } -- char
   string                                  { StringTkn _ _ }
 
+-- TODO:
+-- duets or tuples in general.
+-- Array expression  {1,2,3}
+-- char
+-- braces
+-- string operations
+--
 
 %left or
 %left and
@@ -95,20 +104,27 @@ import Control.Monad.Except
 %left '+' '-'
 %left '*' '/' '%' mod div
 %nonassoc not
--- TODO unary minus sign
+
+-- TODO
+-- unary minus sign
+-- unary &
 %%
 -- Start
-START : IMPORTS LFUNCTIONS {% liftIO $ putStrLn "START -> IMPORTS LFUNCTIONS" } -- TODO:  Global variables?
+START : IMPORTS OUTSIDEFUNCTION {% liftIO $ putStrLn "START -> IMPORTS OUTSIDEFUNCTION" } -- TODO:  Global variables?
 
 
---newlines are correctly handled before each import.
 IMPORTS : IMPORT newline IMPORTS        {% liftIO $ putStrLn "IMPORTS -> IMPORT newline IMPORTS" }
         | {- empty -}                   {% liftIO $ putStrLn "IMPORTS -> \\" }
 
 IMPORT : aroundtheworld IDS             {% liftIO $ putStrLn "IMPORT -> aroundtheworld IDS " }
 
+IDS : id ',' IDS                             { % liftIO $ putStrLn "IDS -> id ',' IDS " }
+  | id                                       { % liftIO $ putStrLn "IDS -> id " }
 
-LFUNCTIONS : FUNCTIONINIC newline LFUNCTIONS    {% liftIO $ putStrLn "LFUNCTION -> FUNCTIONINIC newline LFUNCTIONS " }
+
+OUTSIDEFUNCTION : FUNCTIONINIC newline OUTSIDEFUNCTION    {% liftIO $ putStrLn "LFUNCTION -> FUNCTIONINIC newline OUTSIDEFUNCTION " }
+           | DECLARATION newline OUTSIDEFUNCTION          {% liftIO $ putStrLn "LFUNCTION -> DECLARATION newline OUTSIDEFUNCTION " }
+           | DEFINESTRUCT newline OUTSIDEFUNCTION         {% liftIO $ putStrLn "LFUNCTION -> DEFINESTRUCT newline OUTSIDEFUNCTION " }
            | {- empty -}                        {% liftIO $ putStrLn "LFUNCTION -> \\ " }
 
 
@@ -116,9 +132,7 @@ FUNCTIONINIC : dafunk id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE BLOCK    {% lift
 
 
 RETURNTYPE: intothevoid                                                 {% liftIO $ putStrLn "RETURNTYPE -> intothevoid" }
-          | int                                                         {% liftIO $ putStrLn "RETURNTYPE -> int" }
-          | char                                                        {% liftIO $ putStrLn "RETURNTYPE -> char" }
-          | boolean                                                     {% liftIO $ putStrLn "RETURNTYPE -> boolean" }
+          | TYPE                                                        {% liftIO $ putStrLn "RETURNTYPE -> TYPE" }
 
 LPARAMETERSFUNC : {- empty -}                                           {% liftIO $ putStrLn "LPARAMETERSFUNC -> \\ " }
                 | NONEMPTYLPARAMETERSFUNC                               {% liftIO $ putStrLn "LPARAMETERSFUNC -> NONEMPTYLPARAMETERSFUNC " }
@@ -127,85 +141,67 @@ NONEMPTYLPARAMETERSFUNC : FUNCTIONPARAMETER ',' NONEMPTYLPARAMETERSFUNC {% liftI
                         | FUNCTIONPARAMETER                             {% liftIO $ putStrLn "NONEMPTYLPARAMETERSFUNC -> FUNCTIONPARAMETER" }
 
 FUNCTIONPARAMETER : TYPE id                                             {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id" }
-           | TYPE id '[' ']'                                            {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id '[' ']'" }
-           | duets id '(' ')'                                           {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> duets id '(' ')'" }
-           | id id                                                      {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> id id" }       -- Structs
+           -- | TYPE id '[' ']'                                            {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id '[' ']'" }
 
 
 BLOCK : MAYBELINE youbegin INSIDEFUNCTION MAYBELINE whereiend           {% liftIO $ putStrLn "BLOCK -> MAYBELINE youbegin INSIDEFUNCTION MAYBELINE whereiend" }
+      | MAYBELINE INSTRUCTION                                           { }
 
-INSIDEFUNCTION : INSIDEFUNCTION newline DECLARATION                     {% liftIO $ putStrLn "INSIDEFUNCTION -> INSIDEFUNCTION newline DECLARATION" }
-         | INSIDEFUNCTION newline INSTRUCTION                           {% liftIO $ putStrLn "INSIDEFUNCTION -> INSIDEFUNCTION newline INSTRUCTION" }
-         | DECLARATION                                                  {% liftIO $ putStrLn "INSIDEFUNCTION -> DECLARATION" }
+INSIDEFUNCTION : INSIDEFUNCTION newline INSTRUCTION                     {% liftIO $ putStrLn "INSIDEFUNCTION -> INSIDEFUNCTION newline DECLARATION" }
          | INSTRUCTION                                                  {% liftIO $ putStrLn "INSIDEFUNCTION -> INSTRUCTION" }
          | {- empty -}                                                  {% liftIO $ putStrLn "INSIDEFUNCTION -> \\ " }
 
 
-
-
-LDECLARATIONS : DECLARATION LDECLARATIONS   {% liftIO $ putStrLn "LDECLARATIONS -> DECLARATION LDECLARATIONS" }
-              | DECLARATION                 {% liftIO $ putStrLn "LDECLARATIONS -> DECLARATION" }
-
 DECLARATION : TYPE DECLARATIONTYPE { % liftIO $ putStrLn "DECLARATION -> TYPE DECLARATIONTYPE" }
-        | TUPLE                    { % liftIO $ putStrLn "DECLARATION -> TUPLE" }
-        | ARRAY                    { % liftIO $ putStrLn "DECLARATION -> ARRAY" }
-        | STRUCT                   { % liftIO $ putStrLn "DECLARATION -> STRUCT" }
-        | newlife id               { % liftIO $ putStrLn "DECLARATION -> newlife id" }      -- No estoy claro todavia como haremos esto
 
+TYPE : TYPE2              {}
+    |  TYPE2 '*'          {}
 
-DECLARATIONTYPE : id '=' EXPRESSION                 {% liftIO $ putStrLn "DECLARATIONTYPE -> id '=' EXPRESSION" }
-            | id '=' EXPRESSION ',' DECLARATIONTYPE {% liftIO $ putStrLn "DECLARATIONTYPE -> id '=' EXPRESSION ',' DECLARATIONTYPE" }
-            | id                                    {% liftIO $ putStrLn "DECLARATIONTYPE -> id" }
-            | id ',' DECLARATIONTYPE                {% liftIO $ putStrLn "DECLARATIONTYPE -> id ',' DECLARATIONTYPE" }
+TYPE2 : int                                    { % liftIO $ putStrLn "TYPE -> int " }
+   | float                                    { % liftIO $ putStrLn "TYPE -> float " }
+   | boolean                                  { % liftIO $ putStrLn "TYPE -> boolean " }
+   | char                                     { % liftIO $ putStrLn "TYPE -> char " }
+   | string                                   { % liftIO $ putStrLn "TYPE -> string " }
+   | id                                       { % liftIO $ putStrLn "TYPE -> id " }
 
+DECLARATIONTYPE : ID '=' EXPRESSION                 {% liftIO $ putStrLn "DECLARATIONTYPE -> ID '=' EXPRESSION" }
+            | ID '=' EXPRESSION ',' DECLARATIONTYPE {% liftIO $ putStrLn "DECLARATIONTYPE -> ID '=' EXPRESSION ',' DECLARATIONTYPE" }
+            | ID                                    {% liftIO $ putStrLn "DECLARATIONTYPE -> ID" }
+            | ID ',' DECLARATIONTYPE                {% liftIO $ putStrLn "DECLARATIONTYPE -> ID ',' DECLARATIONTYPE" }
 
+ID : id                                                    { }
+     id '[' EXPRESSION ']'                                 { }
 
 -- Probablemente vaya newline antes del youbegin y whereiend PUESTOS
 INSTRUCTION : go '(' PRINT ')'                                                                                          {% liftIO $ putStrLn "INSTRUCTION -> go '(' PRINT ')' " }
             | goslowly '(' PRINT ')'                                                                                    {% liftIO $ putStrLn "INSTRUCTION -> goslowly '(' PRINT ')' " }
             | gomental '(' PRINT ')'                                                                                    {% liftIO $ putStrLn "INSTRUCTION -> gomental '(' PRINT ')' " }
-            | amnesiac '(' id ')'                                                                                       {% liftIO $ putStrLn "INSTRUCTION -> amnesiac '(' id ')' " }
-            | readmymind '(' id ')'                                                                                     {% liftIO $ putStrLn "INSTRUCTION -> readmymind '(' id ')' " }
-            | if EXPRESSION newline youbegin INSIDEFUNCTION whereiend                                                   {% liftIO $ putStrLn "INSTRUCTION -> if EXPRESSION newline youbegin INSIDEFUNCTION whereiend " }
-            | if EXPRESSION newline youbegin INSIDEFUNCTION whereiend IFELSE                                            {% liftIO $ putStrLn "INSTRUCTION -> if EXPRESSION newline youbegin INSIDEFUNCTION whereiend IFELSE " }
-            | cantstop EXPRESSION newline youbegin INSIDEFUNCTION newline whereiend                                     {% liftIO $ putStrLn "INSTRUCTION -> cantstop EXPRESSION newline youbegin INSIDEFUNCTION newline whereiend  " }
-            | onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';'EXPRESSION newline youbegin INSIDEFUNCTION whereiend {% liftIO $ putStrLn "INSTRUCTION -> onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';'EXPRESSION newline youbegin INSIDEFUNCTION whereiend " }
-            | id '=' EXPRESSION                                                                                         {% liftIO $ putStrLn "INSTRUCTION -> id '=' EXPRESSION  " }
+            | readmymind '(' IDS ')'                                                                                     {% liftIO $ putStrLn "INSTRUCTION -> readmymind '(' id ')' " }
+            | amnesiac '(' id ')'
+            | if EXPRESSION BLOCK IFELSE                                                                                {% liftIO $ putStrLn "INSTRUCTION -> if EXPRESSION BLOCK IFELSE " }
+            | cantstop EXPRESSION BLOCK                                                                                 {% liftIO $ putStrLn "INSTRUCTION -> cantstop EXPRESSION BLOCK  " }
+            | onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';' EXPRESSION BLOCK                                    {% liftIO $ putStrLn "INSTRUCTION -> onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';'EXPRESSION BLOCK " }
             | getback EXPRESSION                                                                                        {% liftIO $ putStrLn "INSTRUCTION -> getback EXPRESSION " }
             | breakthru                                                                                                 {% liftIO $ putStrLn "INSTRUCTION -> breakthru " }
             | exitmusic                                                                                                 {% liftIO $ putStrLn "INSTRUCTION -> exitmusic " }
+            | DECLARATION  {}
+            | EXPRESSION   {}
 
-
-
-IFELSE : ifyouhavetoask EXPRESSION newline youbegin INSIDEFUNCTION whereiend newline IFELSE { % liftIO $ putStrLn "IFELSE -> ifyouhavetoask EXPRESSION newline youbegin INSIDEFUNCTION whereiend newline IFELSE " }
-       | otherside newline youbegin INSIDEFUNCTION newline whereiend newline                { % liftIO $ putStrLn "IFELSE -> otherside newline youbegin INSIDEFUNCTION newline whereiend newline " }
-
--- ONEMORETIMEDEC : TYPE id '=' E
+IFELSE : ifyouhavetoask EXPRESSION BLOCK newline IFELSE                                     { % liftIO $ putStrLn "IFELSE -> ifyouhavetoask EXPRESSION BLOCK newline IFELSE " }
+       | otherside BLOCK newline                                                            { % liftIO $ putStrLn "IFELSE -> otherside BLOCK newline " }
+       | {- empty -}                                                                        { }
 
 PRINT : string ',' PRINT                     { % liftIO $ putStrLn "PRINT -> string ',' PRINT " }
      | id ','     PRINT                      { % liftIO $ putStrLn "PRINT -> id ','     PRINT " }
      | string                                { % liftIO $ putStrLn "PRINT -> string " }
      | id                                    { % liftIO $ putStrLn "PRINT -> id " }
 
-IDS : id ',' IDS                             { % liftIO $ putStrLn "IDS -> id ',' IDS " }
-  | id                                       { % liftIO $ putStrLn "IDS -> id " }
+DEFINESTRUCT : band id id '{' LDECLARATIONS '}'    { % liftIO $ putStrLn "STRUCT -> band id id '(' LDECLARATIONS ')' " }
+             | union id id '{' LDECLARATIONS '}'   { % liftIO $ putStrLn "STRUCT -> union id id '(' LDECLARATIONS ')' " }
 
-TYPE : int                                   { % liftIO $ putStrLn "TYPE -> int " }
-   | pointer                                 { % liftIO $ putStrLn "TYPE -> pointer " }
-   | float                                   { % liftIO $ putStrLn "TYPE -> float " }
-   | boolean                                 { % liftIO $ putStrLn "TYPE -> boolean " }
-   | char                                    { % liftIO $ putStrLn "TYPE -> char " }
-   | string                                  { % liftIO $ putStrLn "TYPE -> string " }
+LDECLARATIONS : LDECLARATIONS newline DECLARATION  {% liftIO $ putStrLn "LDECLARATIONS -> DECLARATION LDECLARATIONS" }
+              | DECLARATION                        {% liftIO $ putStrLn "LDECLARATIONS -> DECLARATION" }
 
-ARRAY : TYPE id '[' n ']'                    { % liftIO $ putStrLn "ARRAY -> TYPE id '[' n ']' " }
-    | TYPE id '[' id ']'                     { % liftIO $ putStrLn "ARRAY -> TYPE id '[' id ']' " }
-
-STRUCT : band id id '(' LDECLARATIONS ')'    { % liftIO $ putStrLn "STRUCT -> band id id '(' LDECLARATIONS ')' " }
-       | union id id '(' LDECLARATIONS ')'   { % liftIO $ putStrLn "STRUCT -> union id id '(' LDECLARATIONS ')' " }
-       | id id '(' LPARAMETERSSTRUCT ')'     { % liftIO $ putStrLn "STRUCT -> id id '(' LPARAMETERSSTRUCT ')' " }
-
-TUPLE : duets id '(' TYPE ',' TYPE ',' n ')' { % liftIO $ putStrLn "TUPLE -> duets id '(' TYPE ',' TYPE ',' n ')' " }
-    | duets id '(' TYPE ',' TYPE ',' id ')'  { % liftIO $ putStrLn "TUPLE -> duets id '(' TYPE ',' TYPE ',' id ')' " }
 
 EXPRESSION : id                         { % liftIO $ putStrLn "EXPRESSION -> id " }
            | n                          { % liftIO $ putStrLn "EXPRESSION -> n " }
@@ -231,19 +227,27 @@ EXPRESSION : id                         { % liftIO $ putStrLn "EXPRESSION -> id 
            | EXPRESSION '%' EXPRESSION  { % liftIO $ putStrLn "EXPRESSION -> EXPRESSION '%' EXPRESSION " }
            | EXPRESSION mod EXPRESSION  { % liftIO $ putStrLn "EXPRESSION -> EXPRESSION mod EXPRESSION " }
            | EXPRESSION div EXPRESSION  { % liftIO $ putStrLn "EXPRESSION -> EXPRESSION div EXPRESSION " }
-           | EXPRESSIONTUPLE            { % liftIO $ putStrLn "EXPRESSION -> EXPRESSIONTUPLE " }
-           | EXPRESSIONARRAY            { % liftIO $ putStrLn "EXPRESSION -> EXPRESSIONARRAY " }
+           -- | EXPRESSIONTUPLE            { % liftIO $ putStrLn "EXPRESSION -> EXPRESSIONTUPLE " }
+           | ARRAYPOSITION            { % liftIO $ putStrLn "EXPRESSION -> ARRAYPOSITION " }
            | EXPRESSIONSTRUCT           { % liftIO $ putStrLn "EXPRESSION -> EXPRESSIONSTRUCT " }
+           | FUNCTIONCALL               { }
+           | newlife '(' EXPRESSION ')' { }
+           | '&' id                     { }
+           | id '=' EXPRESSION          { % liftIO $ putStrLn "EXPRESSION -> id '=' EXPRESSION  " }
 
+           {-
 EXPRESSIONTUPLE : left id '(' n ')'                         { % liftIO $ putStrLn "EXPRESSIONTUPLE -> left id '(' n ')' " } -- x = left tupla1(2)
          | right id '(' n ')'                               { % liftIO $ putStrLn "EXPRESSIONTUPLE -> right id '(' n ')' " } -- x = right tupla1(1)
          | left id '(' id ')'                               { % liftIO $ putStrLn "EXPRESSIONTUPLE -> left id '(' id ')' " }
          | right id '(' id ')'                              { % liftIO $ putStrLn "EXPRESSIONTUPLE -> right id '(' id ')' " }
+-}
 
-EXPRESSIONARRAY : id '[' n ']'                              { % liftIO $ putStrLn "EXPRESSIONARRAY -> id '[' n ']' " }
-         | id '[' id ']'                                    { % liftIO $ putStrLn "EXPRESSIONARRAY -> id '[' id ']' " }
+ARRAYPOSITION : id '[' n ']'                                { % liftIO $ putStrLn "ARRAYPOSITION -> id '[' n ']' " }
+         | id '[' id ']'                                    { % liftIO $ putStrLn "ARRAYPOSITION -> id '[' id ']' " }
 
-EXPRESSIONSTRUCT : id '(' id ')'                            { % liftIO $ putStrLn "EXPRESSIONSTRUCT -> id '(' id ')' " }
+EXPRESSIONSTRUCT : id '.' id                                { % liftIO $ putStrLn "EXPRESSIONSTRUCT -> id '(' id ')' " }
+
+FUNCTIONCALL : id '(' IDS ')'                                { % liftIO $ putStrLn "EXPRESSIONSTRUCT -> id '(' id ')' " }
 
 LPARAMETERSSTRUCT : id '=' EXPRESSION ',' LPARAMETERSSTRUCT { % liftIO $ putStrLn "LPARAMETERSSTRUCT -> id '=' EXPRESSION ',' LPARAMETERSSTRUCT " }
           | id '=' EXPRESSION                               { % liftIO $ putStrLn "LPARAMETERSSTRUCT -> id '=' EXPRESSION " }

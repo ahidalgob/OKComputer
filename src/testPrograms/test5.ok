@@ -1,0 +1,30 @@
+
+
+IMPORT hola, chao
+IMPORT ixd
+
+band nodo{
+    int x
+    nodo* siguiente
+}
+
+band lista{
+    nodo* cabeza
+}
+
+
+dafunk f(int a, lista l) : lista
+youbegin
+    int x
+    readmymind(x)
+
+    if x<5 youbegin
+        #...
+    whereiend
+    ifyouhavetoask x<10 youbegin
+        #...
+    whereiend
+    otherside youbegin
+
+    whereiend
+whereiend
