@@ -1,7 +1,7 @@
 
 
-IMPORT hola, chao
-IMPORT ixd
+aroundtheworld hola, chao
+aroundtheworld ixd
 
 band nodo{
     int x
@@ -23,8 +23,13 @@ youbegin
     whereiend
     ifyouhavetoask x<10 youbegin
         #...
-    whereiend 
+    whereiend
     otherside youbegin
 
     whereiend
+whereiend
+
+dafunk maintheme() : intothevoid
+youbegin
+    # asdf
 whereiend

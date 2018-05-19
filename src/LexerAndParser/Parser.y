@@ -124,10 +124,10 @@ IDS : id ',' IDS                             { % liftIO $ putStrLn "IDS -> id ',
   | id                                       { % liftIO $ putStrLn "IDS -> id " }
 
 
-OUTSIDEFUNCTION : FUNCTIONINIC newline OUTSIDEFUNCTION    {% liftIO $ putStrLn "LFUNCTION -> FUNCTIONINIC newline OUTSIDEFUNCTION " }
-           | DECLARATION newline OUTSIDEFUNCTION          {% liftIO $ putStrLn "LFUNCTION -> DECLARATION newline OUTSIDEFUNCTION " }
-           | DEFINESTRUCT newline OUTSIDEFUNCTION         {% liftIO $ putStrLn "LFUNCTION -> DEFINESTRUCT newline OUTSIDEFUNCTION " }
-           | {- empty -}                        {% liftIO $ putStrLn "LFUNCTION -> \\ " }
+OUTSIDEFUNCTION : FUNCTIONINIC OUTSIDEFUNCTION    {% liftIO $ putStrLn "OUTSIDEFUNCTION -> FUNCTIONINIC newline OUTSIDEFUNCTION " }
+           | DECLARATION newline OUTSIDEFUNCTION          {% liftIO $ putStrLn "OUTSIDEFUNCTION -> DECLARATION newline OUTSIDEFUNCTION " }
+           | DEFINESTRUCT newline OUTSIDEFUNCTION         {% liftIO $ putStrLn "OUTSIDEFUNCTION -> DEFINESTRUCT newline OUTSIDEFUNCTION " }
+           | {- empty -}                        {% liftIO $ putStrLn "OUTSIDEFUNCTION -> \\ " }
 
 
 FUNCTIONINIC : dafunk id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE BLOCK    {% liftIO $ putStrLn "FUNCTIONINIC  -> dafunk id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE BLOCK" }
@@ -180,7 +180,7 @@ INSTRUCTION : go '(' PRINT ')'                                                  
             | gomental '(' PRINT ')'                                                                                    {% liftIO $ putStrLn "INSTRUCTION -> gomental '(' PRINT ')' " }
             | readmymind '(' IDS ')'                                                                                     {% liftIO $ putStrLn "INSTRUCTION -> readmymind '(' id ')' " }
             | amnesiac '(' id ')' 																						{ }
-            
+
             | if EXPRESSION BLOCK IFELSE                                                                                {% liftIO $ putStrLn "INSTRUCTION -> if EXPRESSION BLOCK IFELSE " }
             | cantstop EXPRESSION BLOCK                                                                                 {% liftIO $ putStrLn "INSTRUCTION -> cantstop EXPRESSION BLOCK  " }
             | onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';' EXPRESSION BLOCK                                    {% liftIO $ putStrLn "INSTRUCTION -> onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';'EXPRESSION BLOCK " }
