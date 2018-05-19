@@ -16,78 +16,79 @@ import Control.Monad.Except
 %lexer { lexwrap }{ EOFTkn }
 
 %token
-  youbegin                                { YouBeginTkn _ }        -- Block Start
-  whereiend                               { WhereIEndTkn _ }       -- Block End
+  youbegin                                { YouBeginTkn $$ }        -- Block Start
+  whereiend                               { WhereIEndTkn $$ }       -- Block End
   if                                      { IfTkn $$ }              -- Selection
   ifyouhavetoask                          { IfYouHaveToAskTkn $$ }  -- Selection
-  otherside                               { OthersideTkn _ }       -- Selection
+  otherside                               { OthersideTkn $$ }       -- Selection
   cantstop                                { CantStopTkn $$ }        -- While Iteration
-  breakthru                               { BreakthruTkn _ }       -- Break
+  breakthru                               { BreakthruTkn $$ }       -- Break
   onemoretime                             { OneMoreTimeTkn $$ }     -- For Iteration
-  ';'                                     { SemiColonTkn _ }       -- For Iteration
+  ';'                                     { SemiColonTkn $$ }       -- For Iteration
   readmymind                              { ReadMyMindTkn $$ }      -- Data entry/read
   go                                      { GoTkn $$ }              -- Data exit/write
   gomental                                { GoMentalTkn $$ }
   goslowly                                { GoSlowlyTkn $$ }        -- Data exit/writeln
   dafunk                                  { DaFunkTkn $$}          -- Method with return/Function
-  ':'                                     { ColonTkn _ }           -- Method with return/Function
-  getback                                 { GetBackTkn _ }         -- Return
-  intothevoid                             { IntoTheVoidTkn _ }     -- Void
-  newlife                                 { NewLifeTkn _ }         -- Calloc
+  ':'                                     { ColonTkn $$ }           -- Method with return/Function
+  getback                                 { GetBackTkn $$ }         -- Return
+  intothevoid                             { IntoTheVoidTkn $$ }     -- Void
+  newlife                                 { NewLifeTkn $$ }         -- Calloc
 --  saveme                                  { SaveMeTkn }          -- Malloc
 --  keepyourselfalive                       { KeepAliveTkn }       -- Realloc
-  amnesiac                                { AmnesiacTkn _ }        -- Free
-  exitmusic                               { ExitMusicTkn _ }       -- Exit
-  aroundtheworld                          { AroundTheWorldTkn _ }  -- Import
+  amnesiac                                { AmnesiacTkn $$ }        -- Free
+  exitmusic                               { ExitMusicTkn $$ }       -- Exit
+  aroundtheworld                          { AroundTheWorldTkn $$ }  -- Import
 --  holeinmysoul                            { HoleInMySoulTkn }    -- Templates
 
   -- Type Tokens
-  int                                     { IntTkn _ }
-  pointer                                 { PointerTkn _ }  -- Apuntador, agregar a LEXER
-  float                                   { FloatTkn _ }
-  char                                    { CharTkn _ }
-  boolean                                 { BooleanTkn _ }
-  ok                                      { OkTkn _ }              -- True
-  notok                                   { NotOkTkn _ }           -- False
-  '{'                                     { OpenBraceTkn _ }
-  '}'                                     { CloseBraceTkn _ }
-  '['                                     { ArrayStartTkn _ }
-  ']'                                     { ArrayEndTkn _ }
-  band                                    { BandTkn _ }            -- Registers/structs
-  union                                   { UnionTkn _ }
---  '&'                                      { PointerTkn }         -- Pointers
-  duets                                   { DuetsTkn _ }           -- Tuple
-  left                                    { LeftTkn _ }
-  right                                   { RightTkn _ }
+  int                                     { IntTkn $$ }
+  pointer                                 { PointerTkn $$ }  -- Apuntador, agregar a LEXER
+  float                                   { FloatTkn $$ }
+  char                                    { CharTkn $$ }
+  boolean                                 { BooleanTkn $$ }
+  ok                                      { OkTkn $$ }              -- True
+  notok                                   { NotOkTkn $$ }           -- False
+  '{'                                     { OpenBraceTkn $$ }
+  '}'                                     { CloseBraceTkn $$ }
+  '['                                     { ArrayStartTkn $$ }
+  ']'                                     { ArrayEndTkn $$ }
+  band                                    { BandTkn $$ }            -- Registers/structs
+  union                                   { UnionTkn $$ }
+  '.'										{ DotTkn $$ }
+  '^'									{ PointerTkn $$ }
+  duets                                   { DuetsTkn $$ }           -- Tuple
+  left                                    { LeftTkn $$ }
+  right                                   { RightTkn $$ }
 
   -- Operations Tokens
-  mod                                     { ModTkn _ }
-  div                                     { DivTkn _ }
-  not                                     { NotTkn _ }
-  and                                     { AndTkn _ }
-  or                                      { OrTkn _ }
-  ','                                     { CommaTkn _ }
-  '('                                     { ParenOpenTkn _ }
-  ')'                                     { ParenCloseTkn _ }
-  '+'                                     { PlusTkn _ }
-  '=='                                    { EqualTkn _ }
-  '*'                                     { ProductTkn _ }
-  '-'                                     { MinusTkn _ }
-  '%'                                     { RestTkn _ }
-  '/'                                     { DivExacTkn _ }
-  '!='                                    { DifTkn _ }
-  '>='                                    { GreaterEqualTkn _ }
-  '<='                                    { LessEqualTkn _ }
-  '>'                                     { GreaterTkn _ }
-  '<'                                     { LessTkn _ }
+  mod                                     { ModTkn $$ }
+  div                                     { DivTkn $$ }
+  not                                     { NotTkn $$ }
+  and                                     { AndTkn $$ }
+  or                                      { OrTkn $$ }
+  ','                                     { CommaTkn $$ }
+  '('                                     { ParenOpenTkn $$ }
+  ')'                                     { ParenCloseTkn $$ }
+  '+'                                     { PlusTkn $$ }
+  '=='                                    { EqualTkn $$ }
+  '*'                                     { ProductTkn $$ }
+  '-'                                     { MinusTkn $$ }
+  '%'                                     { RestTkn $$ }
+  '/'                                     { DivExacTkn $$ }
+  '!='                                    { DifTkn $$ }
+  '>='                                    { GreaterEqualTkn $$ }
+  '<='                                    { LessEqualTkn $$ }
+  '>'                                     { GreaterTkn $$ }
+  '<'                                     { LessTkn $$ }
  -- '->'                                    { TypeTkn }
-  '='                                     { AssignTkn _ }
+  '='                                     { AssignTkn $$ }
 
   -- Otros
   id                                      { IdTkn _ _ }
   n                                       { NumLiteralTkn _ _ }
-  newline                                 { NewLineTkn _ }
-  -- c                                       {% liftIO $ print " -> " } -- char
+  newline                                 { NewLineTkn $$ }
+  c                                       { LiteralCharTkn _ _ } -- char
   string                                  { StringTkn _ _ }
 
 -- TODO:
@@ -104,6 +105,7 @@ import Control.Monad.Except
 %left '+' '-'
 %left '*' '/' '%' mod div
 %nonassoc not
+%right '='
 
 -- TODO
 -- unary minus sign
@@ -145,7 +147,7 @@ FUNCTIONPARAMETER : TYPE id                                             {% liftI
 
 
 BLOCK : MAYBELINE youbegin INSIDEFUNCTION MAYBELINE whereiend           {% liftIO $ putStrLn "BLOCK -> MAYBELINE youbegin INSIDEFUNCTION MAYBELINE whereiend" }
-      | MAYBELINE INSTRUCTION                                           { }
+      --| MAYBELINE INSTRUCTION                                           { }
 
 INSIDEFUNCTION : INSIDEFUNCTION newline INSTRUCTION                     {% liftIO $ putStrLn "INSIDEFUNCTION -> INSIDEFUNCTION newline DECLARATION" }
          | INSTRUCTION                                                  {% liftIO $ putStrLn "INSIDEFUNCTION -> INSTRUCTION" }
@@ -155,7 +157,7 @@ INSIDEFUNCTION : INSIDEFUNCTION newline INSTRUCTION                     {% liftI
 DECLARATION : TYPE DECLARATIONTYPE { % liftIO $ putStrLn "DECLARATION -> TYPE DECLARATIONTYPE" }
 
 TYPE : TYPE2              {}
-    |  TYPE2 '*'          {}
+    |  TYPE2 '^'          {}
 
 TYPE2 : int                                    { % liftIO $ putStrLn "TYPE -> int " }
    | float                                    { % liftIO $ putStrLn "TYPE -> float " }
@@ -170,14 +172,15 @@ DECLARATIONTYPE : ID '=' EXPRESSION                 {% liftIO $ putStrLn "DECLAR
             | ID ',' DECLARATIONTYPE                {% liftIO $ putStrLn "DECLARATIONTYPE -> ID ',' DECLARATIONTYPE" }
 
 ID : id                                                    { }
-     id '[' EXPRESSION ']'                                 { }
+   | id '[' EXPRESSION ']'                                 { }
 
 -- Probablemente vaya newline antes del youbegin y whereiend PUESTOS
 INSTRUCTION : go '(' PRINT ')'                                                                                          {% liftIO $ putStrLn "INSTRUCTION -> go '(' PRINT ')' " }
             | goslowly '(' PRINT ')'                                                                                    {% liftIO $ putStrLn "INSTRUCTION -> goslowly '(' PRINT ')' " }
             | gomental '(' PRINT ')'                                                                                    {% liftIO $ putStrLn "INSTRUCTION -> gomental '(' PRINT ')' " }
             | readmymind '(' IDS ')'                                                                                     {% liftIO $ putStrLn "INSTRUCTION -> readmymind '(' id ')' " }
-            | amnesiac '(' id ')'
+            | amnesiac '(' id ')' 																						{ }
+            
             | if EXPRESSION BLOCK IFELSE                                                                                {% liftIO $ putStrLn "INSTRUCTION -> if EXPRESSION BLOCK IFELSE " }
             | cantstop EXPRESSION BLOCK                                                                                 {% liftIO $ putStrLn "INSTRUCTION -> cantstop EXPRESSION BLOCK  " }
             | onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';' EXPRESSION BLOCK                                    {% liftIO $ putStrLn "INSTRUCTION -> onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';'EXPRESSION BLOCK " }
@@ -187,8 +190,8 @@ INSTRUCTION : go '(' PRINT ')'                                                  
             | DECLARATION  {}
             | EXPRESSION   {}
 
-IFELSE : ifyouhavetoask EXPRESSION BLOCK newline IFELSE                                     { % liftIO $ putStrLn "IFELSE -> ifyouhavetoask EXPRESSION BLOCK newline IFELSE " }
-       | otherside BLOCK newline                                                            { % liftIO $ putStrLn "IFELSE -> otherside BLOCK newline " }
+IFELSE : ifyouhavetoask EXPRESSION BLOCK IFELSE                                     { % liftIO $ putStrLn "IFELSE -> ifyouhavetoask EXPRESSION BLOCK newline IFELSE " }
+       | otherside BLOCK                                                            { % liftIO $ putStrLn "IFELSE -> otherside BLOCK newline " }
        | {- empty -}                                                                        { }
 
 PRINT : string ',' PRINT                     { % liftIO $ putStrLn "PRINT -> string ',' PRINT " }
@@ -196,8 +199,8 @@ PRINT : string ',' PRINT                     { % liftIO $ putStrLn "PRINT -> str
      | string                                { % liftIO $ putStrLn "PRINT -> string " }
      | id                                    { % liftIO $ putStrLn "PRINT -> id " }
 
-DEFINESTRUCT : band id id '{' LDECLARATIONS '}'    { % liftIO $ putStrLn "STRUCT -> band id id '(' LDECLARATIONS ')' " }
-             | union id id '{' LDECLARATIONS '}'   { % liftIO $ putStrLn "STRUCT -> union id id '(' LDECLARATIONS ')' " }
+DEFINESTRUCT : band id '{' newline LDECLARATIONS newline'}'    { % liftIO $ putStrLn "STRUCT -> band id id '(' LDECLARATIONS ')' " }
+             | union id '{' newline LDECLARATIONS newline '}'   { % liftIO $ putStrLn "STRUCT -> union id id '(' LDECLARATIONS ')' " }
 
 LDECLARATIONS : LDECLARATIONS newline DECLARATION  {% liftIO $ putStrLn "LDECLARATIONS -> DECLARATION LDECLARATIONS" }
               | DECLARATION                        {% liftIO $ putStrLn "LDECLARATIONS -> DECLARATION" }
@@ -232,7 +235,7 @@ EXPRESSION : id                         { % liftIO $ putStrLn "EXPRESSION -> id 
            | EXPRESSIONSTRUCT           { % liftIO $ putStrLn "EXPRESSION -> EXPRESSIONSTRUCT " }
            | FUNCTIONCALL               { }
            | newlife '(' EXPRESSION ')' { }
-           | '&' id                     { }
+           | '^' id                     { }
            | id '=' EXPRESSION          { % liftIO $ putStrLn "EXPRESSION -> id '=' EXPRESSION  " }
 
            {-
@@ -245,12 +248,12 @@ EXPRESSIONTUPLE : left id '(' n ')'                         { % liftIO $ putStrL
 ARRAYPOSITION : id '[' n ']'                                { % liftIO $ putStrLn "ARRAYPOSITION -> id '[' n ']' " }
          | id '[' id ']'                                    { % liftIO $ putStrLn "ARRAYPOSITION -> id '[' id ']' " }
 
-EXPRESSIONSTRUCT : id '.' id                                { % liftIO $ putStrLn "EXPRESSIONSTRUCT -> id '(' id ')' " }
+EXPRESSIONSTRUCT : id '.' id                                { % liftIO $ putStrLn "EXPRESSIONSTRUCT -> id . id " }
 
 FUNCTIONCALL : id '(' IDS ')'                                { % liftIO $ putStrLn "EXPRESSIONSTRUCT -> id '(' id ')' " }
 
-LPARAMETERSSTRUCT : id '=' EXPRESSION ',' LPARAMETERSSTRUCT { % liftIO $ putStrLn "LPARAMETERSSTRUCT -> id '=' EXPRESSION ',' LPARAMETERSSTRUCT " }
-          | id '=' EXPRESSION                               { % liftIO $ putStrLn "LPARAMETERSSTRUCT -> id '=' EXPRESSION " }
+--LPARAMETERSSTRUCT : id '=' EXPRESSION ',' LPARAMETERSSTRUCT { % liftIO $ putStrLn "LPARAMETERSSTRUCT -> id '=' EXPRESSION ',' --LPARAMETERSSTRUCT " }
+        --  | id '=' EXPRESSION                               { % liftIO $ putStrLn "LPARAMETERSSTRUCT -> id '=' EXPRESSION " }
 
 
 MAYBELINE : {- empty -}                   {% liftIO $ putStrLn "MAYBELINE -> \\ " }

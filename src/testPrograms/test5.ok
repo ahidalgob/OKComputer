@@ -5,11 +5,11 @@ IMPORT ixd
 
 band nodo{
     int x
-    nodo* siguiente
+    nodo^ siguiente
 }
 
 band lista{
-    nodo* cabeza
+    nodo^ cabeza
 }
 
 
@@ -23,7 +23,7 @@ youbegin
     whereiend
     ifyouhavetoask x<10 youbegin
         #...
-    whereiend
+    whereiend 
     otherside youbegin
 
     whereiend

@@ -25,6 +25,9 @@ tokens :-
 <0>  cantstop                                {newToken CantStopTkn}        -- While Iteration
 <0>  breakthru                               {newToken BreakthruTkn}       -- Break
 <0>  onemoretime                             {newToken OneMoreTimeTkn}     -- For Iteration
+<0>  \.                                     {newToken DotTkn}       -- For Iteration
+<0>  \{                                     {newToken OpenBraceTkn}       -- For Iteration
+<0>  \}                                     {newToken CloseBraceTkn}       -- For Iteration
 <0>  \;                                      {newToken SemiColonTkn}       -- For Iteration
 <0>  readmymind                              {newToken ReadMyMindTkn}      -- Data entry/read
 <0>  go                                      {newToken GoTkn}              -- Data exit/write
@@ -80,6 +83,7 @@ tokens :-
 <0>  \<                                      {newToken LessTkn}
 <0>  \-\>                                    {newToken TypeTkn}
 <0>  \=                                      {newToken AssignTkn}
+<0>  \'\.\'                                  {newCharTkn}
 
   -- String Tokens
 <0>         $digit+(\.[$digit]+)?                       {newStringToken NumLiteralTkn}  -- Numbers
@@ -168,6 +172,14 @@ newToken tknConstr = \alexIn _ -> do
   --liftIO $ print $ tknConstr pos
   setLastNewLine False
   return $ tknConstr pos
+
+newCharTkn :: AlexAction Token
+newCharTkn = \alexIn _ -> do
+  let pos = getPos alexIn
+      c = (getCurrentInput alexIn)!!1
+  --liftIO $ print $ tknConstr pos
+  setLastNewLine False
+  return $ LiteralCharTkn pos c
 
 newStringToken :: (Pos -> String -> Token) -> AlexAction Token
 newStringToken tknConstr = \alexIn len -> do

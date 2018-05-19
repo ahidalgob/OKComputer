@@ -10,6 +10,9 @@ data Token =
   CantStopTkn         { tknPos :: (Int, Int) }  |
   BreakthruTkn        { tknPos :: (Int, Int) }  |
   OneMoreTimeTkn      { tknPos :: (Int, Int) }  |
+  OpenBraceTkn        { tknPos :: (Int, Int) }  |
+  CloseBraceTkn       { tknPos :: (Int, Int) }  |
+  DotTkn              { tknPos :: (Int, Int) }  |
   SemiColonTkn        { tknPos :: (Int, Int) }  |
   ReadMyMindTkn       { tknPos :: (Int, Int) }  |
   GoTkn               { tknPos :: (Int, Int) }  |
@@ -61,6 +64,7 @@ data Token =
   LessTkn             { tknPos :: (Int, Int) }  |
   TypeTkn             { tknPos :: (Int, Int) }  |
   AssignTkn           { tknPos :: (Int, Int) }  |
+  LiteralCharTkn      { tknPos :: (Int, Int), tknChar :: Char } |
   NumLiteralTkn       { tknPos :: (Int, Int), tknString :: String } |
   IdTkn               { tknPos :: (Int, Int), tknString :: String } |
   StringTkn           { tknPos :: (Int, Int), tknString :: String } |
