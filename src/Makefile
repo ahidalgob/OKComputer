@@ -14,4 +14,5 @@ clean:
 	-rm -f LexerAndParser/*.o
 	-rm -f LexerAndParser/Lexer.hs
 	-rm -f LexerAndParser/Parser.hs
+	-rm -f LexerAndParser/*.info
 	-rm -f OKC
