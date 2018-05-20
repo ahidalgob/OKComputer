@@ -27,9 +27,9 @@ youbegin
     otherside youbegin
 
     whereiend
+    int y
 whereiend
 
 dafunk maintheme() : intothevoid
 youbegin
-    # asdf
 whereiend

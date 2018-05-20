@@ -146,11 +146,10 @@ FUNCTIONPARAMETER : TYPE id                                             {% liftI
            -- | TYPE id '[' ']'                                            {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id '[' ']'" }
 
 
-BLOCK : MAYBELINE youbegin INSIDEFUNCTION MAYBELINE whereiend           {% liftIO $ putStrLn "BLOCK -> MAYBELINE youbegin INSIDEFUNCTION MAYBELINE whereiend" }
+BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION whereiend           {% liftIO $ putStrLn "BLOCK -> MAYBELINE youbegin INSIDEFUNCTION MAYBELINE whereiend" }
       --| MAYBELINE INSTRUCTION                                           { }
 
-INSIDEFUNCTION : INSIDEFUNCTION newline INSTRUCTION                     {% liftIO $ putStrLn "INSIDEFUNCTION -> INSIDEFUNCTION newline DECLARATION" }
-         | INSTRUCTION                                                  {% liftIO $ putStrLn "INSIDEFUNCTION -> INSTRUCTION" }
+INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                     {% liftIO $ putStrLn "INSIDEFUNCTION -> INSIDEFUNCTION newline DECLARATION" }
          | {- empty -}                                                  {% liftIO $ putStrLn "INSIDEFUNCTION -> \\ " }
 
 
@@ -175,20 +174,20 @@ ID : id                                                    { }
    | id '[' EXPRESSION ']'                                 { }
 
 -- Probablemente vaya newline antes del youbegin y whereiend PUESTOS
-INSTRUCTION : go '(' PRINT ')'                                                                                          {% liftIO $ putStrLn "INSTRUCTION -> go '(' PRINT ')' " }
-            | goslowly '(' PRINT ')'                                                                                    {% liftIO $ putStrLn "INSTRUCTION -> goslowly '(' PRINT ')' " }
-            | gomental '(' PRINT ')'                                                                                    {% liftIO $ putStrLn "INSTRUCTION -> gomental '(' PRINT ')' " }
-            | readmymind '(' IDS ')'                                                                                     {% liftIO $ putStrLn "INSTRUCTION -> readmymind '(' id ')' " }
-            | amnesiac '(' id ')' 																						{ }
+INSTRUCTION : go '(' PRINT ')' newline                                                                                          {% liftIO $ putStrLn "INSTRUCTION -> go '(' PRINT ')' " }
+            | goslowly '(' PRINT ')' newline                                                                                    {% liftIO $ putStrLn "INSTRUCTION -> goslowly '(' PRINT ')' " }
+            | gomental '(' PRINT ')' newline                                                                                    {% liftIO $ putStrLn "INSTRUCTION -> gomental '(' PRINT ')' " }
+            | readmymind '(' IDS ')' newline                                                                                     {% liftIO $ putStrLn "INSTRUCTION -> readmymind '(' id ')' " }
+            | amnesiac '(' id ')' newline 																						{ }
 
             | if EXPRESSION BLOCK IFELSE                                                                                {% liftIO $ putStrLn "INSTRUCTION -> if EXPRESSION BLOCK IFELSE " }
             | cantstop EXPRESSION BLOCK                                                                                 {% liftIO $ putStrLn "INSTRUCTION -> cantstop EXPRESSION BLOCK  " }
             | onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';' EXPRESSION BLOCK                                    {% liftIO $ putStrLn "INSTRUCTION -> onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';'EXPRESSION BLOCK " }
-            | getback EXPRESSION                                                                                        {% liftIO $ putStrLn "INSTRUCTION -> getback EXPRESSION " }
-            | breakthru                                                                                                 {% liftIO $ putStrLn "INSTRUCTION -> breakthru " }
-            | exitmusic                                                                                                 {% liftIO $ putStrLn "INSTRUCTION -> exitmusic " }
-            | DECLARATION  {}
-            | EXPRESSION   {}
+            | getback EXPRESSION newline                                                                                        {% liftIO $ putStrLn "INSTRUCTION -> getback EXPRESSION " }
+            | breakthru newline                                                                                                 {% liftIO $ putStrLn "INSTRUCTION -> breakthru " }
+            | exitmusic newline                                                                                                 {% liftIO $ putStrLn "INSTRUCTION -> exitmusic " }
+            | DECLARATION newline  {}
+            | EXPRESSION newline   {}
 
 IFELSE : ifyouhavetoask EXPRESSION BLOCK IFELSE                                     { % liftIO $ putStrLn "IFELSE -> ifyouhavetoask EXPRESSION BLOCK newline IFELSE " }
        | otherside BLOCK                                                            { % liftIO $ putStrLn "IFELSE -> otherside BLOCK newline " }
