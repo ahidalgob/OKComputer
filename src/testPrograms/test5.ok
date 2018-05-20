@@ -12,6 +12,8 @@ band lista{
     nodo^ cabeza
 }
 
+int x=y
+bool z= 3<5
 
 dafunk f(int a, lista l) : lista
 youbegin

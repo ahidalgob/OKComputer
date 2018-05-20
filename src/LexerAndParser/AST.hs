@@ -17,27 +17,20 @@ data FUNCTIONINICN =
 
 data RETURNTYPEN = INTOTHEVOIDN | RETURNSOMN TYPEN deriving Show
 
-data DEFINESTRUCTN = DEFINESTRUCTN deriving Show
-
 data PARAMETERN = PARAMETERN TYPEN String deriving Show
 
 data BLOCKN = BLOCKN INSIDEN deriving Show
 
-data INSIDEN = INSIDEN deriving Show 
---data INSIDEN = INSIDEN INSTRUCTIONN deriving Show
+--data INSIDEN = INSIDEN deriving Show 
+data INSIDEN = INSIDEN INSTRUCTIONN | INSIDEVOID deriving Show
 
---data INSTRUCTIONN = INSTRUCTIONN deriving Show
-
---data DECLARATIONN = DECLARATIONN deriving Show
 -- Nuevo
 data DECLARATIONN = DECLARATIONN TYPEN [DECLARATIONTYPEN] deriving Show
 
--- Para cuando son apuntadores, String = ^
 data TYPEN = TYPENOPOINTERN TYPE2N |
 			 TYPEPOINTERN TYPE2N deriving Show
 
 data TYPE2N = BOOLEANN | INTN | FLOATN | CHARN | STRINGN | IDSTRUCTN String deriving Show
---data TYPE2N = String deriving Show
 
 data DECLARATIONTYPEN = DECTYPEN1 ID2N EXPRESSIONN |
 						DECTYPEN2 ID2N
@@ -45,57 +38,68 @@ data DECLARATIONTYPEN = DECTYPEN1 ID2N EXPRESSIONN |
 						deriving Show
 
 -- Can be empty
-data ID2N = ID2N deriving Show
---data ID2N = IDNORMALN String |
---			IDARRAYN String EXPRESSIONN deriving Show
+--data ID2N = ID2N deriving Show
+data ID2N = IDNORMALN String |
+			IDARRAYN String EXPRESSIONN deriving Show
 
 data INSTRUCTIONN = GOINGN [PRINTN] |
-					GOINGSLOWLYN [PRINTN] |
-					GOINGMENTALN [PRINTN] |
-					REDMYMINDN [IDN] 	  |
-					AMNESIACN ID2N		  |
-					IFN EXPRESSIONN BLOCKN IFELSEN |
-					CANTSTOPN EXPRESSIONN BLOCKN  |
-					ONEMORETIMEN TYPEN ID2N EXPRESSIONN EXPRESSIONN EXPRESSIONN BLOCKN |
-					GETBACKN EXPRESSIONN |
-					BREAKTHRUN |
-					EXITMUSICN |
-					DECLARATIONNINST DECLARATIONN 
-					--EXPRESSIONN 
-					deriving Show
+ 					GOINGSLOWLYN [PRINTN] |
+ 					GOINGMENTALN [PRINTN] |
+ 					REDMYMINDN [IDN] 	  |
+ 					AMNESIACN String		  |
+ 					IFN EXPRESSIONN BLOCKN IFELSEN |
+ 					CANTSTOPN EXPRESSIONN BLOCKN  |
+ 					ONEMORETIMEN TYPEN String EXPRESSIONN EXPRESSIONN EXPRESSIONN BLOCKN |
+ 					GETBACKN EXPRESSIONN |
+ 					BREAKTHRUN |
+ 					EXITMUSICN |
+ 					DECLARATIONNINST DECLARATIONN |
+ 					EXPRESSIONNINST EXPRESSIONN
+ 					deriving Show
 
-data IFELSEN = IFASKN EXPRESSIONN BLOCKN IFELSEN |
+data IFELSEN = IFELSEVOID |
+			   IFASKN EXPRESSIONN BLOCKN IFELSEN |
 			   OTHERSIDEN BLOCKN 
 			   deriving Show
 
-data PRINTN = PRINTSTRING String PRINTN deriving Show
+-- Probablemente un detallito aca
+data PRINTN =   PRINTSTRINGS String PRINTN |
+				PRINTSTRING String 
+				deriving Show
 
 -- Nuevo
---data DEFINESTRUCTN = BANDN String LDECLARATIONSN |
---					 UNIONN String LDECLARATIONSN 
---					 deriving Show
+data DEFINESTRUCTN = BANDN String LDECLARATIONSN |
+					 UNIONN String LDECLARATIONSN |
+					 DEFINESTRUCTN
+					 deriving Show
 
-data LDECLARATIONSN = LDECLARATIONSN DECLARATIONN deriving Show
+data LDECLARATIONSN = REC1 LDECLARATIONSN DECLARATIONN |
+					  REC2 DECLARATIONN deriving Show
 
-data EXPRESSIONN = EXPRESSIONN deriving Show
+data EXPRESSIONN = IDEXPRESSION String |
+ 				   NUMBEREXPN String  |
+ 				   STRINGEXPN String  |
+ 				   OKN          |
+ 				   NOTOKN       |
+ 				   PARENTESISN EXPRESSIONN |
+ 				   COMPARN EXPRESSIONN String EXPRESSIONN    |
+ 				   NOTN String EXPRESSIONN        |
+ 				   LOGICN EXPRESSIONN String EXPRESSIONN      |
+ 				   MINUSN String EXPRESSIONN     |
+ 				   ARITN EXPRESSIONN String EXPRESSIONN       |
+ 				   ARRAYINSTN ARRAYPOSN   |
+ 				   EXPSTRUCTN EXPRESSIONSTRUCTN  |
+ 				   FUNCCALLN FUNCTIONCALLN   |
+ 				   NEWLIFEN EXPRESSIONN    |
+ 				   POINTERN String    |
+ 				   ASSIGNN String EXPRESSIONN   
+ 				   deriving Show
 
--- data EXPRESSIONN = IDEXPRESSION |
--- 				   NUMBEREXPN   |
--- 				   STRINGEXPN   |
--- 				   OKN          |
--- 				   NOTOKN       |
--- 				   PARENTESISN EXPRESSIONN |
--- 				   COMPARN EXPRESSIONN     |
--- 				   NOTN EXPRESSIONN        |
--- 				   LOGICN EXPRESSIONN      |
--- 				   MINUSN EXPRESSIONN      |
--- 				   ARITN EXPRESSIONN       |
--- 				   ARRAYPOSN EXPRESSIONN   |
--- 				   EXPSTRUCTN EXPRESSIONN  |
--- 				   FUNCCALLN EXPRESSIONN   |
--- 				   NEWLIFEN EXPRESSIONN    |
--- 				   POINTERN EXPRESSIONN    |
--- 				   ASSIGNN EXPRESSIONN     deriving Show
+--data IDEXPRESSION = IDEXPRESSIONN String deriving Show
 
-data ARRAYPOSN 
+data ARRAYPOSN = ARRAYPOSN String String deriving Show 
+
+data EXPRESSIONSTRUCTN = EXPRESSIONSTRUCTN String String deriving Show
+
+data FUNCTIONCALLN = FUNCTIONCALLN String [IDN] deriving Show
 

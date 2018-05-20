@@ -149,8 +149,8 @@ FUNCTIONPARAMETER : TYPE id                                             { PARAME
 BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION whereiend           { BLOCKN $4 }
       --| MAYBELINE INSTRUCTION                                           { BLOCKN }
 
-INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                     { INSIDEN }
-         | {- empty -}                                                  { INSIDEN }
+INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                     { INSIDEN $2 }
+         | {- empty -}                                                  { INSIDEVOID }
 
 
 DECLARATION : TYPE DECLARATIONTYPE { DECLARATIONN $1 $2 } -- TODO
@@ -170,72 +170,72 @@ DECLARATIONTYPE : ID '=' EXPRESSION                 { [DECTYPEN1 $1 $3] }
             | ID                                    { [DECTYPEN2 $1] }
             | ID ',' DECLARATIONTYPE                { (DECTYPEN2 $1):($3) }
 
-ID : id                                                    { ID2N }
-   | id '[' EXPRESSION ']'                                 { ID2N }
+ID : id                                                    { IDNORMALN $ tknString $1 }
+   | id '[' EXPRESSION ']'                                 { IDARRAYN (tknString $1) $3 }
 
 -- Probablemente vaya newline antes del youbegin y whereiend PUESTOS
-INSTRUCTION : go '(' PRINT ')' newline                                                                                          {% liftIO $ putStrLn "INSTRUCTION -> go '(' PRINT ')' " }
-            | goslowly '(' PRINT ')' newline                                                                                    {% liftIO $ putStrLn "INSTRUCTION -> goslowly '(' PRINT ')' " }
-            | gomental '(' PRINT ')' newline                                                                                    {% liftIO $ putStrLn "INSTRUCTION -> gomental '(' PRINT ')' " }
-            | readmymind '(' IDS ')' newline                                                                                     {% liftIO $ putStrLn "INSTRUCTION -> readmymind '(' id ')' " }
-            | amnesiac '(' id ')' newline 																						{ }
+INSTRUCTION : go '(' PRINT ')' newline                                          { GOINGN $3 }
+            | goslowly '(' PRINT ')' newline                                    { GOINGSLOWLYN $3 }
+            | gomental '(' PRINT ')' newline                                    { GOINGMENTALN $3 }
+            | readmymind '(' IDS ')' newline                                    { REDMYMINDN $3 }
+            | amnesiac '(' id ')' newline 										{ AMNESIACN $ tknString $3 }
+            | if EXPRESSION BLOCK IFELSE                                        { IFN $2 $3 $4 }
+            | cantstop EXPRESSION BLOCK                                         { CANTSTOPN $2 $3 }
+            | onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';' EXPRESSION BLOCK                       { ONEMORETIMEN $2 (tknString $3) $5 $7 $9 $10 }
+            | getback EXPRESSION newline                                        { GETBACKN $2 }
+            | breakthru newline                                                 { BREAKTHRUN }
+            | exitmusic newline                                                 { EXITMUSICN }
+            | DECLARATION newline 												{ DECLARATIONNINST $1 }
+            | EXPRESSION newline   												{ EXPRESSIONNINST $1 }
 
-            | if EXPRESSION BLOCK IFELSE                                                                                {% liftIO $ putStrLn "INSTRUCTION -> if EXPRESSION BLOCK IFELSE " }
-            | cantstop EXPRESSION BLOCK                                                                                 {% liftIO $ putStrLn "INSTRUCTION -> cantstop EXPRESSION BLOCK  " }
-            | onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';' EXPRESSION BLOCK                                    {% liftIO $ putStrLn "INSTRUCTION -> onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';'EXPRESSION BLOCK " }
-            | getback EXPRESSION newline                                                                                        {% liftIO $ putStrLn "INSTRUCTION -> getback EXPRESSION " }
-            | breakthru newline                                                                                                 {% liftIO $ putStrLn "INSTRUCTION -> breakthru " }
-            | exitmusic newline                                                                                                 {% liftIO $ putStrLn "INSTRUCTION -> exitmusic " }
-            | DECLARATION newline  {}
-            | EXPRESSION newline   {}
+IFELSE : ifyouhavetoask EXPRESSION BLOCK IFELSE                                     { IFASKN $2 $3 $4 }
+       | otherside BLOCK                                                            { OTHERSIDEN $2 }
+       | {- empty -}                                                                { IFELSEVOID }
 
-IFELSE : ifyouhavetoask EXPRESSION BLOCK IFELSE                                     { % liftIO $ putStrLn "IFELSE -> ifyouhavetoask EXPRESSION BLOCK newline IFELSE " }
-       | otherside BLOCK                                                            { % liftIO $ putStrLn "IFELSE -> otherside BLOCK newline " }
-       | {- empty -}                                                                        { }
+-- Probablemente tenga un detallito aca
+PRINT : string ',' PRINT                     { (PRINTSTRING (tknString $1)):($3)  }
+     | id ','     PRINT                      { (PRINTSTRING (tknString $1)):($3) }
+     | string                                { [PRINTSTRING $ tknString $1] }
+     | id                                    { [PRINTSTRING $ tknString $1] }
 
-PRINT : string ',' PRINT                     { % liftIO $ putStrLn "PRINT -> string ',' PRINT " }
-     | id ','     PRINT                      { % liftIO $ putStrLn "PRINT -> id ','     PRINT " }
-     | string                                { % liftIO $ putStrLn "PRINT -> string " }
-     | id                                    { % liftIO $ putStrLn "PRINT -> id " }
+DEFINESTRUCT : band id '{' newline LDECLARATIONS newline'}'    {BANDN  (tknString $2) $5}
+             | union id '{' newline LDECLARATIONS newline '}'   {UNIONN (tknString $2) $5}
 
-DEFINESTRUCT : band id '{' newline LDECLARATIONS newline'}'    {DEFINESTRUCTN}
-             | union id '{' newline LDECLARATIONS newline '}'   {DEFINESTRUCTN}
-
-LDECLARATIONS : LDECLARATIONS newline DECLARATION  {% liftIO $ putStrLn "LDECLARATIONS -> DECLARATION LDECLARATIONS" }
-              | DECLARATION                        {% liftIO $ putStrLn "LDECLARATIONS -> DECLARATION" }
+LDECLARATIONS : LDECLARATIONS newline DECLARATION  { REC1 $1 $3 }
+              | DECLARATION                        { REC2 $1 }
 
 
-EXPRESSION : id                         { EXPRESSIONN }
-           | n                          { EXPRESSIONN }
-           | string                     { EXPRESSIONN }
+EXPRESSION : id                         { IDEXPRESSION $ tknString $1 }
+           | n                          { NUMBEREXPN $ tknString $1 }
+           | string                     { STRINGEXPN $ tknString $1 }
       --   | c                          { % liftIO $ putStrLn "EXPRESSION -> c " }
-           | ok                         { EXPRESSIONN }
-           | notok                      { EXPRESSIONN }
-           | '(' EXPRESSION ')'         { EXPRESSIONN }
-           | EXPRESSION '<' EXPRESSION  { EXPRESSIONN }
-           | EXPRESSION '>' EXPRESSION  { EXPRESSIONN }
-           | EXPRESSION '<=' EXPRESSION { EXPRESSIONN }
-           | EXPRESSION '>=' EXPRESSION { EXPRESSIONN }
-           | EXPRESSION '==' EXPRESSION { EXPRESSIONN }
-           | EXPRESSION '!=' EXPRESSION { EXPRESSIONN }
-           | not EXPRESSION             { EXPRESSIONN }
-           | EXPRESSION and EXPRESSION  { EXPRESSIONN }
-           | EXPRESSION or EXPRESSION   { EXPRESSIONN }
-           | '-' EXPRESSION             { EXPRESSIONN }
-           | EXPRESSION '+' EXPRESSION  { EXPRESSIONN }
-           | EXPRESSION '-' EXPRESSION  { EXPRESSIONN }
-           | EXPRESSION '*' EXPRESSION  { EXPRESSIONN }
-           | EXPRESSION '/' EXPRESSION  { EXPRESSIONN }
-           | EXPRESSION '%' EXPRESSION  { EXPRESSIONN }
-           | EXPRESSION mod EXPRESSION  { EXPRESSIONN }
-           | EXPRESSION div EXPRESSION  { EXPRESSIONN }
+           | ok                         { OKN }
+           | notok                      { NOTOKN }
+           | '(' EXPRESSION ')'         { PARENTESISN $2 }
+           | EXPRESSION '<' EXPRESSION  { COMPARN $1 "<" $3 }
+           | EXPRESSION '>' EXPRESSION  { COMPARN $1 ">" $3 }
+           | EXPRESSION '<=' EXPRESSION { COMPARN $1 "<=" $3 }
+           | EXPRESSION '>=' EXPRESSION { COMPARN $1 ">=" $3 }
+           | EXPRESSION '==' EXPRESSION { COMPARN $1 "==" $3 }
+           | EXPRESSION '!=' EXPRESSION { COMPARN $1 "!=" $3 }
+           | not EXPRESSION             { NOTN "not" $2  }
+           | EXPRESSION and EXPRESSION  { LOGICN $1 "and" $3 }
+           | EXPRESSION or EXPRESSION   { LOGICN $1 "or" $3 }
+           | '-' EXPRESSION             { MINUSN "-" $2 }
+           | EXPRESSION '+' EXPRESSION  { ARITN $1 "+" $3 }
+           | EXPRESSION '-' EXPRESSION  { ARITN $1 "-" $3 }
+           | EXPRESSION '*' EXPRESSION  { ARITN $1 "*" $3 }
+           | EXPRESSION '/' EXPRESSION  { ARITN $1 "/" $3 }
+           | EXPRESSION '%' EXPRESSION  { ARITN $1 "%" $3 }
+           | EXPRESSION mod EXPRESSION  { ARITN $1 "mod" $3 }
+           | EXPRESSION div EXPRESSION  { ARITN $1 "div" $3 }
            -- | EXPRESSIONTUPLE            { % liftIO $ putStrLn "EXPRESSION -> EXPRESSIONTUPLE " }
-           | ARRAYPOSITION              { EXPRESSIONN }
-           | EXPRESSIONSTRUCT           { EXPRESSIONN }
-           | FUNCTIONCALL               { EXPRESSIONN }
-           | newlife '(' EXPRESSION ')' { EXPRESSIONN }
-           | '^' id                     { EXPRESSIONN }
-           | id '=' EXPRESSION          { EXPRESSIONN }
+           | ARRAYPOSITION              { ARRAYINSTN $1 }
+           | EXPRESSIONSTRUCT           { EXPSTRUCTN $1 }
+           | FUNCTIONCALL               { FUNCCALLN $1 }
+           | newlife '(' EXPRESSION ')' { NEWLIFEN $3 }
+           | '^' id                     { POINTERN $ tknString $2 }
+           | id '=' EXPRESSION          { ASSIGNN (tknString $1) $3 }
 
            {-
 EXPRESSIONTUPLE : left id '(' n ')'                         { % liftIO $ putStrLn "EXPRESSIONTUPLE -> left id '(' n ')' " } -- x = left tupla1(2)
@@ -244,19 +244,19 @@ EXPRESSIONTUPLE : left id '(' n ')'                         { % liftIO $ putStrL
          | right id '(' id ')'                              { % liftIO $ putStrLn "EXPRESSIONTUPLE -> right id '(' id ')' " }
 -}
 
-ARRAYPOSITION : id '[' n ']'                                { % liftIO $ putStrLn "ARRAYPOSITION -> id '[' n ']' " }
-         | id '[' id ']'                                    { % liftIO $ putStrLn "ARRAYPOSITION -> id '[' id ']' " }
+ARRAYPOSITION : id '[' n ']'                                { ARRAYPOSN (tknString $1) (tknString $3) }
+         | id '[' id ']'                                    { ARRAYPOSN (tknString $1) (tknString $3) }
 
-EXPRESSIONSTRUCT : id '.' id                                { % liftIO $ putStrLn "EXPRESSIONSTRUCT -> id . id " }
+EXPRESSIONSTRUCT : id '.' id                                { EXPRESSIONSTRUCTN (tknString $1) (tknString $3) }
 
-FUNCTIONCALL : id '(' IDS ')'                                { % liftIO $ putStrLn "EXPRESSIONSTRUCT -> id '(' id ')' " }
+FUNCTIONCALL : id '(' IDS ')'                                { FUNCTIONCALLN (tknString $1) $3}
 
 --LPARAMETERSSTRUCT : id '=' EXPRESSION ',' LPARAMETERSSTRUCT { % liftIO $ putStrLn "LPARAMETERSSTRUCT -> id '=' EXPRESSION ',' --LPARAMETERSSTRUCT " }
         --  | id '=' EXPRESSION                               { % liftIO $ putStrLn "LPARAMETERSSTRUCT -> id '=' EXPRESSION " }
 
 
-MAYBELINE : {- empty -}                   {% liftIO $ putStrLn "MAYBELINE -> \\ " }
-          | newline                       {% liftIO $ putStrLn "MAYBELINE -> newline " }
+MAYBELINE : {- empty -}                   { }
+          | newline                       { }
 
 {
 
