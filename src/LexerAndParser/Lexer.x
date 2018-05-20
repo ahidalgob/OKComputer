@@ -56,7 +56,7 @@ tokens :-
 <0>  \]                                      {newToken ArrayEndTkn}
 <0>  band                                    {newToken BandTkn}            -- Registers/structs
 <0>  union                                   {newToken UnionTkn}
-<0>  \&                                      {newToken PointerTkn}         -- Pointers
+<0>  \^                                      {newToken PointerTkn}         -- Pointers
 <0>  duets                                   {newToken DuetsTkn}           -- Tuple
 <0>  left                                    {newToken LeftTkn}
 <0>  right                                   {newToken RightTkn}

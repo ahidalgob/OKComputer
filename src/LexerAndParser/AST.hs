@@ -1,0 +1,26 @@
+module AST where
+
+data STARTN = STARTN [IMPORTN] [OUTSIDEN] deriving Show
+
+data IMPORTN = IMPORTN [IDN] deriving Show
+
+data IDN = IDN String deriving Show
+
+data OUTSIDEN =
+        OUTFUNCTIONINIC FUNCTIONINICN |
+        OUTDECLARATION DECLARATIONN |
+        OUTDEFINE DEFINESTRUCTN deriving Show
+
+data FUNCTIONINICN =
+        FUNCTIONINICN IDN [PARAMETERN] RETURNTYPEN BLOCKN deriving Show
+
+
+data RETURNTYPEN = INTOTHEVOIDN | TYPEN deriving Show
+
+data DECLARATIONN = DECLARATIONN deriving Show
+
+data DEFINESTRUCTN = DEFINESTRUCTN deriving Show
+
+data PARAMETERN = PARAMETERN deriving Show
+
+data BLOCKN = BLOCKN deriving Show

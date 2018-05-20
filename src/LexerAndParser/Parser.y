@@ -7,6 +7,7 @@ import Lexer
 import ParseMonad
 import Tokens
 import Control.Monad.Except
+import AST
 }
 
 %name parse
@@ -43,7 +44,6 @@ import Control.Monad.Except
 
   -- Type Tokens
   int                                     { IntTkn $$ }
-  pointer                                 { PointerTkn $$ }  -- Apuntador, agregar a LEXER
   float                                   { FloatTkn $$ }
   char                                    { CharTkn $$ }
   boolean                                 { BooleanTkn $$ }
@@ -109,61 +109,61 @@ import Control.Monad.Except
 
 -- TODO
 -- unary minus sign
--- unary &
+-- unary ^
 %%
 -- Start
-START : IMPORTS OUTSIDEFUNCTION {% liftIO $ putStrLn "START -> IMPORTS OUTSIDEFUNCTION" } -- TODO:  Global variables?
+START : IMPORTS OUTSIDEFUNCTION         { STARTN $1 $2 }
 
 
-IMPORTS : IMPORT newline IMPORTS        {% liftIO $ putStrLn "IMPORTS -> IMPORT newline IMPORTS" }
-        | {- empty -}                   {% liftIO $ putStrLn "IMPORTS -> \\" }
+IMPORTS : IMPORT newline IMPORTS        { (IMPORTN $1):$3  } --TODO Left Recursion
+        | {- empty -}                   { [] }
 
-IMPORT : aroundtheworld IDS             {% liftIO $ putStrLn "IMPORT -> aroundtheworld IDS " }
+IMPORT : aroundtheworld IDS             { reverse $2 }
 
-IDS : id ',' IDS                             { % liftIO $ putStrLn "IDS -> id ',' IDS " }
-  | id                                       { % liftIO $ putStrLn "IDS -> id " }
-
-
-OUTSIDEFUNCTION : FUNCTIONINIC OUTSIDEFUNCTION    {% liftIO $ putStrLn "OUTSIDEFUNCTION -> FUNCTIONINIC newline OUTSIDEFUNCTION " }
-           | DECLARATION newline OUTSIDEFUNCTION          {% liftIO $ putStrLn "OUTSIDEFUNCTION -> DECLARATION newline OUTSIDEFUNCTION " }
-           | DEFINESTRUCT newline OUTSIDEFUNCTION         {% liftIO $ putStrLn "OUTSIDEFUNCTION -> DEFINESTRUCT newline OUTSIDEFUNCTION " }
-           | {- empty -}                        {% liftIO $ putStrLn "OUTSIDEFUNCTION -> \\ " }
+IDS : IDS ',' id                             { (IDN $ tknString $3):$1 }
+  | id                                       { [IDN $ tknString $1] }
 
 
-FUNCTIONINIC : dafunk id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE BLOCK    {% liftIO $ putStrLn "FUNCTIONINIC  -> dafunk id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE BLOCK" }
+OUTSIDEFUNCTION : FUNCTIONINIC OUTSIDEFUNCTION      { (OUTFUNCTIONINIC $1):$2 }
+           | DECLARATION newline OUTSIDEFUNCTION          { (OUTDECLARATION $1):$3 }
+           | DEFINESTRUCT newline OUTSIDEFUNCTION         { (OUTDEFINE $1):$3 }
+           | {- empty -}                            { [] }
 
 
-RETURNTYPE: intothevoid                                                 {% liftIO $ putStrLn "RETURNTYPE -> intothevoid" }
-          | TYPE                                                        {% liftIO $ putStrLn "RETURNTYPE -> TYPE" }
+FUNCTIONINIC : dafunk id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE BLOCK    { FUNCTIONINICN (IDN $ tknString $2) $4 $7 $8 }
 
-LPARAMETERSFUNC : {- empty -}                                           {% liftIO $ putStrLn "LPARAMETERSFUNC -> \\ " }
-                | NONEMPTYLPARAMETERSFUNC                               {% liftIO $ putStrLn "LPARAMETERSFUNC -> NONEMPTYLPARAMETERSFUNC " }
 
-NONEMPTYLPARAMETERSFUNC : FUNCTIONPARAMETER ',' NONEMPTYLPARAMETERSFUNC {% liftIO $ putStrLn "NONEMPTYLPARAMETERSFUNC -> FUNCTIONPARAMETER ',' NONEMPTYLPARAMETERSFUNC" }
-                        | FUNCTIONPARAMETER                             {% liftIO $ putStrLn "NONEMPTYLPARAMETERSFUNC -> FUNCTIONPARAMETER" }
+RETURNTYPE: intothevoid                                                 { INTOTHEVOIDN }
+          | TYPE                                                        { TYPEN } --TODO
+
+LPARAMETERSFUNC : {- empty -}                                           { [] }
+                | NONEMPTYLPARAMETERSFUNC                               { $1 }
+
+NONEMPTYLPARAMETERSFUNC : FUNCTIONPARAMETER ',' NONEMPTYLPARAMETERSFUNC { PARAMETERN:($3) } -- TODO
+                        | FUNCTIONPARAMETER                             { [PARAMETERN] }
 
 FUNCTIONPARAMETER : TYPE id                                             {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id" }
            -- | TYPE id '[' ']'                                            {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id '[' ']'" }
 
 
-BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION whereiend           {% liftIO $ putStrLn "BLOCK -> MAYBELINE youbegin INSIDEFUNCTION MAYBELINE whereiend" }
-      --| MAYBELINE INSTRUCTION                                           { }
+BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION whereiend           { BLOCKN }
+      --| MAYBELINE INSTRUCTION                                           { BLOCKN }
 
 INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                     {% liftIO $ putStrLn "INSIDEFUNCTION -> INSIDEFUNCTION newline DECLARATION" }
          | {- empty -}                                                  {% liftIO $ putStrLn "INSIDEFUNCTION -> \\ " }
 
 
-DECLARATION : TYPE DECLARATIONTYPE { % liftIO $ putStrLn "DECLARATION -> TYPE DECLARATIONTYPE" }
+DECLARATION : TYPE DECLARATIONTYPE { DECLARATIONN } -- TODO
 
-TYPE : TYPE2              {}
-    |  TYPE2 '^'          {}
+TYPE : TYPE2              { % liftIO $ putStrLn "TYPE -> TYPE2 " }
+    |  TYPE2 '^'          { % liftIO $ putStrLn "TYPE -> TYPE2 ^" }
 
-TYPE2 : int                                    { % liftIO $ putStrLn "TYPE -> int " }
-   | float                                    { % liftIO $ putStrLn "TYPE -> float " }
-   | boolean                                  { % liftIO $ putStrLn "TYPE -> boolean " }
-   | char                                     { % liftIO $ putStrLn "TYPE -> char " }
-   | string                                   { % liftIO $ putStrLn "TYPE -> string " }
-   | id                                       { % liftIO $ putStrLn "TYPE -> id " }
+TYPE2 : int                                    { % liftIO $ putStrLn "TYPE2 -> int " }
+   | float                                    { % liftIO $ putStrLn "TYPE2 -> float " }
+   | boolean                                  { % liftIO $ putStrLn "TYPE2 -> boolean " }
+   | char                                     { % liftIO $ putStrLn "TYPE2 -> char " }
+   | string                                   { % liftIO $ putStrLn "TYPE2 -> string " }
+   | id                                       { % liftIO $ putStrLn "TYPE2 -> id " }
 
 DECLARATIONTYPE : ID '=' EXPRESSION                 {% liftIO $ putStrLn "DECLARATIONTYPE -> ID '=' EXPRESSION" }
             | ID '=' EXPRESSION ',' DECLARATIONTYPE {% liftIO $ putStrLn "DECLARATIONTYPE -> ID '=' EXPRESSION ',' DECLARATIONTYPE" }
@@ -198,8 +198,8 @@ PRINT : string ',' PRINT                     { % liftIO $ putStrLn "PRINT -> str
      | string                                { % liftIO $ putStrLn "PRINT -> string " }
      | id                                    { % liftIO $ putStrLn "PRINT -> id " }
 
-DEFINESTRUCT : band id '{' newline LDECLARATIONS newline'}'    { % liftIO $ putStrLn "STRUCT -> band id id '(' LDECLARATIONS ')' " }
-             | union id '{' newline LDECLARATIONS newline '}'   { % liftIO $ putStrLn "STRUCT -> union id id '(' LDECLARATIONS ')' " }
+DEFINESTRUCT : band id '{' newline LDECLARATIONS newline'}'    {DEFINESTRUCTN}
+             | union id '{' newline LDECLARATIONS newline '}'   {DEFINESTRUCTN}
 
 LDECLARATIONS : LDECLARATIONS newline DECLARATION  {% liftIO $ putStrLn "LDECLARATIONS -> DECLARATION LDECLARATIONS" }
               | DECLARATION                        {% liftIO $ putStrLn "LDECLARATIONS -> DECLARATION" }
