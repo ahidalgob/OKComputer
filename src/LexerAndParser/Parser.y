@@ -142,28 +142,32 @@ LPARAMETERSFUNC : {- empty -}                                           { [] }
 NONEMPTYLPARAMETERSFUNC : FUNCTIONPARAMETER ',' NONEMPTYLPARAMETERSFUNC { $1:($3) } -- TODO
                         | FUNCTIONPARAMETER                             { [$1] }
 
-FUNCTIONPARAMETER : TYPE id                                             { PARAMETERN $1 (tknString $2)}
+FUNCTIONPARAMETER : TYPE id                                             { PARAMETERN $1 (tknString $2) }
            -- | TYPE id '[' ']'                                            {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id '[' ']'" }
 
+BLOCK :: { [INSTRUCTIONN] }
+BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION whereiend           { reverse $4 }
+      --| MAYBELINE INSTRUCTION                                         { [] }
 
-BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION whereiend           { BLOCKN $4 }
-      --| MAYBELINE INSTRUCTION                                           { BLOCKN }
-
-INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                     { INSIDEN $2 }
-         | {- empty -}                                                  { INSIDEVOID }
+INSIDEFUNCTION :: { [INSTRUCTIONN] }
+INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                             { $2:$1 }
+         | {- empty -}                                                  { [] }
 
 
-DECLARATION : TYPE DECLARATIONTYPE { DECLARATIONN $1 $2 } -- TODO
+DECLARATION : TYPE DECLARATIONTYPE {% return () } -- TODO symbol table
 
+TYPE :: { TYPEN }
 TYPE : TYPE2              { TYPENOPOINTERN $1 }
     |  TYPE2 '^'          { TYPEPOINTERN $1 }
 
+TYPE2 :: { TYPE2N }
 TYPE2 : int                                    { INTN }
    | float                                    { FLOATN }
    | boolean                                  { BOOLEANN }
    | char                                     { CHARN }
    | string                                   { STRINGN }
    | id                                       { IDSTRUCTN $ tknString $1 }
+
 
 DECLARATIONTYPE : ID '=' EXPRESSION                 { [DECTYPEN1 $1 $3] }
             | ID '=' EXPRESSION ',' DECLARATIONTYPE { (DECTYPEN1 $1 $3):($5) }
@@ -174,19 +178,19 @@ ID : id                                                    { IDNORMALN $ tknStri
    | id '[' EXPRESSION ']'                                 { IDARRAYN (tknString $1) $3 }
 
 -- Probablemente vaya newline antes del youbegin y whereiend PUESTOS
-INSTRUCTION : go '(' PRINT ')' newline                                          { GOINGN $3 }
-            | goslowly '(' PRINT ')' newline                                    { GOINGSLOWLYN $3 }
-            | gomental '(' PRINT ')' newline                                    { GOINGMENTALN $3 }
-            | readmymind '(' IDS ')' newline                                    { REDMYMINDN $3 }
-            | amnesiac '(' id ')' newline 										{ AMNESIACN $ tknString $3 }
-            | if EXPRESSION BLOCK IFELSE                                        { IFN $2 $3 $4 }
-            | cantstop EXPRESSION BLOCK                                         { CANTSTOPN $2 $3 }
-            | onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';' EXPRESSION BLOCK                       { ONEMORETIMEN $2 (tknString $3) $5 $7 $9 $10 }
-            | getback EXPRESSION newline                                        { GETBACKN $2 }
-            | breakthru newline                                                 { BREAKTHRUN }
-            | exitmusic newline                                                 { EXITMUSICN }
-            | DECLARATION newline 												{ DECLARATIONNINST $1 }
-            | EXPRESSION newline   												{ EXPRESSIONNINST $1 }
+INSTRUCTION : go '(' PRINT ')' newline                                               { GOINGN $3 }
+            | goslowly '(' PRINT ')' newline                                         { GOINGSLOWLYN $3 }
+            | gomental '(' PRINT ')' newline                                         { GOINGMENTALN $3 }
+            | readmymind '(' IDS ')' newline                                         { REDMYMINDN $3 }
+            | amnesiac '(' id ')' newline                                            { AMNESIACN $ tknString $3 }
+            | if EXPRESSION BLOCK IFELSE                                             { IFN $2 (reverse $3) $4 }
+            | cantstop EXPRESSION BLOCK                                              { CANTSTOPN $2 (reverse $3) }
+            | onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';' EXPRESSION BLOCK { ONEMORETIMEN $2 (tknString $3) $5 $7 $9 (reverse $10) }
+            | getback EXPRESSION newline                                             { GETBACKN $2 }
+            | breakthru newline                                                      { BREAKTHRUN }
+            | exitmusic newline                                                      { EXITMUSICN }
+            | DECLARATION newline                                                    { DECLARATIONNINST $1 }
+            | EXPRESSION newline                                                     { EXPRESSIONNINST $1 }
 
 IFELSE : ifyouhavetoask EXPRESSION BLOCK IFELSE                                     { IFASKN $2 $3 $4 }
        | otherside BLOCK                                                            { OTHERSIDEN $2 }
