@@ -2,9 +2,9 @@ module AST where
 
 data STARTN = STARTN [IMPORTN] [OUTSIDEN] deriving Show
 
-data IMPORTN = IMPORTN [IDN] deriving Show
+data IMPORTN = IMPORTN [ID] deriving Show
 
-data IDN = IDN String deriving Show
+type ID = String
 
 data OUTSIDEN =
         OUTFUNCTIONINIC FUNCTIONINICN |
@@ -12,12 +12,12 @@ data OUTSIDEN =
         OUTDEFINE DEFINESTRUCTN deriving Show
 
 data FUNCTIONINICN =
-        FUNCTIONINICN IDN [PARAMETERN] RETURNTYPEN [INSTRUCTIONN] deriving Show
+        FUNCTIONINICN ID [PARAMETERN] RETURNTYPEN [INSTRUCTIONN] deriving Show
 
 
 data RETURNTYPEN = INTOTHEVOIDN | RETURNSOMN TYPEN deriving Show
 
-data PARAMETERN = PARAMETERN TYPEN String deriving Show
+data PARAMETERN = PARAMETERN TYPEN ID deriving Show
 
 -- Nuevo
 data DECLARATIONN = DECLARATIONN TYPEN [DECLARATIONTYPEN] deriving Show
@@ -37,18 +37,18 @@ data DECLARATIONTYPEN = DECTYPEN1 ID2N EXPRESSIONN |
 data ID2N = IDNORMALN String |
 			IDARRAYN String EXPRESSIONN deriving Show
 
-data INSTRUCTIONN = GOINGN [PRINTN] |
- 					GOINGSLOWLYN [PRINTN] |
- 					GOINGMENTALN [PRINTN] |
- 					REDMYMINDN [IDN] 	  |
- 					AMNESIACN String		  |
- 					IFN EXPRESSIONN [INSTRUCTIONN] IFELSEN |
- 					CANTSTOPN EXPRESSIONN [INSTRUCTIONN]  |
+data INSTRUCTIONN = GOINGN [PRINTN]                                                    |
+ 					GOINGSLOWLYN [PRINTN]                                                        |
+ 					GOINGMENTALN [PRINTN]                                                        |
+ 					REDMYMINDN [ID]                                                              |
+ 					AMNESIACN String                                                             |
+ 					IFN EXPRESSIONN [INSTRUCTIONN] IFELSEN                                       |
+ 					CANTSTOPN EXPRESSIONN [INSTRUCTIONN]                                         |
  					ONEMORETIMEN TYPEN String EXPRESSIONN EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
- 					GETBACKN EXPRESSIONN |
- 					BREAKTHRUN |
- 					EXITMUSICN |
- 					DECLARATIONNINST DECLARATIONN |
+ 					GETBACKN EXPRESSIONN                                                         |
+ 					BREAKTHRUN                                                                   |
+ 					EXITMUSICN                                                                   |
+ 					DECLARATIONNINST DECLARATIONN                                                |
  					EXPRESSIONNINST EXPRESSIONN
  					deriving Show
 
@@ -96,5 +96,5 @@ data ARRAYPOSN = ARRAYPOSN String String deriving Show
 
 data EXPRESSIONSTRUCTN = EXPRESSIONSTRUCTN String String deriving Show
 
-data FUNCTIONCALLN = FUNCTIONCALLN String [IDN] deriving Show
+data FUNCTIONCALLN = FUNCTIONCALLN String [ID] deriving Show
 
