@@ -113,7 +113,8 @@ alexGetToken = do
   sc <- getAlexStartCode
   case alexScan inp__ sc of
     AlexEOF -> alexEOF
-    AlexError ((AlexPn _ line column),_,_,_) -> throwError $ "lexical error at line " ++ (show line) ++ ", column " ++ (show column)
+    AlexError ((AlexPn _ line column),_,_,_) -> error $ "lexical error at line " ++ (show line) ++ ", column " ++ (show column)
+                                                    -- this should never ever happen
     AlexSkip  inp__' _len -> do
         setAlexInput inp__'
         alexGetToken

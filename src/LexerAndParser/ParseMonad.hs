@@ -6,6 +6,8 @@ import SymTable
 import Control.Monad.State.Lazy
 import Control.Monad.Except
 
+import Data.List(find)
+
 # 1 "/usr/include/stdc-predef.h" 1 3 4
 # 17 "/usr/include/stdc-predef.h" 3 4
 {-# LINE 9 "<command-line>" #-}
@@ -38,6 +40,7 @@ data ParseState = ParseState {
 
         state_ScopeStack :: ScopeStack,
         state_ScopeSet :: ScopeSet,
+        state_NextScope :: Int,
         state_SymTable :: SymTable
 } deriving Show
 
@@ -52,14 +55,23 @@ initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
 
                               state_ScopeStack = emptyScopeStack,
                               state_ScopeSet = emptyScopeSet,
+                              state_NextScope = 1,  -- TODO we need to insert every predefined function on 0
                               state_SymTable = emptySymTable}
 
-type ParseMError = String
+data ParseMError = IdNotFound Id Pos |
+                   AlreadyDefinedInScope Sym
+
+catchIdNotFound :: ParseMError -> ParseM Scope
+catchIdNotFound (IdNotFound id pos) = do
+  liftIO $ putStrLn $ "Id " ++ id ++ " is not defined. Line " ++ show (fst pos) ++ "."
+  return (-1)
+
+catchAlreadyDefinedInScope = undefined -- TODO
 
 type ParseM a = ExceptT ParseMError (StateT ParseState IO) a
 
 
-runParseM :: ParseM a -> String -> IO(Either String a, ParseState)
+runParseM :: ParseM a -> String -> IO(Either ParseMError a, ParseState)
 runParseM f s = runStateT (runExceptT f) (initParseState s)
 
 
@@ -105,29 +117,70 @@ setLastNewLine b = modify (\s -> s{last_new_line = b})
 
 
 
+---------------------- ScopeStack
+stateScopeStackTop :: ParseM Scope
+stateScopeStackTop = head <$> (gets state_ScopeStack)
 
-stateScopesTop :: ParseM Scope
-stateScopesTop = head <$> (gets state_ScopeStack)
-
-stateScopesPop :: ParseM ()
-stateScopesPop = modify
+stateScopeStackPop :: ParseM ()
+stateScopeStackPop = modify
       (\s -> s{state_ScopeStack = tail (state_ScopeStack s)})
 
-stateScopesPush :: Scope -> ParseM ()
-stateScopesPush sc = modify
+stateScopeStackPush :: Scope -> ParseM ()
+stateScopeStackPush sc = modify
       (\s -> s{state_ScopeStack = sc:(state_ScopeStack s)})
 
+
+------------------- ScopeSet
 stateScopesMember :: Scope -> ParseM Bool
 stateScopesMember sc = (scopeSetMember sc) <$> (gets state_ScopeSet)
 
--- Find the first symbol of the list such that the scope is active
--- msum!
-stateFindSym :: Id -> ParseM (Maybe SymId)
-stateFindSym = undefined
+stateScopesInsert :: Scope -> ParseM ()
+stateScopesInsert sc = undefined -- TODO
 
--- If there's no symbol with the same name, insert it as a unitary list
--- otherwise insert it at the head of the list
+stateScopesDelete :: Scope -> ParseM ()
+stateScopesDelete sc = undefined -- TODO
+
+
+stateBeginScope :: ParseM ()
+stateBeginScope = do
+  nextScope <- gets state_NextScope
+  stateScopeStackPush nextScope
+  stateScopesInsert nextScope
+
+stateEndScope :: ParseM ()
+stateEndScope = do
+  topScope <- stateScopeStackTop
+  stateScopeStackPop
+  stateScopesDelete topScope
+
+-- Find the first symbol scope of the list such that the scope is active
+stateFindSymScope :: Id -> Pos -> ParseM Scope
+stateFindSymScope id pos = (sym_scope <$> stateFindSym id pos)
+                      `catchError` catchIdNotFound
+
+
+stateFindSym :: Id -> Pos -> ParseM Sym
+stateFindSym id pos = do
+  maybeList <- (symTableLoopUp id) <$> (gets state_SymTable)
+  case maybeList of
+       Nothing -> throwError (IdNotFound id pos)
+       Just l -> do
+          scopes <- gets state_ScopeSet
+          case find (scopeIsActive scopes) l of
+               Nothing -> throwError (IdNotFound id pos)
+               Just sym -> return sym
+  where
+    scopeIsActive :: ScopeSet -> Sym -> Bool
+    scopeIsActive ss sym = scopeSetMember (sym_scope sym) ss
+
+
 stateSymInsert :: Sym -> ParseM ()
-stateSymInsert sym = undefined
-
-
+stateSymInsert sym = do
+  prevScope <- (sym_scope <$> stateFindSym (sym_Id sym) (0,0))
+                `catchError` (\_ -> return (-1))
+  case prevScope == (sym_scope sym) of
+       True -> catchAlreadyDefinedInScope (AlreadyDefinedInScope sym)
+       False -> do
+          symTable <- gets state_SymTable
+          let newSymTable = symTableInsert sym symTable
+          modify (\s -> s{state_SymTable = newSymTable})
