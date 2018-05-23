@@ -130,41 +130,11 @@ alexMonadScan = do
 
 
 
--- -----------------------------------------------------------------------------
--- Useful token actions
-
 type AlexAction result = AlexInput -> Int -> ParseM result
-
--- just ignore this token and scan another one
--- skip :: AlexAction result
-skip _input _len = alexMonadScan
-
--- ignore this token, but set the start code to a new value
--- begin :: Int -> AlexAction result
-begin code _input _len = do setAlexStartCode code; alexMonadScan
-
--- perform an action for this token, and set the start code to a new value
-andBegin :: AlexAction result -> Int -> AlexAction result
-(action `andBegin` code) input__ len = do
-  setAlexStartCode code
-  action input__ len
-
-token :: (AlexInput -> Int -> token) -> AlexAction token
-token t input__ len = return (t input__ len)
-
-
 
 
 ------------------------------------------------------------
 ------------------------- End of Alex Required functions
-
-
-
-
-
-
-
-
 
 newToken :: (Pos -> Token) -> AlexAction Token
 newToken tknConstr = \alexIn _ -> do
