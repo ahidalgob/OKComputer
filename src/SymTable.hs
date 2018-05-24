@@ -10,12 +10,20 @@ type SymId = (Id, Scope)
 type ScopeStack = [Scope]
 emptyScopeStack = []
 
+----------------------------------
 type ScopeSet = S.Set Scope
 
 emptyScopeSet = S.empty
 
 scopeSetMember :: Scope -> ScopeSet -> Bool
 scopeSetMember = S.member
+
+scopeSetDelete :: Scope -> ScopeSet -> ScopeSet
+scopeSetDelete = S.delete
+
+scopeSetInsert :: Scope -> ScopeSet -> ScopeSet
+scopeSetInsert = S.insert
+----------------------------------
 
 data Sym = Sym{
   sym_scope :: Scope,

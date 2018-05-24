@@ -68,7 +68,9 @@ catchIdNotFound (IdNotFound id pos) = do
   liftIO $ putStrLn $ "Id " ++ id ++ " is not defined. Line " ++ show (fst pos) ++ "."
   return (-1)
 
-catchAlreadyDefinedInScope = undefined -- TODO
+catchAlreadyDefinedInScope (AlreadyDefinedInScope sym) = do
+  liftIO $ putStrLn $ "Id " ++ (sym_Id sym) ++ " is already defined in the same scope."
+  liftIO $ putStrLn $ "Line " ++ show (fst.sym_pos $ sym) ++ ". Original definition at line __" -- TODO
 
 type ParseM a = ExceptT ParseMError (StateT ParseState IO) a
 
@@ -137,21 +139,28 @@ stateScopesMember :: Scope -> ParseM Bool
 stateScopesMember sc = (scopeSetMember sc) <$> (gets state_ScopeSet)
 
 stateScopesInsert :: Scope -> ParseM ()
-stateScopesInsert sc = undefined -- TODO
+stateScopesInsert sc = do
+  set <- gets state_ScopeSet
+  modify (\s -> s{state_ScopeSet = scopeSetInsert sc set})
 
 stateScopesDelete :: Scope -> ParseM ()
-stateScopesDelete sc = undefined -- TODO
+stateScopesDelete sc = do
+  set <- gets state_ScopeSet
+  modify (\s -> s{state_ScopeSet = scopeSetDelete sc set})
 
 
 stateBeginScope :: ParseM ()
 stateBeginScope = do
   nextScope <- gets state_NextScope
+  liftIO $ putStrLn $ "Enter Scope: " ++ show nextScope
   stateScopeStackPush nextScope
   stateScopesInsert nextScope
+  modify (\s -> s{state_NextScope = nextScope+1})
 
 stateEndScope :: ParseM ()
 stateEndScope = do
   topScope <- stateScopeStackTop
+  liftIO $ putStrLn $ "Exit Scope: " ++ show topScope
   stateScopeStackPop
   stateScopesDelete topScope
 
@@ -176,8 +185,8 @@ stateFindSym id pos = do
     scopeIsActive ss sym = scopeSetMember (sym_scope sym) ss
 
 
-stateSymInsert :: Sym -> ParseM ()
-stateSymInsert sym = do
+stateInsertSym :: Sym -> ParseM ()
+stateInsertSym sym = do
   prevScope <- (sym_scope <$> stateFindSym (sym_Id sym) (0,0))
                 `catchError` (\_ -> return (-1))
   case prevScope == (sym_scope sym) of

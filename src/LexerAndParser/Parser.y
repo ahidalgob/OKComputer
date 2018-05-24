@@ -8,6 +8,7 @@ import ParseMonad
 import Tokens
 import Control.Monad.Except
 import AST
+import SymTable
 }
 
 %name parse
@@ -130,7 +131,7 @@ OUTSIDEFUNCTION : FUNCTIONINIC OUTSIDEFUNCTION      { (OUTFUNCTIONINIC $1):$2 }
            | {- empty -}                            { [] }
 
 
-FUNCTIONINIC : dafunk id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE BLOCK    { FUNCTIONINICN (tknString $2) $4 $7 $8 }
+FUNCTIONINIC : dafunk BEGIN id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE BLOCK    { FUNCTIONINICN (tknString $3) $5 $8 $9 }
 
 
 RETURNTYPE: intothevoid                                                 { OKvoid }
@@ -144,12 +145,19 @@ NONEMPTYLPARAMETERSFUNC : FUNCTIONPARAMETER ',' NONEMPTYLPARAMETERSFUNC { $1:($3
                         | FUNCTIONPARAMETER                             { [$1] }
 
 FUNCTIONPARAMETER :: { Parameter }
-FUNCTIONPARAMETER : TYPE id                                             { Parameter $1 (tknString $2) }
+FUNCTIONPARAMETER : TYPE id                                             {% do
+                                                                          scope <- stateScopeStackTop
+                                                                          stateInsertSym $ Sym scope (tknString $2) (tknPos $2)
+                                                                          return $ Parameter $1 (tknString $2) }
            -- | TYPE id '[' ']'                                            {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id '[' ']'" } --TODO
 
 BLOCK :: { [INSTRUCTIONN] }
-BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION whereiend           { reverse $4 }
-      --| MAYBELINE INSTRUCTION                                         { [] }
+BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION END                    { reverse $4 }
+      -- | MAYBELINE INSTRUCTION                                         { [] } -- TODO
+
+BEGIN : {- empty -}                                                       {% stateBeginScope }
+
+END : whereiend                                                           {% stateEndScope }
 
 INSIDEFUNCTION :: { [INSTRUCTIONN] }
 INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                             { $2:$1 }
@@ -162,7 +170,7 @@ TYPE :: { OKTYPE }
 TYPE : TYPE2              { NOPOINTER $1 }
     |  TYPE2 '^'          { POINTER $1 }
 
-TYPE2 :: { BASICOKTYPE }
+TYPE2 :: { BASICOKTYPE    }
 TYPE2 : int                                    { OKint }
    | float                                    { OKfloat }
    | boolean                                  { OKboolean }
@@ -213,7 +221,7 @@ LDECLARATIONS : LDECLARATIONS newline DECLARATION  { REC1 $1 $3 }
 -}
 
 
-EXPRESSION : id                         { IDEXPRESSION $ tknString $1 }
+EXPRESSION : RVAL                         { IDEXPRESSION $ tknString $1 }
            | n                          { NUMBEREXPN $ tknString $1 }
            | string                     { STRINGEXPN $ tknString $1 }
       --   | c                          { % liftIO $ putStrLn "EXPRESSION -> c " }
@@ -243,7 +251,18 @@ EXPRESSION : id                         { IDEXPRESSION $ tknString $1 }
            | FUNCTIONCALL               { FUNCCALLN $1 }
            | newlife '(' EXPRESSION ')' { NEWLIFEN $3 }
            | '^' id                     { POINTERN $ tknString $2 }
-           | id '=' EXPRESSION          { ASSIGNN (tknString $1) $3 }
+           | LVAL '=' EXPRESSION          { ASSIGNN (tknString $1) $3 }
+
+
+
+LVAL : id                               {% do
+                                          scope <- stateFindSymScope (tknString $1) (tknPos $1)
+                                          return $1} -- TODO change AST so it saves the SymId, not just the id
+
+
+RVAL : id                               {% do
+                                          scope <- stateFindSymScope (tknString $1) (tknPos $1)
+                                          return $1} -- TODO change AST so it saves the SymId, not just the id
 
            {-
 EXPRESSIONTUPLE : left id '(' n ')'                         { % liftIO $ putStrLn "EXPRESSIONTUPLE -> left id '(' n ')' " } -- x = left tupla1(2)

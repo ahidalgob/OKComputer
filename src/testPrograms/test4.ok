@@ -1,9 +1,9 @@
 
 
-dafunk maintheme(int n, int x) : intothevoid
+dafunk maintheme(int n, int n) : intothevoid
 youbegin
-    x = y+z
-    b = ok
+    n = n+n
+    n = ok
 whereiend
 
 dafunk maintheme( ) : intothevoid youbegin
