@@ -3,7 +3,7 @@ import SymTable(Id, SymId)
 
 data STARTN = STARTN [IMPORTN] [OUTSIDEN] deriving Show
 
-data IMPORTN = IMPORTN [Id] deriving Show
+data IMPORTN = IMPORTN [Id] deriving Show -- TODO SymId
 
 data OUTSIDEN =
         OUTFUNCTIONINIC FUNCTIONINICN -- |
@@ -12,11 +12,12 @@ data OUTSIDEN =
           deriving Show
 
 data FUNCTIONINICN =
-        FUNCTIONINICN Id [Parameter] RETURNTYPEN [INSTRUCTIONN] deriving Show
+        FUNCTIONINICN Id [Parameter] RETURNTYPEN [INSTRUCTIONN] deriving Show -- TODO SymId
 
 data RETURNTYPEN = OKvoid | OKnotvoid OKTYPE deriving Show
 
-data Parameter = Parameter OKTYPE Id deriving Show
+data Parameter = Parameter OKTYPE SymId deriving Show -- TODO Should we save this on the AST? It's basically the same as a
+                                                      -- declaration
 
 -- data DECLARATIONN = DECLARATIONN OKTYPE [DECLARATIONTYPEN] deriving Show
 
@@ -37,7 +38,7 @@ data ID2N = IDNORMALN String |
 data INSTRUCTIONN = GOINGN [PRINTN]                                                    |
           GOINGSLOWLYN [PRINTN]                                                        |
           GOINGMENTALN [PRINTN]                                                        |
-          REDMYMINDN [Id]                                                              |
+          READMYMINDN [SymId]                                                           |
           AMNESIACN String                                                             |
           IFN EXPRESSIONN [INSTRUCTIONN] IFELSEN                                       |
           CANTSTOPN EXPRESSIONN [INSTRUCTIONN]                                         |
@@ -85,7 +86,7 @@ data EXPRESSIONN = IDEXPRESSION String                 |
            FUNCCALLN FUNCTIONCALLN                     |
            NEWLIFEN EXPRESSIONN                        |
            POINTERN String                             |
-           ASSIGNN String EXPRESSIONN
+           ASSIGNN SymId EXPRESSIONN
            deriving Show
 
 --data IDEXPRESSION = IDEXPRESSIONN String deriving Show

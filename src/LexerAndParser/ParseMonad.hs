@@ -17,12 +17,6 @@ import Data.List(find)
 {-# LINE 9 "<command-line>" #-}
 {-# LINE 1 "templates/wrappers.hs" #-}
 -- -----------------------------------------------------------------------------
--- Alex wrapper code.
---
--- This code is in the PUBLIC DOMAIN; you may copy it freely and use
--- it for any purpose whatsoever.
-
--- Compile with -funbox-strict-fields for best results!
 
 import Data.Char (ord)
 
@@ -58,6 +52,10 @@ initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
                               state_NextScope = 1,  -- TODO we need to insert every predefined function on 0
                               state_SymTable = emptySymTable}
 
+--------------------------------------------------------
+----------------- Error --------------------------------
+--------------------------------------------------------
+
 data ParseMError = IdNotFound Id Pos |
                    AlreadyDefinedInScope Sym |
                    ParseError String
@@ -71,6 +69,8 @@ catchIdNotFound (IdNotFound id pos) = do
 catchAlreadyDefinedInScope (AlreadyDefinedInScope sym) = do
   liftIO $ putStrLn $ "Id " ++ (sym_Id sym) ++ " is already defined in the same scope."
   liftIO $ putStrLn $ "Line " ++ show (fst.sym_pos $ sym) ++ ". Original definition at line __" -- TODO
+--------------------------------------------------------
+--------------------------------------------------------
 
 type ParseM a = ExceptT ParseMError (StateT ParseState IO) a
 
@@ -78,6 +78,10 @@ type ParseM a = ExceptT ParseMError (StateT ParseState IO) a
 runParseM :: ParseM a -> String -> IO(Either ParseMError a, ParseState)
 runParseM f s = runStateT (runExceptT f) (initParseState s)
 
+--------------------------------------------------------
+--------------------------------------------------------
+--------------------------------------------------------
+--------------------------------------------------------
 
 getAlexInput :: ParseM AlexInput
 getAlexInput = gets alex_inp
@@ -117,6 +121,9 @@ getLastNewLine = gets last_new_line
 setLastNewLine :: Bool -> ParseM ()
 setLastNewLine b = modify (\s -> s{last_new_line = b})
 
+--------------------------------------------------------
+--------------------------------------------------------
+--------------------------------------------------------
 
 
 

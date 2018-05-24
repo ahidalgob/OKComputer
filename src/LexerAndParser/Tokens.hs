@@ -40,9 +40,6 @@ data Token =
   BandTkn             { tknPos :: (Int, Int) }  |
   UnionTkn            { tknPos :: (Int, Int) }  |
   PointerTkn          { tknPos :: (Int, Int) }  |
-  DuetsTkn            { tknPos :: (Int, Int) }  |
-  LeftTkn             { tknPos :: (Int, Int) }  |
-  RightTkn            { tknPos :: (Int, Int) }  |
   ModTkn              { tknPos :: (Int, Int) }  |
   DivTkn              { tknPos :: (Int, Int) }  |
   NotTkn              { tknPos :: (Int, Int) }  |

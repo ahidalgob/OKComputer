@@ -56,11 +56,8 @@ import SymTable
   ']'                                     { ArrayEndTkn $$ }
   band                                    { BandTkn $$ }            -- Registers/structs
   union                                   { UnionTkn $$ }
-  '.'										{ DotTkn $$ }
-  '^'									{ PointerTkn $$ }
-  duets                                   { DuetsTkn $$ }           -- Tuple
-  left                                    { LeftTkn $$ }
-  right                                   { RightTkn $$ }
+  '.'										                  { DotTkn $$ }
+  '^'									                    { PointerTkn $$ }
 
   -- Operations Tokens
   mod                                     { ModTkn $$ }
@@ -112,48 +109,56 @@ import SymTable
 -- unary minus sign
 -- unary ^
 %%
--- Start
+START :: { STARTN }
 START : IMPORTS OUTSIDEFUNCTION         { STARTN $1 $2 }
 
 
+IMPORTS :: { [IMPORTN] }
 IMPORTS : IMPORT newline IMPORTS        { (IMPORTN $1):$3  } --TODO Left Recursion   IMPORTS IMPORT newline ?
         | {- empty -}                   { [] }
 
+IMPORT :: { [Id] }
 IMPORT : aroundtheworld IDS             { reverse $2 }
 
+IDS :: { [Id] }
 IDS : IDS ',' id                             { (tknString $3):$1 }
   | id                                       { [tknString $1] }
 
 
+OUTSIDEFUNCTION :: { [OUTSIDEN] }
 OUTSIDEFUNCTION : FUNCTIONINIC OUTSIDEFUNCTION      { (OUTFUNCTIONINIC $1):$2 }
 --           | DECLARATION newline OUTSIDEFUNCTION          { (OUTDECLARATION $1):$3 } --TODO
 --           | DEFINESTRUCT newline OUTSIDEFUNCTION         { (OUTDEFINE $1):$3 } --TODO
            | {- empty -}                            { [] }
 
 
+FUNCTIONINIC :: { FUNCTIONINICN }
 FUNCTIONINIC : dafunk BEGIN id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE BLOCK    { FUNCTIONINICN (tknString $3) $5 $8 $9 }
 
 
+RETURNTYPE :: { RETURNTYPEN }
 RETURNTYPE: intothevoid                                                 { OKvoid }
           | TYPE                                                        { OKnotvoid $1 }
 
+LPARAMETERSFUNC :: { [Parameter] }
 LPARAMETERSFUNC : {- empty -}                                           { [] }
                 | NONEMPTYLPARAMETERSFUNC                               { $1 }
 
 NONEMPTYLPARAMETERSFUNC :: { [Parameter] }
-NONEMPTYLPARAMETERSFUNC : FUNCTIONPARAMETER ',' NONEMPTYLPARAMETERSFUNC { $1:($3) } -- TODO
+NONEMPTYLPARAMETERSFUNC : FUNCTIONPARAMETER ',' NONEMPTYLPARAMETERSFUNC { $1:($3) } -- TODO  right recursion?
                         | FUNCTIONPARAMETER                             { [$1] }
 
 FUNCTIONPARAMETER :: { Parameter }
-FUNCTIONPARAMETER : TYPE id                                             {% do
-                                                                          scope <- stateScopeStackTop
-                                                                          stateInsertSym $ Sym scope (tknString $2) (tknPos $2)
-                                                                          return $ Parameter $1 (tknString $2) }
-           -- | TYPE id '[' ']'                                            {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id '[' ']'" } --TODO
+FUNCTIONPARAMETER : TYPE id
+                          {% do
+                             scope <- stateScopeStackTop
+                             stateInsertSym $ Sym scope (tknString $2) (tknPos $2) -- TODO real symbol (type)
+                             return $ Parameter $1 (tknString $2, scope) }
+           -- | TYPE id '[' ']'                       {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id '[' ']'" } --TODO
 
 BLOCK :: { [INSTRUCTIONN] }
 BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION END                    { reverse $4 }
-      -- | MAYBELINE INSTRUCTION                                         { [] } -- TODO
+      -- | MAYBELINE INSTRUCTION                                           { [] } -- TODO
 
 BEGIN : {- empty -}                                                       {% stateBeginScope }
 
@@ -164,13 +169,13 @@ INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                             { $2:$1 
          | {- empty -}                                                  { [] }
 
 
-DECLARATION : TYPE DECLARATIONTYPE {% return () } -- TODO symbol table
+-- DECLARATION : TYPE DECLARATIONTYPE {% return () } -- TODO symbol table
 
 TYPE :: { OKTYPE }
 TYPE : TYPE2              { NOPOINTER $1 }
     |  TYPE2 '^'          { POINTER $1 }
 
-TYPE2 :: { BASICOKTYPE    }
+TYPE2 :: { BASICOKTYPE }
 TYPE2 : int                                    { OKint }
    | float                                    { OKfloat }
    | boolean                                  { OKboolean }
@@ -178,7 +183,7 @@ TYPE2 : int                                    { OKint }
    | string                                   { OKstring }
    | id                                       { StructId $ tknString $1 }
 
-
+{-
 DECLARATIONTYPE : ID '=' EXPRESSION                 { [DECTYPEN1 $1 $3] }
             | ID '=' EXPRESSION ',' DECLARATIONTYPE { (DECTYPEN1 $1 $3):($5) }
             | ID                                    { [DECTYPEN2 $1] }
@@ -186,12 +191,13 @@ DECLARATIONTYPE : ID '=' EXPRESSION                 { [DECTYPEN1 $1 $3] }
 
 ID : id                                                    { IDNORMALN $ tknString $1 }
    | id '[' EXPRESSION ']'                                 { IDARRAYN (tknString $1) $3 }
+-}
 
 -- Probablemente vaya newline antes del youbegin y whereiend PUESTOS
 INSTRUCTION : go '(' PRINT ')' newline                                               { GOINGN $3 }
             | goslowly '(' PRINT ')' newline                                         { GOINGSLOWLYN $3 }
             | gomental '(' PRINT ')' newline                                         { GOINGMENTALN $3 }
-            | readmymind '(' IDS ')' newline                                         { REDMYMINDN $3 }
+            | readmymind '(' LVALS ')' newline                                         { READMYMINDN $3 }
             | amnesiac '(' id ')' newline                                            { AMNESIACN $ tknString $3 }
             | if EXPRESSION BLOCK IFELSE                                             { IFN $2 (reverse $3) $4 }
             | cantstop EXPRESSION BLOCK                                              { CANTSTOPN $2 (reverse $3) }
@@ -221,7 +227,10 @@ LDECLARATIONS : LDECLARATIONS newline DECLARATION  { REC1 $1 $3 }
 -}
 
 
-EXPRESSION : RVAL                         { IDEXPRESSION $ tknString $1 }
+EXPRESSION : id
+                {% do
+                    scope <- stateFindSymScope (tknString $1) (tknPos $1)
+                    return $ IDEXPRESSION $ tknString $1 }
            | n                          { NUMBEREXPN $ tknString $1 }
            | string                     { STRINGEXPN $ tknString $1 }
       --   | c                          { % liftIO $ putStrLn "EXPRESSION -> c " }
@@ -251,18 +260,28 @@ EXPRESSION : RVAL                         { IDEXPRESSION $ tknString $1 }
            | FUNCTIONCALL               { FUNCCALLN $1 }
            | newlife '(' EXPRESSION ')' { NEWLIFEN $3 }
            | '^' id                     { POINTERN $ tknString $2 }
-           | LVAL '=' EXPRESSION          { ASSIGNN (tknString $1) $3 }
+           | LVAL '=' EXPRESSION          { ASSIGNN $1 $3 }
 
 
-
+LVAL :: { SymId }
 LVAL : id                               {% do
                                           scope <- stateFindSymScope (tknString $1) (tknPos $1)
-                                          return $1} -- TODO change AST so it saves the SymId, not just the id
+                                          return (tknString $1, scope)} -- TODO change AST so it saves the SymId, not just the id
 
 
+LVALS :                                 { [] }
+      | NONEMPTYLVALS                   { reverse ($1) }
+
+NONEMPTYLVALS : NONEMPTYLVALS ',' LVAL    { $3 : $1 }
+              | LVAL                      { [$1] }
+
+
+{-
 RVAL : id                               {% do
                                           scope <- stateFindSymScope (tknString $1) (tknPos $1)
                                           return $1} -- TODO change AST so it saves the SymId, not just the id
+      -- TODO Basically everything with a value!
+-}
 
            {-
 EXPRESSIONTUPLE : left id '(' n ')'                         { % liftIO $ putStrLn "EXPRESSIONTUPLE -> left id '(' n ')' " } -- x = left tupla1(2)
@@ -276,7 +295,7 @@ ARRAYPOSITION : id '[' n ']'                                { ARRAYPOSN (tknStri
 
 EXPRESSIONSTRUCT : id '.' id                                { EXPRESSIONSTRUCTN (tknString $1) (tknString $3) }
 
-FUNCTIONCALL : id '(' IDS ')'                                { FUNCTIONCALLN (tknString $1) $3}
+FUNCTIONCALL : id '(' IDS ')'                                { FUNCTIONCALLN (tknString $1) $3} -- TODO Expressions! not ids
 
 --LPARAMETERSSTRUCT : id '=' EXPRESSION ',' LPARAMETERSSTRUCT { % liftIO $ putStrLn "LPARAMETERSSTRUCT -> id '=' EXPRESSION ',' --LPARAMETERSSTRUCT " }
         --  | id '=' EXPRESSION                               { % liftIO $ putStrLn "LPARAMETERSSTRUCT -> id '=' EXPRESSION " }

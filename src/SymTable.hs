@@ -11,6 +11,8 @@ type ScopeStack = [Scope]
 emptyScopeStack = []
 
 ----------------------------------
+-----------Scope Set--------------
+----------------------------------
 type ScopeSet = S.Set Scope
 
 emptyScopeSet = S.empty
@@ -23,8 +25,10 @@ scopeSetDelete = S.delete
 
 scopeSetInsert :: Scope -> ScopeSet -> ScopeSet
 scopeSetInsert = S.insert
-----------------------------------
 
+----------------------------------
+-------------Symbols--------------
+----------------------------------
 data Sym = Sym{
   sym_scope :: Scope,
   sym_Id :: Id,
@@ -32,6 +36,11 @@ data Sym = Sym{
   -- sym_type :: OKType
 } deriving Show
 
+
+
+----------------------------------
+-----------Sym Table--------------
+----------------------------------
 type SymTable = H.HashMap Id [Sym]
 {-data SymTable = SymTable{
   symt_table ::
