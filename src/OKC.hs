@@ -1,6 +1,7 @@
 import Lexer
 import ParseMonad
 import Parser
+import AST
 import System.Environment
 
 lexer code = do
@@ -12,8 +13,15 @@ lexer code = do
           mapM_ print tokens
 
 parser code = do
-  res <- runParseM parse code
-  print res
+  (res,st) <- runParseM parse code
+  print (res,st)
+  case res of
+--    Right algo -> putStrLn $ show algo
+    Right algo -> printSTARTN 0 algo 
+    Left algomas -> putStrLn $ show algomas
+-- printSTARTN 0 (Right res)
+--  Right res -> print res
+--      printSTARTN res  
 
 main = do
   [option, file] <- getArgs

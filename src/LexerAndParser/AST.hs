@@ -110,16 +110,16 @@ printExpN n (IDEXPRESSION s) = do
     printId n s
 
 printExpN n (NUMBEREXPN s) = do
-    putStrLnWithIdent n $ "Literal numerico: " ++ s
+    putStrLnWithIdent n $ "Literal number: " ++ s
 
 printExpN n (OKN) = do
-    putStrLnWithIdent n "Literal booleano: true"
+    putStrLnWithIdent n "Literal boolean: ok"
      
 printExpN n (NOTOKN) = do
-    putStrLnWithIdent n "Literal booleano: false"
+    putStrLnWithIdent n "Literal boolean: notok"
 
 printExpN n (PARENTESISN exp) = do
-    putStrLnWithIdent n "Expresion entre parentesis:"
+    putStrLnWithIdent n "Parenthesis expression:"
     printExpN (n+1) exp
      
 printExpN n (COMPARN exp s exp1) = do
@@ -154,11 +154,19 @@ printExpN n (ARITN exp s exp1) = do
     putStrLnWithIdent (n+1) "Lado derecho:"
     printExpN (n+2) exp1
 
+printExpN n (ARRAYINSTN arraypos) = do
+    putStrLnWithIdent n "Operation with Array Position:"
+    printArrayPosN (n+2) arraypos
+
 --printExpN n (FUNCCALLN s exp) = do 
  --   putStrLnWithIdent n "Llamada de funcion:"
  --   printId (n+1) s
  --   printExpListN (n+1) exp
     
+printArrayPosN :: Int -> ARRAYPOSN -> IO()
+printArrayPosN n (ARRAYPOSN arrayid posnumber) = do
+    printId n arrayid
+    printId n posnumber -- Agregar que imprima numeros
 
 printSTARTN :: Int -> STARTN -> IO()
 printSTARTN n (STARTN imports outsides) = do
