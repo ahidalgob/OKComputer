@@ -12,18 +12,17 @@ data OUTSIDEN =
           deriving Show
 
 data FUNCTIONINICN =
-        FUNCTIONINICN Id [PARAMETERN] RETURNTYPEN [INSTRUCTIONN] deriving Show
+        FUNCTIONINICN Id [Parameter] RETURNTYPEN [INSTRUCTIONN] deriving Show
 
-data RETURNTYPEN = INTOTHEVOIDN | RETURNSOMN TYPEN deriving Show
+data RETURNTYPEN = OKvoid | OKnotvoid OKTYPE deriving Show
 
-data PARAMETERN = PARAMETERN TYPEN Id deriving Show
+data Parameter = Parameter OKTYPE Id deriving Show
 
--- data DECLARATIONN = DECLARATIONN TYPEN [DECLARATIONTYPEN] deriving Show
+-- data DECLARATIONN = DECLARATIONN OKTYPE [DECLARATIONTYPEN] deriving Show
 
-data TYPEN = TYPENOPOINTERN TYPE2N |
-          TYPEPOINTERN TYPE2N deriving Show
+data OKTYPE = POINTER BASICOKTYPE | NOPOINTER BASICOKTYPE deriving Show
 
-data TYPE2N = BOOLEANN | INTN | FLOATN | CHARN | STRINGN | IDSTRUCTN String deriving Show
+data BASICOKTYPE = OKboolean | OKint | OKfloat | OKchar | OKstring | StructId String deriving Show
 
 data DECLARATIONTYPEN = DECTYPEN1 ID2N EXPRESSIONN |
             DECTYPEN2 ID2N
@@ -42,7 +41,7 @@ data INSTRUCTIONN = GOINGN [PRINTN]                                             
           AMNESIACN String                                                             |
           IFN EXPRESSIONN [INSTRUCTIONN] IFELSEN                                       |
           CANTSTOPN EXPRESSIONN [INSTRUCTIONN]                                         |
-          ONEMORETIMEN TYPEN String EXPRESSIONN EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
+          ONEMORETIMEN OKTYPE String EXPRESSIONN EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
           GETBACKN EXPRESSIONN                                                         |
           BREAKTHRUN                                                                   |
           EXITMUSICN                                                                   |
@@ -77,7 +76,7 @@ data EXPRESSIONN = IDEXPRESSION String                 |
            NOTOKN                                      |
            PARENTESISN EXPRESSIONN                     |
            COMPARN EXPRESSIONN String EXPRESSIONN      |
-           NOTN String EXPRESSIONN                     |
+           NOTN EXPRESSIONN                     |
            LOGICN EXPRESSIONN String EXPRESSIONN       |
            MINUSN String EXPRESSIONN                   |
            ARITN EXPRESSIONN String EXPRESSIONN        |

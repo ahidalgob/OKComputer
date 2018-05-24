@@ -13,7 +13,7 @@ import AST
 %name parse
 %tokentype { Token }
 %monad { ParseM }
-%error { (throwError . show) }
+%error { (throwError . ParseError . show) }
 %lexer { lexwrap }{ EOFTkn }
 
 %token
@@ -99,13 +99,13 @@ import AST
 -- string operations
 --
 
+%right '='
 %left or
 %left and
 %nonassoc '>' '<' '==' '!=' '>=' '<='
 %left '+' '-'
 %left '*' '/' '%' mod div
 %nonassoc not
-%right '='
 
 -- TODO
 -- unary minus sign
@@ -115,35 +115,37 @@ import AST
 START : IMPORTS OUTSIDEFUNCTION         { STARTN $1 $2 }
 
 
-IMPORTS : IMPORT newline IMPORTS        { (IMPORTN $1):$3  } --TODO Left Recursion
+IMPORTS : IMPORT newline IMPORTS        { (IMPORTN $1):$3  } --TODO Left Recursion   IMPORTS IMPORT newline ?
         | {- empty -}                   { [] }
 
 IMPORT : aroundtheworld IDS             { reverse $2 }
 
-IDS : IDS ',' id                             { (IDN $ tknString $3):$1 }
-  | id                                       { [IDN $ tknString $1] }
+IDS : IDS ',' id                             { (tknString $3):$1 }
+  | id                                       { [tknString $1] }
 
 
 OUTSIDEFUNCTION : FUNCTIONINIC OUTSIDEFUNCTION      { (OUTFUNCTIONINIC $1):$2 }
-           | DECLARATION newline OUTSIDEFUNCTION          { (OUTDECLARATION $1):$3 }
-           | DEFINESTRUCT newline OUTSIDEFUNCTION         { (OUTDEFINE $1):$3 }
+--           | DECLARATION newline OUTSIDEFUNCTION          { (OUTDECLARATION $1):$3 } --TODO
+--           | DEFINESTRUCT newline OUTSIDEFUNCTION         { (OUTDEFINE $1):$3 } --TODO
            | {- empty -}                            { [] }
 
 
-FUNCTIONINIC : dafunk id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE BLOCK    { FUNCTIONINICN (IDN $ tknString $2) $4 $7 $8 }
+FUNCTIONINIC : dafunk id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE BLOCK    { FUNCTIONINICN (tknString $2) $4 $7 $8 }
 
 
-RETURNTYPE: intothevoid                                                 { INTOTHEVOIDN }
-          | TYPE                                                        { RETURNSOMN $1 } --TODO
+RETURNTYPE: intothevoid                                                 { OKvoid }
+          | TYPE                                                        { OKnotvoid $1 }
 
 LPARAMETERSFUNC : {- empty -}                                           { [] }
                 | NONEMPTYLPARAMETERSFUNC                               { $1 }
 
+NONEMPTYLPARAMETERSFUNC :: { [Parameter] }
 NONEMPTYLPARAMETERSFUNC : FUNCTIONPARAMETER ',' NONEMPTYLPARAMETERSFUNC { $1:($3) } -- TODO
                         | FUNCTIONPARAMETER                             { [$1] }
 
-FUNCTIONPARAMETER : TYPE id                                             { PARAMETERN $1 (tknString $2) }
-           -- | TYPE id '[' ']'                                            {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id '[' ']'" }
+FUNCTIONPARAMETER :: { Parameter }
+FUNCTIONPARAMETER : TYPE id                                             { Parameter $1 (tknString $2) }
+           -- | TYPE id '[' ']'                                            {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id '[' ']'" } --TODO
 
 BLOCK :: { [INSTRUCTIONN] }
 BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION whereiend           { reverse $4 }
@@ -156,17 +158,17 @@ INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                             { $2:$1 
 
 DECLARATION : TYPE DECLARATIONTYPE {% return () } -- TODO symbol table
 
-TYPE :: { TYPEN }
-TYPE : TYPE2              { TYPENOPOINTERN $1 }
-    |  TYPE2 '^'          { TYPEPOINTERN $1 }
+TYPE :: { OKTYPE }
+TYPE : TYPE2              { NOPOINTER $1 }
+    |  TYPE2 '^'          { POINTER $1 }
 
-TYPE2 :: { TYPE2N }
-TYPE2 : int                                    { INTN }
-   | float                                    { FLOATN }
-   | boolean                                  { BOOLEANN }
-   | char                                     { CHARN }
-   | string                                   { STRINGN }
-   | id                                       { IDSTRUCTN $ tknString $1 }
+TYPE2 :: { BASICOKTYPE }
+TYPE2 : int                                    { OKint }
+   | float                                    { OKfloat }
+   | boolean                                  { OKboolean }
+   | char                                     { OKchar }
+   | string                                   { OKstring }
+   | id                                       { StructId $ tknString $1 }
 
 
 DECLARATIONTYPE : ID '=' EXPRESSION                 { [DECTYPEN1 $1 $3] }
@@ -189,7 +191,7 @@ INSTRUCTION : go '(' PRINT ')' newline                                          
             | getback EXPRESSION newline                                             { GETBACKN $2 }
             | breakthru newline                                                      { BREAKTHRUN }
             | exitmusic newline                                                      { EXITMUSICN }
-            | DECLARATION newline                                                    { DECLARATIONNINST $1 }
+            -- | DECLARATION newline                                                    { DECLARATIONNINST $1 } -- TODO
             | EXPRESSION newline                                                     { EXPRESSIONNINST $1 }
 
 IFELSE : ifyouhavetoask EXPRESSION BLOCK IFELSE                                     { IFASKN $2 $3 $4 }
@@ -201,12 +203,14 @@ PRINT : string ',' PRINT                     { (PRINTSTRING (tknString $1)):($3)
      | id ','     PRINT                      { (PRINTSTRING (tknString $1)):($3) }
      | string                                { [PRINTSTRING $ tknString $1] }
      | id                                    { [PRINTSTRING $ tknString $1] }
-
+{-
 DEFINESTRUCT : band id '{' newline LDECLARATIONS newline'}'    {BANDN  (tknString $2) $5}
              | union id '{' newline LDECLARATIONS newline '}'   {UNIONN (tknString $2) $5}
-
+-}
+{-
 LDECLARATIONS : LDECLARATIONS newline DECLARATION  { REC1 $1 $3 }
               | DECLARATION                        { REC2 $1 }
+-}
 
 
 EXPRESSION : id                         { IDEXPRESSION $ tknString $1 }
@@ -222,7 +226,7 @@ EXPRESSION : id                         { IDEXPRESSION $ tknString $1 }
            | EXPRESSION '>=' EXPRESSION { COMPARN $1 ">=" $3 }
            | EXPRESSION '==' EXPRESSION { COMPARN $1 "==" $3 }
            | EXPRESSION '!=' EXPRESSION { COMPARN $1 "!=" $3 }
-           | not EXPRESSION             { NOTN "not" $2  }
+           | not EXPRESSION             { NOTN $2  }
            | EXPRESSION and EXPRESSION  { LOGICN $1 "and" $3 }
            | EXPRESSION or EXPRESSION   { LOGICN $1 "or" $3 }
            | '-' EXPRESSION             { MINUSN "-" $2 }

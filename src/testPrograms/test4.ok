@@ -1,8 +1,12 @@
 
 
 dafunk maintheme(int n, int x) : intothevoid
- youbegin
+youbegin
+    x = y+z
+    b = ok
+whereiend
 
- whereiend
-
-dafunk maintheme( ) : intothevoid youbegin whereiend
+dafunk maintheme( ) : intothevoid youbegin
+    b = not (ok and notok)
+    x = - 2 * 2 - 2
+whereiend

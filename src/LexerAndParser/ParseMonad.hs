@@ -59,7 +59,9 @@ initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
                               state_SymTable = emptySymTable}
 
 data ParseMError = IdNotFound Id Pos |
-                   AlreadyDefinedInScope Sym
+                   AlreadyDefinedInScope Sym |
+                   ParseError String
+                 deriving Show
 
 catchIdNotFound :: ParseMError -> ParseM Scope
 catchIdNotFound (IdNotFound id pos) = do
