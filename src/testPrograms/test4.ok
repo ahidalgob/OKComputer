@@ -3,7 +3,7 @@
 dafunk maintheme(int n, int x) : intothevoid
 youbegin
     x = y+z
-    b = ok
+    b = x[3]
 whereiend
 
 dafunk maintheme( ) : intothevoid youbegin
