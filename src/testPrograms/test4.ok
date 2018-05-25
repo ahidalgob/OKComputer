@@ -10,3 +10,8 @@ dafunk maintheme( ) : intothevoid youbegin
     b = not (ok and notok)
     x = - 2 * 2 - 2
 whereiend
+
+dafunk ola( ) : intothevoid youbegin
+    b = not (ok and notok)
+    x = - 2 * 2 - 2
+whereiend

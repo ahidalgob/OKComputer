@@ -158,26 +158,56 @@ printExpN n (ARRAYINSTN arraypos) = do
     putStrLnWithIdent n "Operation with Array Position:"
     printArrayPosN (n+2) arraypos
 
---printExpN n (FUNCCALLN s exp) = do 
- --   putStrLnWithIdent n "Llamada de funcion:"
- --   printId (n+1) s
- --   printExpListN (n+1) exp
+printExpN n (EXPSTRUCTN expstruct) = do
+    putStrLnWithIdent n "Operation with Struct Id:"
+    printExpStructN (n+2) expstruct
+
+printExpN n (FUNCCALLN func) = do 
+   putStrLnWithIdent n "Function Call:"
+   printFunctionCallN (n+2) func
+
+printExpN n (NEWLIFEN exp) = do
+   putStrLnWithIdent n "New life declaration called:"
+   printExpN (n+2) exp
+
+printExpN n (POINTERN pointed) = do
+   putStrLnWithIdent n $ "Pointer: " ++ pointed 
     
 printArrayPosN :: Int -> ARRAYPOSN -> IO()
 printArrayPosN n (ARRAYPOSN arrayid posnumber) = do
     printId n arrayid
     printId n posnumber -- Agregar que imprima numeros
 
+printExpStructN :: Int -> EXPRESSIONSTRUCTN -> IO()
+printExpStructN n (EXPRESSIONSTRUCTN structid instructid) = do
+    printId n structid
+    printId n instructid
+
+printFunctionCallN :: Int -> FUNCTIONCALLN -> IO()
+printFunctionCallN n (FUNCTIONCALLN funcid listid) = do
+    printId n funcid
+    putStrLnWithIdent n "With the next IDs: "
+    mapM_ (printId (n+1)) listid 
+
 printSTARTN :: Int -> STARTN -> IO()
 printSTARTN n (STARTN imports outsides) = do
-    putStrLnWithIdent n "Constructor de Programa:"
+    putStrLnWithIdent n "Constructor de Programa: "
     mapM_ (printImportN (n+1)) imports
     mapM_ (printFuncListN (n+1)) outsides
 
 printImportN :: Int -> IMPORTN -> IO()
 printImportN n (IMPORTN ids) = do
-	putStrWithIdent n "Por aqui voy bien"
+  putStrLnWithIdent n "Imports list: "
+  mapM_ (printId (n+1)) ids
 
 printFuncListN :: Int -> OUTSIDEN -> IO()
 printFuncListN n (OUTFUNCTIONINIC funciones) = do 
-	putStrWithIdent n "Por aqui tambien"
+  putStrLnWithIdent n "Function declared: "
+  printFuncInic (n+1) funciones
+
+printFuncInic :: Int -> FUNCTIONINICN -> IO()
+printFuncInic n (FUNCTIONINICN funcid parameters rtype instructions) = do
+  putStrLnWithIdent n "Function ID: "
+  printId (n+1) funcid
+  putStrLnWithIdent n "Function parameters: "
+
