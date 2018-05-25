@@ -2,16 +2,16 @@
 
 dafunk maintheme(int n, int n) : intothevoid
 youbegin
-    n = n+n
-    n = ok
-    x = y+z
-    b = ok
+    #n = n+n
+    #n = ok
+    #x = y+z
+    #b = ok
 whereiend
 
 dafunk maintheme() : intothevoid youbegin
-    int b, n
-    b = not (ok and notok)
-    x = - 2 * 2 - 2*n
+    #int b, n
+    #b = not (ok and notok)
+    #x = - 2 * 2 - 2*n
 
     #if x<5 youbegin
         #...

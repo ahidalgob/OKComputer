@@ -105,11 +105,13 @@ putStrWithIdent n s = (replicateM_ n $ putStr ident) >> putStr s
 
 putStrLnWithIdent n s = (replicateM_ n $ putStr ident) >> putStrLn s
 
+printIdSymbol n s = putStrLnWithIdent n $ "ID: " ++ (fst s) ++ "Scope: "
+
 printId n s = putStrLnWithIdent n $ "ID: " ++ s
 
 printExpN :: Int -> EXPRESSIONN -> IO()
 printExpN n (IDEXPRESSION s) = do
-    printId n s
+    printIdSymbol n s
 
 printExpN n (NUMBEREXPN s) = do
     putStrLnWithIdent n $ "Literal number: " ++ s
@@ -189,7 +191,7 @@ printFunctionCallN :: Int -> FUNCTIONCALLN -> IO()
 printFunctionCallN n (FUNCTIONCALLN funcid listid) = do
     printId n funcid
     putStrLnWithIdent n "With the next IDs: "
-    mapM_ (printId (n+1)) listid 
+    mapM_ (printExpN (n+1)) listid 
 
 printSTARTN :: Int -> STARTN -> IO()
 printSTARTN n (STARTN imports outsides) = do
@@ -223,7 +225,7 @@ printParameter n (Parameter oktyp okid) = do
   putStrLnWithIdent n "Parameter type: "
   printOKType (n+1) oktyp
   putStrLnWithIdent n "Parameter id: "
-  printId (n+1) okid
+  printIdSymbol (n+1) okid
 
 printOKType :: Int -> OKTYPE -> IO()
 printOKType n (POINTER basics) = do
