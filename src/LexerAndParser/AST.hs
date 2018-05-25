@@ -210,4 +210,64 @@ printFuncInic n (FUNCTIONINICN funcid parameters rtype instructions) = do
   putStrLnWithIdent n "Function ID: "
   printId (n+1) funcid
   putStrLnWithIdent n "Function parameters: "
+  mapM_ (printParameter (n+1)) parameters
+  putStrLnWithIdent n "Return type: "
+  printReturnType (n+1) rtype
+  putStrLnWithIdent n "Instructions list: "
+  mapM_ (printInstruction (n+1)) instructions
 
+printParameter :: Int -> Parameter -> IO()
+printParameter n (Parameter oktyp okid) = do
+  putStrLnWithIdent n "Parameter type: "
+  printOKType (n+1) oktyp
+  putStrLnWithIdent n "Parameter id: "
+  printId (n+1) okid
+
+printOKType :: Int -> OKTYPE -> IO()
+printOKType n (POINTER basics) = do
+  putStrWithIdent n "Pointer "
+  printBasicOKType n basics
+
+printOKType n (NOPOINTER basics) = do
+  printBasicOKType n basics
+
+printBasicOKType :: Int -> BASICOKTYPE -> IO()
+printBasicOKType n (OKboolean) = do
+  putStrLnWithIdent n "Boolean "
+
+printBasicOKType n (OKint) = do
+  putStrLnWithIdent n "Int"
+
+printBasicOKType n (OKfloat) = do
+  putStrLnWithIdent n "Float"
+
+printBasicOKType n (OKchar) = do
+  putStrLnWithIdent n "Char"
+
+printBasicOKType n (OKstring) = do
+  putStrLnWithIdent n "String"
+
+printBasicOKType n (StructId struct) = do
+  putStrLnWithIdent n $ "Struct of type: " ++ struct
+
+printReturnType :: Int -> RETURNTYPEN -> IO()
+printReturnType n (OKvoid) = do
+  putStrLnWithIdent n "Void "
+
+printReturnType n (OKnotvoid rtype) = do
+  printOKType n rtype
+
+printInstruction :: Int -> INSTRUCTIONN -> IO()
+printInstruction n (EXITMUSICN) = do
+  putStrLnWithIdent n "Me voy par coño "
+
+printInstruction n (BREAKTHRUN) = do
+  putStrLnWithIdent n "Me rompi par coño "
+
+printInstruction n (GETBACKN exps) = do
+  putStrLnWithIdent n "Get back instruction: "
+  printExpN n exps 
+
+printInstruction n (EXPRESSIONNINST exps) = do
+  putStrLnWithIdent n "Expression Instruction: "
+  printExpN n exps 

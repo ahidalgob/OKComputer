@@ -1,17 +1,32 @@
 
 
-dafunk maintheme(int n, int x) : intothevoid
+dafunk maintheme(int n, int x, boolean ola, estructurazo struct, float numerou) : int
 youbegin
-    x = y+z
-    b = x[3]
+    #x = y+z
+    #b = x[3]
 whereiend
 
-dafunk maintheme( ) : intothevoid youbegin
-    b = not (ok and notok)
-    x = - 2 * 2 - 2
+dafunk maintheme2( ) : intothevoid youbegin
+    #b = not (ok and notok)
+    #x = - 2 * 2 - 2
+    #readmymind(x)
+
+    #if x<5 youbegin
+        #...
+    #whereiend
+    #ifyouhavetoask x<10 youbegin
+        #...
+    #whereiend
+    #otherside youbegin
+
+    #whereiend
+    breakthru
+    2+2
+    #getback 5
 whereiend
 
-dafunk ola( ) : intothevoid youbegin
-    b = not (ok and notok)
-    x = - 2 * 2 - 2
+dafunk maintheme3( ) : intothevoid youbegin
+    #b = not (ok and notok)
+    #x = - 2 * 2 - 2
+    exitmusic
 whereiend
