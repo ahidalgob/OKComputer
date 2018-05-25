@@ -6,8 +6,8 @@ data STARTN = STARTN [IMPORTN] [OUTSIDEN] deriving Show
 data IMPORTN = IMPORTN [Id] deriving Show -- TODO SymId
 
 data OUTSIDEN =
-        OUTFUNCTIONINIC FUNCTIONINICN -- |
---        OUTDECLARATION DECLARATIONN |
+        OUTFUNCTIONINIC FUNCTIONINICN | -- |
+        OUTASSIGN [EXPRESSIONN] -- All the expressions are assigns
 --        OUTDEFINE DEFINESTRUCTN
           deriving Show
 
@@ -70,14 +70,15 @@ data LDECLARATIONSN = REC1 LDECLARATIONSN DECLARATIONN |
             REC2 DECLARATIONN deriving Show
 -}
 
-data EXPRESSIONN = IDEXPRESSION String                 |
+data EXPRESSIONN = IDEXPRESSION SymId                  |
            NUMBEREXPN String                           |
            STRINGEXPN String                           |
+           CHAREXP Char                                |
            OKN                                         |
            NOTOKN                                      |
            PARENTESISN EXPRESSIONN                     |
            COMPARN EXPRESSIONN String EXPRESSIONN      |
-           NOTN EXPRESSIONN                     |
+           NOTN EXPRESSIONN                            |
            LOGICN EXPRESSIONN String EXPRESSIONN       |
            MINUSN String EXPRESSIONN                   |
            ARITN EXPRESSIONN String EXPRESSIONN        |
@@ -95,5 +96,5 @@ data ARRAYPOSN = ARRAYPOSN String String deriving Show
 
 data EXPRESSIONSTRUCTN = EXPRESSIONSTRUCTN String String deriving Show
 
-data FUNCTIONCALLN = FUNCTIONCALLN String [Id] deriving Show
+data FUNCTIONCALLN = FUNCTIONCALLN String [EXPRESSIONN] deriving Show
 

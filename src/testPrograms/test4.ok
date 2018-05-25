@@ -6,7 +6,8 @@ youbegin
     n = ok
 whereiend
 
-dafunk maintheme( ) : intothevoid youbegin
+dafunk maintheme() : intothevoid youbegin
+    int b, n
     b = not (ok and notok)
-    x = - 2 * 2 - 2
+    x = - 2 * 2 - 2*n
 whereiend

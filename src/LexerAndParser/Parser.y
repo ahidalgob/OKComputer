@@ -9,6 +9,8 @@ import Tokens
 import Control.Monad.Except
 import AST
 import SymTable
+
+import Data.Maybe
 }
 
 %name parse
@@ -126,8 +128,8 @@ IDS : IDS ',' id                             { (tknString $3):$1 }
 
 
 OUTSIDEFUNCTION :: { [OUTSIDEN] }
-OUTSIDEFUNCTION : FUNCTIONINIC OUTSIDEFUNCTION      { (OUTFUNCTIONINIC $1):$2 }
---           | DECLARATION newline OUTSIDEFUNCTION          { (OUTDECLARATION $1):$3 } --TODO
+OUTSIDEFUNCTION : FUNCTIONINIC OUTSIDEFUNCTION            { (OUTFUNCTIONINIC $1):$2 }
+                | DECLARATION newline OUTSIDEFUNCTION     { (OUTASSIGN $1):$3 }
 --           | DEFINESTRUCT newline OUTSIDEFUNCTION         { (OUTDEFINE $1):$3 } --TODO
            | {- empty -}                            { [] }
 
@@ -152,7 +154,7 @@ FUNCTIONPARAMETER :: { Parameter }
 FUNCTIONPARAMETER : TYPE id
                           {% do
                              scope <- stateScopeStackTop
-                             stateInsertSym $ Sym scope (tknString $2) (tknPos $2) -- TODO real symbol (type)
+                             addTokenToSymTable $2
                              return $ Parameter $1 (tknString $2, scope) }
            -- | TYPE id '[' ']'                       {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id '[' ']'" } --TODO
 
@@ -166,10 +168,29 @@ END : whereiend                                                           {% sta
 
 INSIDEFUNCTION :: { [INSTRUCTIONN] }
 INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                             { $2:$1 }
-         | {- empty -}                                                  { [] }
+              | INSIDEFUNCTION DECLARATION                              { (map EXPRESSIONNINST $ reverse $2)++$1 }
+              | {- empty -}                                             { [] }
 
 
--- DECLARATION : TYPE DECLARATIONTYPE {% return () } -- TODO symbol table
+-- Get all the assignments and then do the declarations
+DECLARATION :: { [EXPRESSIONN] } -- All Expressions are assignments
+DECLARATION : TYPE DECLARATIONVARS newline {%
+      do  let decls = reverse $2
+              assigns = filter (isJust.snd) decls
+              vars = map fst decls
+          mapM_ addTokenToSymTable vars
+          mapM createAssign (map (\(x,y) -> (x,fromJust y)) assigns)
+}
+
+
+-- TODO Arrays and other things
+-- Symbols are added in parent rule
+DECLARATIONVARS :: { [(Token, Maybe EXPRESSIONN)] }
+DECLARATIONVARS : id '=' EXPRESSION                 { [($1, Just $3)] }
+            | DECLARATIONVARS ',' id '=' EXPRESSION { ($3, Just $5):($1) }
+            | id                                    { [($1, Nothing)] }
+            | DECLARATIONVARS ',' id                { ($3, Nothing):($1) }
+
 
 TYPE :: { OKTYPE }
 TYPE : TYPE2              { NOPOINTER $1 }
@@ -183,17 +204,12 @@ TYPE2 : int                                    { OKint }
    | string                                   { OKstring }
    | id                                       { StructId $ tknString $1 }
 
-{-
-DECLARATIONTYPE : ID '=' EXPRESSION                 { [DECTYPEN1 $1 $3] }
-            | ID '=' EXPRESSION ',' DECLARATIONTYPE { (DECTYPEN1 $1 $3):($5) }
-            | ID                                    { [DECTYPEN2 $1] }
-            | ID ',' DECLARATIONTYPE                { (DECTYPEN2 $1):($3) }
 
+{-                --TODO ARRAYS
 ID : id                                                    { IDNORMALN $ tknString $1 }
    | id '[' EXPRESSION ']'                                 { IDARRAYN (tknString $1) $3 }
 -}
 
--- Probablemente vaya newline antes del youbegin y whereiend PUESTOS
 INSTRUCTION : go '(' PRINT ')' newline                                               { GOINGN $3 }
             | goslowly '(' PRINT ')' newline                                         { GOINGSLOWLYN $3 }
             | gomental '(' PRINT ')' newline                                         { GOINGMENTALN $3 }
@@ -205,7 +221,6 @@ INSTRUCTION : go '(' PRINT ')' newline                                          
             | getback EXPRESSION newline                                             { GETBACKN $2 }
             | breakthru newline                                                      { BREAKTHRUN }
             | exitmusic newline                                                      { EXITMUSICN }
-            -- | DECLARATION newline                                                    { DECLARATIONNINST $1 } -- TODO
             | EXPRESSION newline                                                     { EXPRESSIONNINST $1 }
 
 IFELSE : ifyouhavetoask EXPRESSION BLOCK IFELSE                                     { IFASKN $2 $3 $4 }
@@ -226,14 +241,14 @@ LDECLARATIONS : LDECLARATIONS newline DECLARATION  { REC1 $1 $3 }
               | DECLARATION                        { REC2 $1 }
 -}
 
-
+EXPRESSION :: { EXPRESSIONN }
 EXPRESSION : id
                 {% do
                     scope <- stateFindSymScope (tknString $1) (tknPos $1)
-                    return $ IDEXPRESSION $ tknString $1 }
+                    return $ IDEXPRESSION $ (tknString $1, scope) }
            | n                          { NUMBEREXPN $ tknString $1 }
            | string                     { STRINGEXPN $ tknString $1 }
-      --   | c                          { % liftIO $ putStrLn "EXPRESSION -> c " }
+           | c                          { CHAREXP $ tknChar $1 }
            | ok                         { OKN }
            | notok                      { NOTOKN }
            | '(' EXPRESSION ')'         { PARENTESISN $2 }
@@ -262,11 +277,18 @@ EXPRESSION : id
            | '^' id                     { POINTERN $ tknString $2 }
            | LVAL '=' EXPRESSION          { ASSIGNN $1 $3 }
 
+EXPRESSIONS :: { [EXPRESSIONN] }
+EXPRESSIONS :                       { [] }
+            | NONEMPTYEXPRESSIONS   { reverse $ $1 }
+
+NONEMPTYEXPRESSIONS :: { [EXPRESSIONN] }
+NONEMPTYEXPRESSIONS : NONEMPTYEXPRESSIONS ',' EXPRESSION        { $3 : $1 }
+                    | EXPRESSION                                { [$1] }
 
 LVAL :: { SymId }
 LVAL : id                               {% do
                                           scope <- stateFindSymScope (tknString $1) (tknPos $1)
-                                          return (tknString $1, scope)} -- TODO change AST so it saves the SymId, not just the id
+                                          return (tknString $1, scope)}
 
 
 LVALS :                                 { [] }
@@ -276,29 +298,12 @@ NONEMPTYLVALS : NONEMPTYLVALS ',' LVAL    { $3 : $1 }
               | LVAL                      { [$1] }
 
 
-{-
-RVAL : id                               {% do
-                                          scope <- stateFindSymScope (tknString $1) (tknPos $1)
-                                          return $1} -- TODO change AST so it saves the SymId, not just the id
-      -- TODO Basically everything with a value!
--}
-
-           {-
-EXPRESSIONTUPLE : left id '(' n ')'                         { % liftIO $ putStrLn "EXPRESSIONTUPLE -> left id '(' n ')' " } -- x = left tupla1(2)
-         | right id '(' n ')'                               { % liftIO $ putStrLn "EXPRESSIONTUPLE -> right id '(' n ')' " } -- x = right tupla1(1)
-         | left id '(' id ')'                               { % liftIO $ putStrLn "EXPRESSIONTUPLE -> left id '(' id ')' " }
-         | right id '(' id ')'                              { % liftIO $ putStrLn "EXPRESSIONTUPLE -> right id '(' id ')' " }
--}
-
 ARRAYPOSITION : id '[' n ']'                                { ARRAYPOSN (tknString $1) (tknString $3) }
          | id '[' id ']'                                    { ARRAYPOSN (tknString $1) (tknString $3) }
 
 EXPRESSIONSTRUCT : id '.' id                                { EXPRESSIONSTRUCTN (tknString $1) (tknString $3) }
 
-FUNCTIONCALL : id '(' IDS ')'                                { FUNCTIONCALLN (tknString $1) $3} -- TODO Expressions! not ids
-
---LPARAMETERSSTRUCT : id '=' EXPRESSION ',' LPARAMETERSSTRUCT { % liftIO $ putStrLn "LPARAMETERSSTRUCT -> id '=' EXPRESSION ',' --LPARAMETERSSTRUCT " }
-        --  | id '=' EXPRESSION                               { % liftIO $ putStrLn "LPARAMETERSSTRUCT -> id '=' EXPRESSION " }
+FUNCTIONCALL : id '(' EXPRESSIONS ')'                                { FUNCTIONCALLN (tknString $1) $3} -- TODO Flat
 
 
 MAYBELINE : {- empty -}                   { }
@@ -306,6 +311,15 @@ MAYBELINE : {- empty -}                   { }
 
 {
 
+addTokenToSymTable :: Token -> ParseM ()
+addTokenToSymTable tkn = do
+        scope <- stateScopeStackTop
+        stateInsertSym $ Sym scope (tknString tkn) (tknPos tkn) -- TODO real symbol (type...)
+
+createAssign :: (Token, EXPRESSIONN) -> ParseM (EXPRESSIONN)
+createAssign (tkn, exp) = do
+        scope <- stateFindSymScope (tknString tkn) (tknPos tkn)
+        return $ ASSIGNN (tknString tkn, scope) exp
 
 lexwrap :: (Token -> ParseM a) -> ParseM a
 lexwrap cont = do
