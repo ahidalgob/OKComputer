@@ -57,8 +57,11 @@ data IFELSEN = IFELSEVOID                              |
          deriving Show
 
 -- Probablemente un detallito aca
-data PRINTN =   PRINTSTRINGS String PRINTN             |
-        PRINTSTRING String
+--data PRINTN =   PRINTSTRINGS String PRINTN             |
+--        PRINTSTRING String
+--        deriving Show
+
+data PRINTN =   PRINTSTRING String
         deriving Show
 
 {-
@@ -105,7 +108,7 @@ putStrWithIdent n s = (replicateM_ n $ putStr ident) >> putStr s
 
 putStrLnWithIdent n s = (replicateM_ n $ putStr ident) >> putStrLn s
 
-printIdSymbol n s = putStrLnWithIdent n $ "ID: " ++ (fst s) ++ "Scope: "
+printIdSymbol n s = putStrLnWithIdent n $ "ID: " ++ (fst s) ++ " Scope: "
 
 printId n s = putStrLnWithIdent n $ "ID: " ++ s
 
@@ -127,35 +130,35 @@ printExpN n (PARENTESISN exp) = do
     printExpN (n+1) exp
      
 printExpN n (COMPARN exp s exp1) = do
-    putStrLnWithIdent n "Operacion de comparacion:"
-    putStrLnWithIdent (n+1) $ "Comparador: " ++ s
-    putStrLnWithIdent (n+1) "Lado izquierdo:"
+    putStrLnWithIdent n "Comparison operation: "
+    putStrLnWithIdent (n+1) $ "Comparator: " ++ s
+    putStrLnWithIdent (n+1) "Left side:"
     printExpN (n+2) exp
-    putStrLnWithIdent (n+1) "Lado derecho:"
+    putStrLnWithIdent (n+1) "Right side:"
     printExpN (n+2) exp1
     
 printExpN n (NOTN exp) = do
-    putStrLnWithIdent n "Negacion booleana:"
+    putStrLnWithIdent n "Boolean negation:"
     printExpN (n+2) exp
 
 printExpN n (LOGICN exp s exp1) = do
-    putStrLnWithIdent n "Operacion binaria logica:"
-    putStrLnWithIdent (n+1) $ "Operador: " ++ s
-    putStrLnWithIdent (n+1) "Lado izquierdo:"
+    putStrLnWithIdent n "Binary logic operation:"
+    putStrLnWithIdent (n+1) $ "Operator: " ++ s
+    putStrLnWithIdent (n+1) "Left side:"
     printExpN (n+2) exp
-    putStrLnWithIdent (n+1) "Lado derecho:"
+    putStrLnWithIdent (n+1) "Right side:"
     printExpN (n+2) exp1
 
 printExpN n (MINUSN s exp) = do
-    putStrLnWithIdent n "Menos unario:"
+    putStrLnWithIdent n "Unary minus:"
     printExpN (n+1) exp
 
 printExpN n (ARITN exp s exp1) = do
-    putStrLnWithIdent n "Operacion binaria aritmetica:"
-    putStrLnWithIdent (n+1) $ "Operador: " ++ s
-    putStrLnWithIdent (n+1) "Lado izquierdo:"
+    putStrLnWithIdent n "Binary arithmetic operation:"
+    putStrLnWithIdent (n+1) $ "Operator: " ++ s
+    putStrLnWithIdent (n+1) "Left side:"
     printExpN (n+2) exp
-    putStrLnWithIdent (n+1) "Lado derecho:"
+    putStrLnWithIdent (n+1) "Right side:"
     printExpN (n+2) exp1
 
 printExpN n (ARRAYINSTN arraypos) = do
@@ -176,6 +179,13 @@ printExpN n (NEWLIFEN exp) = do
 
 printExpN n (POINTERN pointed) = do
    putStrLnWithIdent n $ "Pointer: " ++ pointed 
+
+printExpN n (ASSIGNN symid exp) = do
+   putStrLnWithIdent n $ "Assignation: "
+   putStrLnWithIdent (n+1) $ "Left side: "
+   printIdSymbol (n+2) symid
+   putStrLnWithIdent (n+1) $ "Right side: "
+   printExpN (n+2) exp
     
 printArrayPosN :: Int -> ARRAYPOSN -> IO()
 printArrayPosN n (ARRAYPOSN arrayid posnumber) = do
@@ -195,19 +205,24 @@ printFunctionCallN n (FUNCTIONCALLN funcid listid) = do
 
 printSTARTN :: Int -> STARTN -> IO()
 printSTARTN n (STARTN imports outsides) = do
-    putStrLnWithIdent n "Constructor de Programa: "
+    putStrLnWithIdent n "Program start: "
     mapM_ (printImportN (n+1)) imports
-    mapM_ (printFuncListN (n+1)) outsides
+    mapM_ (printOutsideListN (n+1)) outsides
 
 printImportN :: Int -> IMPORTN -> IO()
 printImportN n (IMPORTN ids) = do
   putStrLnWithIdent n "Imports list: "
   mapM_ (printId (n+1)) ids
 
-printFuncListN :: Int -> OUTSIDEN -> IO()
-printFuncListN n (OUTFUNCTIONINIC funciones) = do 
+printOutsideListN :: Int -> OUTSIDEN -> IO()
+printOutsideListN n (OUTFUNCTIONINIC funciones) = do 
   putStrLnWithIdent n "Function declared: "
   printFuncInic (n+1) funciones
+
+printOutsideListN n (OUTASSIGN exps) = do 
+  putStrLnWithIdent n "Global assigns: "
+  mapM_ (printExpN (n+1)) exps
+  
 
 printFuncInic :: Int -> FUNCTIONINICN -> IO()
 printFuncInic n (FUNCTIONINICN funcid parameters rtype instructions) = do
@@ -263,15 +278,77 @@ printReturnType n (OKnotvoid rtype) = do
 
 printInstruction :: Int -> INSTRUCTIONN -> IO()
 printInstruction n (EXITMUSICN) = do
-  putStrLnWithIdent n "Me voy par coño "
+  putStrLnWithIdent n "Exit Instruction"
 
 printInstruction n (BREAKTHRUN) = do
-  putStrLnWithIdent n "Me rompi par coño "
+  putStrLnWithIdent n "Break Instruction"
 
 printInstruction n (GETBACKN exps) = do
-  putStrLnWithIdent n "Get back instruction: "
-  printExpN n exps 
+  putStrLnWithIdent n "GetBack instruction: "
+  printExpN (n+2) exps 
 
 printInstruction n (EXPRESSIONNINST exps) = do
   putStrLnWithIdent n "Expression Instruction: "
-  printExpN n exps 
+  printExpN (n+2) exps 
+
+printInstruction n (AMNESIACN free) = do
+  putStrLnWithIdent n "Amnesiac Instruction: "
+  printId (n+2) free 
+
+printInstruction n (READMYMINDN simbs) = do
+  putStrLnWithIdent n "ReadMyMind Instruction: "
+  mapM_ (printIdSymbol (n+2)) simbs
+
+printInstruction n (GOINGN prints) = do
+  putStrLnWithIdent n "Go Instruction: "
+  mapM_ (printPrints (n+2)) prints
+
+printInstruction n (GOINGSLOWLYN prints) = do
+  putStrLnWithIdent n "GoSlowly Instruction: "
+  mapM_ (printPrints (n+2)) prints
+
+printInstruction n (GOINGMENTALN prints) = do
+  putStrLnWithIdent n "GoMental Instruction: "
+  mapM_ (printPrints (n+2)) prints
+
+printInstruction n (IFN exps instrs elses) = do
+  putStrLnWithIdent n "If Instruction: "
+  putStrLnWithIdent n "Conditional: "
+  printExpN (n+2) exps
+  putStrLnWithIdent n "Instructions list: "
+  mapM_ (printInstruction (n+2)) instrs
+  printIfelse n elses
+
+printInstruction n (CANTSTOPN exps instrs) = do
+  putStrLnWithIdent n "CantStop Instruction: "
+  putStrLnWithIdent n "Conditional: "
+  printExpN (n+2) exps
+  putStrLnWithIdent n "Instructions list: "
+  mapM_ (printInstruction (n+2)) instrs 
+
+printInstruction n (ONEMORETIMEN oktyp s exp1 exp2 exp3 instrs) = do
+  putStrLnWithIdent n "ONEMORETIMEN Instruction: "
+  putStrLnWithIdent n "Ayudenme no sirvo "
+
+
+printIfelse :: Int -> IFELSEN -> IO()
+printIfelse n (IFELSEVOID) = do
+  putStrLnWithIdent n "End of If Instruction: "
+
+printIfelse n (IFASKN exps instrs elses) = do
+  putStrLnWithIdent n "IfYouHaveToAsk Instruction: "
+  putStrLnWithIdent n "Conditional: "
+  printExpN (n+2) exps
+  putStrLnWithIdent n "Instructions list: "
+  mapM_ (printInstruction (n+2)) instrs
+  printIfelse n elses
+
+printIfelse n (OTHERSIDEN instrs) = do 
+  putStrLnWithIdent n "Otherside Instruction: "
+  putStrLnWithIdent n "Instructions list: "
+  mapM_ (printInstruction (n+2)) instrs
+
+printPrints :: Int -> PRINTN -> IO()
+printPrints n (PRINTSTRING printable) = do
+  putStrLnWithIdent n "Printable: "
+  printId (n+2) printable

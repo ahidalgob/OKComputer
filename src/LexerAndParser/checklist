@@ -6,6 +6,7 @@
 --data OUTSIDEN =
 --        OUTFUNCTIONINIC FUNCTIONINICN -- |
 --        OUTDECLARATION DECLARATIONN |
+--          OUTASSIGN [EXPRESSIONN]
 --        OUTDEFINE DEFINESTRUCTN
 --          deriving Show
 
@@ -17,7 +18,7 @@
 
 --data Parameter = Parameter OKTYPE Id deriving Show
 
--- data DECLARATIONN = DECLARATIONN OKTYPE [DECLARATIONTYPEN] deriving Show
+--data DECLARATIONN = DECLARATIONN OKTYPE [DECLARATIONTYPEN] deriving Show
 
 --data OKTYPE = POINTER BASICOKTYPE | 
 --              NOPOINTER BASICOKTYPE deriving Show
@@ -31,7 +32,7 @@
 
 --data DECLARATIONTYPEN = DECTYPEN1 ID2N EXPRESSIONN |
 --            DECTYPEN2 ID2N
---            -- ID2N DECLARATIONTYPEN
+            -- ID2N DECLARATIONTYPEN
 --            deriving Show
 
 -- Can be empty
@@ -39,30 +40,31 @@
 --data ID2N = IDNORMALN String |
 --      IDARRAYN String EXPRESSIONN deriving Show
 
-data INSTRUCTIONN = GOINGN [PRINTN]                                                    |
-          GOINGSLOWLYN [PRINTN]                                                        |
-          GOINGMENTALN [PRINTN]                                                        |
-          REDMYMINDN [Id]                                                              |
-          AMNESIACN String                                                             |
-          IFN EXPRESSIONN [INSTRUCTIONN] IFELSEN                                       |
-          CANTSTOPN EXPRESSIONN [INSTRUCTIONN]                                         |
+
+--data INSTRUCTIONN = GOINGN [PRINTN]                                                    |
+--          GOINGSLOWLYN [PRINTN]                                                        |
+--          GOINGMENTALN [PRINTN]                                                        |
+--          REDMYMINDN [SymId]                                                              |
+--          AMNESIACN String                                                             |
+--          IFN EXPRESSIONN [INSTRUCTIONN] IFELSEN                                       |
+--          CANTSTOPN EXPRESSIONN [INSTRUCTIONN]                                         |
           ONEMORETIMEN OKTYPE String EXPRESSIONN EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
-          GETBACKN EXPRESSIONN                                                         |
-          BREAKTHRUN                                                                   |
+--          GETBACKN EXPRESSIONN                                                         |
+--          BREAKTHRUN                                                                   |
 --          EXITMUSICN                                                                   |
 --          DECLARATIONNINST DECLARATIONN                                                |
-          EXPRESSIONNINST EXPRESSIONN
+--          EXPRESSIONNINST EXPRESSIONN
           deriving Show
 
-data IFELSEN = IFELSEVOID                              |
-         IFASKN EXPRESSIONN [INSTRUCTIONN] IFELSEN     |
-         OTHERSIDEN [INSTRUCTIONN]
-         deriving Show
+--data IFELSEN = IFELSEVOID                              |
+--         IFASKN EXPRESSIONN [INSTRUCTIONN] IFELSEN     |
+--         OTHERSIDEN [INSTRUCTIONN]
+--         deriving Show
 
 -- Probablemente un detallito aca
-data PRINTN =   PRINTSTRINGS String PRINTN             |
-        PRINTSTRING String
-        deriving Show
+--data PRINTN =   PRINTSTRINGS String PRINTN             |
+--        PRINTSTRING String
+--        deriving Show
 
 {-
 data DEFINESTRUCTN = BANDN String LDECLARATIONSN       |

@@ -9,17 +9,23 @@ youbegin
 whereiend
 
 dafunk maintheme() : intothevoid youbegin
-    #int b, n
-    #b = not (ok and notok)
-    #x = - 2 * 2 - 2*n
+    int b, n
+    b = not (ok and notok)
+    x = - 2 * 2 - 2*n
 
     #if x<5 youbegin
-        #...
+    #    breakthru
+    #    exitmusic
     #whereiend
     #ifyouhavetoask x<10 youbegin
         #...
     #whereiend
 
+    cantstop x=5 youbegin
+    	breakthru
+    whereiend
+
+    go("ola", "voy bien", b)
     breakthru
     2+2
     #getback 5
