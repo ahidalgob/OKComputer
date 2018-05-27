@@ -158,12 +158,15 @@ FUNCTIONPARAMETER : TYPE id
                              return $ Parameter $1 (tknString $2, scope) }
            -- | TYPE id '[' ']'                       {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id '[' ']'" } --TODO
 
+-- Donde esta whereiend iba END antes, tiraba error al iniciar un nuevo bloque de instruccion if, cantstop, onemoretime
+-- asumo porque no inicia un nuevo scope (solo hay BEGIN en dafunk), seguramente se arregla colocando BEGINS al comienzo de
+-- cada una de esas instrucciones (colocar BEGIN en el block da 12 shift reduce)
 BLOCK :: { [INSTRUCTIONN] }
-BLOCK : MAYBELINE BEGIN MAYBELINE INSIDEFUNCTION END                    { reverse $4 }
+BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION whereiend                    { reverse $4 }
       -- | MAYBELINE INSTRUCTION                                           { [] } -- TODO
 
 BEGIN : {- empty -}                                                       {% stateBeginScope }
-      | youbegin                                                          {% stateBeginScope }
+     -- | youbegin                                                          {% stateBeginScope }
 
 END : whereiend                                                           {% stateEndScope }
 

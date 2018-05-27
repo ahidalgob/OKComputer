@@ -6,29 +6,44 @@ youbegin
     #n = ok
     #x = y+z
     #b = ok
+    breakthru
 whereiend
 
-dafunk maintheme() : intothevoid youbegin
+dafunk maintheme() : intothevoid 
+youbegin
     int b, n
     b = not (ok and notok)
     x = - 2 * 2 - 2*n
 
-    #if x<5 youbegin
-    #    breakthru
-    #    exitmusic
-    #whereiend
-    #ifyouhavetoask x<10 youbegin
-        #...
-    #whereiend
+    if x<5 youbegin
+        breakthru
+        exitmusic
+    whereiend
 
-    cantstop x=5 youbegin
-    	breakthru
+    ifyouhavetoask x<10 youbegin
+        cantstop y<5 youbegin
+        	breakthru
+        whereiend
+    whereiend
+
+    cantstop x<5
+    youbegin
+    	x = 5*5 + (3*x)
+    	goslowly(x, x, x)
+    	if x=42 youbegin
+    		go("me voy")
+    		getback x
+    	whereiend
+    whereiend
+
+    onemoretime int ola = 5 ; ola<10 ; ola=ola+1 youbegin
+    	exitmusic
     whereiend
 
     go("ola", "voy bien", b)
     breakthru
     2+2
-    #getback 5
+    getback 5
 whereiend
 
 dafunk maintheme3( ) : intothevoid youbegin
