@@ -1,0 +1,21 @@
+int a = 30
+
+dafunk func1(int n, int x, bool y) : intothevoid
+youbegin
+    int z,b = 0
+whereiend
+
+int b = 30
+
+dafunk func2() : intothevoid
+youbegin
+    int z,b = 0
+whereiend
+
+int c = 30
+
+dafunk func3(int n, int x, bool y) : intothevoid
+youbegin
+    func1(n, x, y)
+    funcerror(n)
+whereiend
