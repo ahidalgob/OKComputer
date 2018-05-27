@@ -43,8 +43,8 @@ data INSTRUCTIONN = GOINGN [PRINTN]                                             
           AMNESIACN String                                                             |
           IFN EXPRESSIONN [INSTRUCTIONN] IFELSEN                                       |
           CANTSTOPN EXPRESSIONN [INSTRUCTIONN]                                         |
-        --ONEMORETIMEN [EXPRESSIONN] EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
-          ONEMORETIMEN OKTYPE String EXPRESSIONN EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
+          ONEMORETIMEN [EXPRESSIONN] EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
+          --ONEMORETIMEN OKTYPE String EXPRESSIONN EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
           GETBACKN EXPRESSIONN                                                         |
           BREAKTHRUN                                                                   |
           EXITMUSICN                                                                   |
@@ -55,7 +55,7 @@ data INSTRUCTIONN = GOINGN [PRINTN]                                             
 --data BLOCKN = BLOCKN [INSIDEFUNCTIONN] deriving Show
 
 --data INSIDEFUNCTIONN = INSIDEINSTRN INSTRUCTIONN |
---                       INSIDEDECN String 
+--                       INSIDEDECN String
 --                       deriving Show
 
 data IFELSEN = IFELSEVOID                              |
@@ -115,7 +115,7 @@ putStrWithIdent n s = (replicateM_ n $ putStr ident) >> putStr s
 
 putStrLnWithIdent n s = (replicateM_ n $ putStr ident) >> putStrLn s
 
-printIdSymbol n s = putStrLnWithIdent n $ "ID: " ++ (fst s) ++ " Scope: "
+printIdSymbol n s = putStrLnWithIdent n $ "ID: " ++ (fst s) ++ " Scope: " ++ show (snd s)
 
 printId n s = putStrLnWithIdent n $ "ID: " ++ s
 
@@ -128,14 +128,14 @@ printExpN n (NUMBEREXPN s) = do
 
 printExpN n (OKN) = do
     putStrLnWithIdent n "Literal boolean: ok"
-     
+
 printExpN n (NOTOKN) = do
     putStrLnWithIdent n "Literal boolean: notok"
 
 printExpN n (PARENTESISN exp) = do
     putStrLnWithIdent n "Parenthesis expression:"
     printExpN (n+1) exp
-     
+
 printExpN n (COMPARN exp s exp1) = do
     putStrLnWithIdent n "Comparison operation: "
     putStrLnWithIdent (n+1) $ "Comparator: " ++ s
@@ -143,7 +143,7 @@ printExpN n (COMPARN exp s exp1) = do
     printExpN (n+2) exp
     putStrLnWithIdent (n+1) "Right side:"
     printExpN (n+2) exp1
-    
+
 printExpN n (NOTN exp) = do
     putStrLnWithIdent n "Boolean negation:"
     printExpN (n+2) exp
@@ -176,7 +176,7 @@ printExpN n (EXPSTRUCTN expstruct) = do
     putStrLnWithIdent n "Operation with Struct Id:"
     printExpStructN (n+2) expstruct
 
-printExpN n (FUNCCALLN func) = do 
+printExpN n (FUNCCALLN func) = do
    putStrLnWithIdent n "Function Call:"
    printFunctionCallN (n+2) func
 
@@ -185,7 +185,7 @@ printExpN n (NEWLIFEN exp) = do
    printExpN (n+2) exp
 
 printExpN n (POINTERN pointed) = do
-   putStrLnWithIdent n $ "Pointer: " ++ pointed 
+   putStrLnWithIdent n $ "Pointer: " ++ pointed
 
 printExpN n (ASSIGNN symid exp) = do
    putStrLnWithIdent n $ "Assignation: "
@@ -193,7 +193,7 @@ printExpN n (ASSIGNN symid exp) = do
    printIdSymbol (n+2) symid
    putStrLnWithIdent (n+1) $ "Right side: "
    printExpN (n+2) exp
-    
+
 printArrayPosN :: Int -> ARRAYPOSN -> IO()
 printArrayPosN n (ARRAYPOSN arrayid posnumber) = do
     printId n arrayid
@@ -208,7 +208,7 @@ printFunctionCallN :: Int -> FUNCTIONCALLN -> IO()
 printFunctionCallN n (FUNCTIONCALLN funcid listid) = do
     printId n funcid
     putStrLnWithIdent n "With the next IDs: "
-    mapM_ (printExpN (n+1)) listid 
+    mapM_ (printExpN (n+1)) listid
 
 printSTARTN :: Int -> STARTN -> IO()
 printSTARTN n (STARTN imports outsides) = do
@@ -222,14 +222,14 @@ printImportN n (IMPORTN ids) = do
   mapM_ (printId (n+1)) ids
 
 printOutsideListN :: Int -> OUTSIDEN -> IO()
-printOutsideListN n (OUTFUNCTIONINIC funciones) = do 
+printOutsideListN n (OUTFUNCTIONINIC funciones) = do
   putStrLnWithIdent n "Function declared: "
   printFuncInic (n+1) funciones
 
-printOutsideListN n (OUTASSIGN exps) = do 
+printOutsideListN n (OUTASSIGN exps) = do
   putStrLnWithIdent n "Global assigns: "
   mapM_ (printExpN (n+1)) exps
-  
+
 
 printFuncInic :: Int -> FUNCTIONINICN -> IO()
 printFuncInic n (FUNCTIONINICN funcid parameters rtype instructions) = do
@@ -292,15 +292,15 @@ printInstruction n (BREAKTHRUN) = do
 
 printInstruction n (GETBACKN exps) = do
   putStrLnWithIdent n "GetBack instruction: "
-  printExpN (n+2) exps 
+  printExpN (n+2) exps
 
 printInstruction n (EXPRESSIONNINST exps) = do
   putStrLnWithIdent n "Expression Instruction: "
-  printExpN (n+2) exps 
+  printExpN (n+2) exps
 
 printInstruction n (AMNESIACN free) = do
   putStrLnWithIdent n "Amnesiac Instruction: "
-  printId (n+2) free 
+  printId (n+2) free
 
 printInstruction n (READMYMINDN simbs) = do
   putStrLnWithIdent n "ReadMyMind Instruction: "
@@ -331,19 +331,19 @@ printInstruction n (CANTSTOPN exps instrs) = do
   putStrLnWithIdent n "Conditional: "
   printExpN (n+2) exps
   putStrLnWithIdent n "Instructions list: "
-  mapM_ (printInstruction (n+2)) instrs 
+  mapM_ (printInstruction (n+2)) instrs
 
 --printInstruction n (ONEMORETIMEN declars exp2 exp3 instrs) = do
-printInstruction n (ONEMORETIMEN oktyp s exp1 exp2 exp3 instrs) = do
+printInstruction n (ONEMORETIMEN decls exp2 exp3 instrs) = do
   putStrLnWithIdent n "OneMoreTime Instruction: "
   putStrLnWithIdent n "Initialization: "
-  printExpN (n+2) exp1
+  mapM_ (printExpN (n+2)) decls
   putStrLnWithIdent n "Until: "
   printExpN (n+2) exp2
   putStrLnWithIdent n "Pattern: "
   printExpN (n+2) exp3
   putStrLnWithIdent n "Instructions list: "
-  mapM_ (printInstruction (n+2)) instrs 
+  mapM_ (printInstruction (n+2)) instrs
 
 
 
@@ -360,7 +360,7 @@ printIfelse n (IFASKN exps instrs elses) = do
   mapM_ (printInstruction (n+2)) instrs
   printIfelse n elses
 
-printIfelse n (OTHERSIDEN instrs) = do 
+printIfelse n (OTHERSIDEN instrs) = do
   putStrLnWithIdent n "Otherside Instruction: "
   putStrLnWithIdent n "Instructions list: "
   mapM_ (printInstruction (n+2)) instrs

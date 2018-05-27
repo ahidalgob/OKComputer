@@ -52,12 +52,12 @@ import Data.Maybe
   boolean                                 { BooleanTkn $$ }
   ok                                      { OkTkn $$ }              -- True
   notok                                   { NotOkTkn $$ }           -- False
-  '{'                                     { OpenBraceTkn $$ }
-  '}'                                     { CloseBraceTkn $$ }
+  --'{'                                     { OpenBraceTkn $$ }
+  --'}'                                     { CloseBraceTkn $$ }
   '['                                     { ArrayStartTkn $$ }
   ']'                                     { ArrayEndTkn $$ }
-  band                                    { BandTkn $$ }            -- Registers/structs
-  union                                   { UnionTkn $$ }
+  --band                                    { BandTkn $$ }            -- Registers/structs
+  --union                                   { UnionTkn $$ }
   '.'										                  { DotTkn $$ }
   '^'									                    { PointerTkn $$ }
 
@@ -157,28 +157,23 @@ FUNCTIONPARAMETER : TYPE id
                              addTokenToSymTable $2
                              return $ Parameter $1 (tknString $2, scope) }
            -- | TYPE id '[' ']'                       {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id '[' ']'" } --TODO
-
--- Donde esta whereiend iba END antes, tiraba error al iniciar un nuevo bloque de instruccion if, cantstop, onemoretime
--- asumo porque no inicia un nuevo scope (solo hay BEGIN en dafunk), seguramente se arregla colocando BEGINS al comienzo de
--- cada una de esas instrucciones (colocar BEGIN en el block da 12 shift reduce)
 BLOCK :: { [INSTRUCTIONN] }
-BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION whereiend                    { reverse $4 }
+BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION END                    { reverse $4 }
       -- | MAYBELINE INSTRUCTION                                           { [] } -- TODO
 
 BEGIN : {- empty -}                                                       {% stateBeginScope }
-     -- | youbegin                                                          {% stateBeginScope }
 
 END : whereiend                                                           {% stateEndScope }
 
 INSIDEFUNCTION :: { [INSTRUCTIONN] }
 INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                             { $2:$1 }
-              | INSIDEFUNCTION DECLARATION                              { (map EXPRESSIONNINST $ reverse $2)++$1 }
+              | INSIDEFUNCTION DECLARATION newline                              { (map EXPRESSIONNINST $ reverse $2)++$1 }
               | {- empty -}                                             { [] }
 
 
 -- Get all the assignments and then do the declarations
 DECLARATION :: { [EXPRESSIONN] } -- All Expressions are assignments
-DECLARATION : TYPE DECLARATIONVARS newline {%
+DECLARATION : TYPE DECLARATIONVARS {%
       do  let decls = reverse $2
               assigns = filter (isJust.snd) decls
               vars = map fst decls
@@ -209,27 +204,22 @@ TYPE2 : int                                    { OKint }
    | id                                       { StructId $ tknString $1 }
 
 
-{-                --TODO ARRAYS
-ID : id                                                    { IDNORMALN $ tknString $1 }
-   | id '[' EXPRESSION ']'                                 { IDARRAYN (tknString $1) $3 }
--}
 
 INSTRUCTION : go '(' PRINT ')' newline                                               { GOINGN $3 }
             | goslowly '(' PRINT ')' newline                                         { GOINGSLOWLYN $3 }
             | gomental '(' PRINT ')' newline                                         { GOINGMENTALN $3 }
             | readmymind '(' LVALS ')' newline                                         { READMYMINDN $3 }
             | amnesiac '(' id ')' newline                                            { AMNESIACN $ tknString $3 }
-            | if EXPRESSION BLOCK IFELSE                                             { IFN $2 (reverse $3) $4 }
-            | cantstop EXPRESSION BLOCK                                              { CANTSTOPN $2 (reverse $3) }
-            | onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';' EXPRESSION BLOCK { ONEMORETIMEN $2 (tknString $3) $5 $7 $9 (reverse $10) }
---            | onemoretime DECLARATION ';' EXPRESSION ';' EXPRESSION BLOCK { ONEMORETIMEN $2 $4 $6 (reverse $7) }
+            | if EXPRESSION BEGIN BLOCK IFELSE                                             { IFN $2 (reverse $4) $5 }
+            | cantstop EXPRESSION BEGIN BLOCK                                              { CANTSTOPN $2 (reverse $4) }
+            | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION BLOCK { ONEMORETIMEN $3 $5 $7 (reverse $8) }
             | getback EXPRESSION newline                                             { GETBACKN $2 }
             | breakthru newline                                                      { BREAKTHRUN }
             | exitmusic newline                                                      { EXITMUSICN }
             | EXPRESSION newline                                                     { EXPRESSIONNINST $1 }
 
-IFELSE : ifyouhavetoask EXPRESSION BLOCK IFELSE                                     { IFASKN $2 $3 $4 }
-       | otherside BLOCK                                                            { OTHERSIDEN $2 }
+IFELSE : ifyouhavetoask EXPRESSION BEGIN BLOCK IFELSE                                     { IFASKN $2 $4 $5 }
+       | otherside BEGIN BLOCK                                                            { OTHERSIDEN $3 }
        | {- empty -}                                                                { IFELSEVOID }
 
 -- Probablemente tenga un detallito aca
