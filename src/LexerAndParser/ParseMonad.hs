@@ -49,7 +49,7 @@ initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
 
                               state_ScopeStack = emptyScopeStack,
                               state_ScopeSet = emptyScopeSet,
-                              state_NextScope = 1,  -- TODO we need to insert every predefined function on 0
+                              state_NextScope = 2,  -- TODO we need to insert every predefined function on 0
                               state_SymTable = emptySymTable}
 
 --------------------------------------------------------

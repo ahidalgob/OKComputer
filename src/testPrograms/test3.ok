@@ -1,8 +1,9 @@
-dafunk maintheme(int x) : intothevoid
+ int x=3
 
+dafunk maintheme(int x) : intothevoid
   youbegin
-    int a = 0
-    float b
+    int a = x
+    float b = y
     b = 10
     cantstop (b < 15)
       youbegin

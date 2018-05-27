@@ -8,14 +8,16 @@ type Id = String
 type SymId = (Id, Scope)
 
 type ScopeStack = [Scope]
-emptyScopeStack = []
+emptyScopeStack :: ScopeStack
+emptyScopeStack = [1,0]
 
 ----------------------------------
 -----------Scope Set--------------
 ----------------------------------
 type ScopeSet = S.Set Scope
 
-emptyScopeSet = S.empty
+emptyScopeSet :: ScopeSet
+emptyScopeSet = (S.insert 1).(S.insert 0) $ S.empty
 
 scopeSetMember :: Scope -> ScopeSet -> Bool
 scopeSetMember = S.member
