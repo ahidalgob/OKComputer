@@ -1,0 +1,13 @@
+int c = 0
+
+int если = 3
+
+dafunk maintheme(int n, int x, bool y) : intothevoid
+youbegin
+    int z,b = 0
+    n = n+n
+    n = ok
+    x = y+z+c
+    b = ok
+    breakthru
+whereiend

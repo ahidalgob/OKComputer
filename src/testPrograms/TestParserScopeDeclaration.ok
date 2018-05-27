@@ -1,0 +1,33 @@
+# Variables declared in different scopes
+int a = 30
+
+dafunk func1(int error1, int x, bool y) : intothevoid
+youbegin
+    int error2,b = 0
+    b = error2 + 1
+    breakthru
+whereiend
+
+dafunk maintheme(int x) : intothevoid 
+youbegin
+    error1 = 5
+    cantstop error2<5
+    youbegin
+    	x = 5*5 + (3*x)
+    	goslowly(x, x, x)
+    	if x=42 youbegin
+            bool error3 = 7 + a
+            error3 = ok
+            error3 = notok
+    		go("Declarando")
+    		getback x
+    	whereiend
+        error1 = 0
+        error3 = 2*2
+    whereiend
+whereiend
+
+dafunk maintheme3( ) : intothevoid youbegin
+    exitmusic
+    error3 = error4
+whereiend
