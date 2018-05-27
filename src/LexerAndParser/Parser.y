@@ -159,10 +159,11 @@ FUNCTIONPARAMETER : TYPE id
            -- | TYPE id '[' ']'                       {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id '[' ']'" } --TODO
 
 BLOCK :: { [INSTRUCTIONN] }
-BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION END                    { reverse $4 }
+BLOCK : MAYBELINE BEGIN MAYBELINE INSIDEFUNCTION END                    { reverse $4 }
       -- | MAYBELINE INSTRUCTION                                           { [] } -- TODO
 
 BEGIN : {- empty -}                                                       {% stateBeginScope }
+      | youbegin                                                          {% stateBeginScope }
 
 END : whereiend                                                           {% stateEndScope }
 
@@ -218,6 +219,7 @@ INSTRUCTION : go '(' PRINT ')' newline                                          
             | if EXPRESSION BLOCK IFELSE                                             { IFN $2 (reverse $3) $4 }
             | cantstop EXPRESSION BLOCK                                              { CANTSTOPN $2 (reverse $3) }
             | onemoretime TYPE id '=' EXPRESSION ';' EXPRESSION ';' EXPRESSION BLOCK { ONEMORETIMEN $2 (tknString $3) $5 $7 $9 (reverse $10) }
+--            | onemoretime DECLARATION ';' EXPRESSION ';' EXPRESSION BLOCK { ONEMORETIMEN $2 $4 $6 (reverse $7) }
             | getback EXPRESSION newline                                             { GETBACKN $2 }
             | breakthru newline                                                      { BREAKTHRUN }
             | exitmusic newline                                                      { EXITMUSICN }

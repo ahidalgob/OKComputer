@@ -43,6 +43,7 @@ data INSTRUCTIONN = GOINGN [PRINTN]                                             
           AMNESIACN String                                                             |
           IFN EXPRESSIONN [INSTRUCTIONN] IFELSEN                                       |
           CANTSTOPN EXPRESSIONN [INSTRUCTIONN]                                         |
+        --ONEMORETIMEN [EXPRESSIONN] EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
           ONEMORETIMEN OKTYPE String EXPRESSIONN EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
           GETBACKN EXPRESSIONN                                                         |
           BREAKTHRUN                                                                   |
@@ -50,6 +51,12 @@ data INSTRUCTIONN = GOINGN [PRINTN]                                             
         --DECLARATIONNINST DECLARATIONN                                                |
           EXPRESSIONNINST EXPRESSIONN
           deriving Show
+
+--data BLOCKN = BLOCKN [INSIDEFUNCTIONN] deriving Show
+
+--data INSIDEFUNCTIONN = INSIDEINSTRN INSTRUCTIONN |
+--                       INSIDEDECN String 
+--                       deriving Show
 
 data IFELSEN = IFELSEVOID                              |
          IFASKN EXPRESSIONN [INSTRUCTIONN] IFELSEN     |
@@ -326,9 +333,19 @@ printInstruction n (CANTSTOPN exps instrs) = do
   putStrLnWithIdent n "Instructions list: "
   mapM_ (printInstruction (n+2)) instrs 
 
+--printInstruction n (ONEMORETIMEN declars exp2 exp3 instrs) = do
 printInstruction n (ONEMORETIMEN oktyp s exp1 exp2 exp3 instrs) = do
-  putStrLnWithIdent n "ONEMORETIMEN Instruction: "
-  putStrLnWithIdent n "Ayudenme no sirvo "
+  putStrLnWithIdent n "OneMoreTime Instruction: "
+  putStrLnWithIdent n "Initialization: "
+  printExpN (n+2) exp1
+  putStrLnWithIdent n "Until: "
+  printExpN (n+2) exp2
+  putStrLnWithIdent n "Pattern: "
+  printExpN (n+2) exp3
+  putStrLnWithIdent n "Instructions list: "
+  mapM_ (printInstruction (n+2)) instrs 
+
+
 
 
 printIfelse :: Int -> IFELSEN -> IO()
