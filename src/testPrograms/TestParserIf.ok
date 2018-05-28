@@ -1,0 +1,27 @@
+
+dafunk maintheme(int n, int x) : intothevoid
+youbegin
+    bool z,b = ok
+
+    if b=ok youbegin
+    	if x = 2 youbegin
+    		go("X igual a 2")
+        whereiend
+        ifyouhavetoask x<2 youbegin
+        	go("X menor a 2")
+        whereiend
+        otherside youbegin
+        	go("x mayor a 2")
+        whereiend
+    whereiend
+
+    otherside youbegin
+        gomental("b = notok")
+    whereiend
+
+    # ERROR
+    ifyouhavetoask x=42 youbegin
+    	go("No deberia servir")
+    whereiend
+
+whereiend

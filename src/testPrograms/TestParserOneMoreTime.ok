@@ -1,0 +1,13 @@
+int prueba = 30
+
+dafunk func1(int n, int x) : intothevoid
+youbegin
+    int z,b = 0
+    n = n+n
+
+    onemoretime prueba = 5 ; prueba<10 ; prueba=prueba+1 
+    youbegin
+        b = b + n
+    whereiend
+
+whereiend
