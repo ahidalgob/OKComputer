@@ -2,6 +2,7 @@ import Lexer
 import ParseMonad
 import Parser
 import AST
+import Data.HashMap.Strict
 import System.Environment
 
 lexer code = do
@@ -14,17 +15,20 @@ lexer code = do
 
 parser code = do
   (res,st) <- runParseM parse code
-  print (res,st)
   case res of
---    Right algo -> putStrLn $ show algo
-    Right algo -> printSTARTN 0 algo 
+    Right algo -> printSTARTN 0 algo
     Left algomas -> putStrLn $ show algomas
--- printSTARTN 0 (Right res)
---  Right res -> print res
---      printSTARTN res  
+
+sym code = do
+  (res,st) <- runParseM parse code
+  case res of
+    Right algo -> mapM_
+        (\(id, lst) -> (putStrLn id >> (mapM_ print lst))) (toList (state_SymTable st))
+    Left algomas -> putStrLn $ show algomas
 
 main = do
   [option, file] <- getArgs
   case option of
        "-l" -> readFile file >>= lexer
        "-p" -> readFile file >>= parser
+       "-s" -> readFile file >>= sym

@@ -271,8 +271,8 @@ EXPRESSION : id
            | EXPRESSION mod EXPRESSION  { ARITN $1 "mod" $3 }
            | EXPRESSION div EXPRESSION  { ARITN $1 "div" $3 }
            -- | EXPRESSIONTUPLE            { % liftIO $ putStrLn "EXPRESSION -> EXPRESSIONTUPLE " }
-           | ARRAYPOSITION              { ARRAYINSTN $1 }
-           | EXPRESSIONSTRUCT           { EXPSTRUCTN $1 }
+           | ARRAYPOSITION              { ARRAYINSTN $1 } -- TODO check sym
+           | EXPRESSIONSTRUCT           { EXPSTRUCTN $1 } -- TODO check sym
            | FUNCTIONCALL               { FUNCCALLN $1 }
            | newlife '(' EXPRESSION ')' { NEWLIFEN $3 }
            | '^' id                     { POINTERN $ tknString $2 }
@@ -304,7 +304,9 @@ ARRAYPOSITION : id '[' n ']'                                { ARRAYPOSN (tknStri
 
 EXPRESSIONSTRUCT : id '.' id                                { EXPRESSIONSTRUCTN (tknString $1) (tknString $3) }
 
-FUNCTIONCALL : id '(' EXPRESSIONS ')'                                { FUNCTIONCALLN (tknString $1) $3} -- TODO Flat
+FUNCTIONCALL : id '(' EXPRESSIONS ')'                                {%
+                                                    do  scope <- stateFindSymScope (tknString $1) (tknPos $1)
+                                                        return $ FUNCTIONCALLN (tknString $1) $3} -- TODO Flat
 
 
 MAYBELINE : {- empty -}                   { }
@@ -329,6 +331,6 @@ createAssign (tkn, exp) = do
 lexwrap :: (Token -> ParseM a) -> ParseM a
 lexwrap cont = do
   tkn <- alexGetToken
-  liftIO $ putStrLn $ "    " ++ show tkn
+  --liftIO $ putStrLn $ "    " ++ show tkn
   cont tkn
 }
