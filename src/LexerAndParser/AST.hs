@@ -1,5 +1,5 @@
 module AST where
-import SymTable(Id, SymId)
+import SymTable(Id, SymId, OKReturnType(..), OKType(..), OKBasicType(..))
 import Control.Monad
 
 data STARTN = STARTN [IMPORTN] [OUTSIDEN] deriving Show
@@ -13,18 +13,11 @@ data OUTSIDEN =
           deriving Show
 
 data FUNCTIONINICN =
-        FUNCTIONINICN Id [Parameter] RETURNTYPEN [INSTRUCTIONN] deriving Show -- TODO SymId
+        FUNCTIONINICN Id [Parameter] OKReturnType [INSTRUCTIONN] deriving Show -- TODO SymId
 
-data RETURNTYPEN = OKvoid | OKnotvoid OKTYPE deriving Show
-
-data Parameter = Parameter OKTYPE SymId deriving Show -- TODO Should we save this on the AST? It's basically the same as a
+data Parameter = Parameter{param_type :: OKType, paramId :: SymId} deriving Show -- TODO Should we save this on the AST? It's basically the same as a
                                                       -- declaration
-
--- data DECLARATIONN = DECLARATIONN OKTYPE [DECLARATIONTYPEN] deriving Show
-
-data OKTYPE = POINTER BASICOKTYPE | NOPOINTER BASICOKTYPE deriving Show
-
-data BASICOKTYPE = OKboolean | OKint | OKfloat | OKchar | OKstring | StructId String deriving Show
+-- data DECLARATIONN = DECLARATIONN OKType [DECLARATIONTYPEN] deriving Show
 
 data DECLARATIONTYPEN = DECTYPEN1 ID2N EXPRESSIONN |
             DECTYPEN2 ID2N
@@ -44,7 +37,7 @@ data INSTRUCTIONN = GOINGN [PRINTN]                                             
           IFN EXPRESSIONN [INSTRUCTIONN] IFELSEN                                       |
           CANTSTOPN EXPRESSIONN [INSTRUCTIONN]                                         |
           ONEMORETIMEN [EXPRESSIONN] EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
-          --ONEMORETIMEN OKTYPE String EXPRESSIONN EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
+          --ONEMORETIMEN OKType String EXPRESSIONN EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
           GETBACKN EXPRESSIONN                                                         |
           BREAKTHRUN                                                                   |
           EXITMUSICN                                                                   |
@@ -249,15 +242,15 @@ printParameter n (Parameter oktyp okid) = do
   putStrLnWithIdent n "Parameter id: "
   printIdSymbol (n+1) okid
 
-printOKType :: Int -> OKTYPE -> IO()
-printOKType n (POINTER basics) = do
+printOKType :: Int -> OKType -> IO()
+printOKType n (POINTERT inner) = do
   putStrWithIdent n "Pointer "
+  printOKType n inner
+
+printOKType n (NOPOINTERT basics) = do
   printBasicOKType n basics
 
-printOKType n (NOPOINTER basics) = do
-  printBasicOKType n basics
-
-printBasicOKType :: Int -> BASICOKTYPE -> IO()
+printBasicOKType :: Int -> OKBasicType -> IO()
 printBasicOKType n (OKboolean) = do
   putStrLnWithIdent n "Boolean "
 
@@ -276,7 +269,7 @@ printBasicOKType n (OKstring) = do
 printBasicOKType n (StructId struct) = do
   putStrLnWithIdent n $ "Struct of type: " ++ struct
 
-printReturnType :: Int -> RETURNTYPEN -> IO()
+printReturnType :: Int -> OKReturnType -> IO()
 printReturnType n (OKvoid) = do
   putStrLnWithIdent n "Void "
 

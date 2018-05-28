@@ -34,8 +34,8 @@ scopeSetInsert = S.insert
 data Sym = Sym{
   sym_scope :: Scope,
   sym_Id :: Id,
-  sym_pos :: Pos -- declaration position
-  -- sym_type :: OKType
+  sym_pos :: Pos, -- declaration position
+  sym_type :: OKType
 } deriving Show
 
 
@@ -54,3 +54,20 @@ symTableInsert s st = H.insertWith (++) (sym_Id s) [s] st
 
 symTableLoopUp :: Id -> SymTable -> Maybe [Sym]
 symTableLoopUp = H.lookup
+
+
+
+
+
+
+
+
+
+
+
+
+data OKReturnType = OKvoid | OKnotvoid OKType deriving (Show, Eq)
+
+data OKType = POINTERT OKType | NOPOINTERT OKBasicType | FUNCTIONT [OKType] OKReturnType  deriving (Show, Eq)
+
+data OKBasicType = OKboolean | OKint | OKfloat | OKchar | OKstring | StructId Id deriving (Show, Eq)

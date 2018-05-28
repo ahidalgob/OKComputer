@@ -126,7 +126,9 @@ setLastNewLine b = modify (\s -> s{last_new_line = b})
 --------------------------------------------------------
 
 
-
+-----------------------------------------------
+----------------------- SYM TABLE
+-----------------------------------------------
 
 ---------------------- ScopeStack
 stateScopeStackTop :: ParseM Scope
@@ -159,7 +161,7 @@ stateScopesDelete sc = do
 stateBeginScope :: ParseM ()
 stateBeginScope = do
   nextScope <- gets state_NextScope
-  liftIO $ putStrLn $ "Enter Scope: " ++ show nextScope
+  --liftIO $ putStrLn $ "Enter Scope: " ++ show nextScope
   stateScopeStackPush nextScope
   stateScopesInsert nextScope
   modify (\s -> s{state_NextScope = nextScope+1})
@@ -167,7 +169,7 @@ stateBeginScope = do
 stateEndScope :: ParseM ()
 stateEndScope = do
   topScope <- stateScopeStackTop
-  liftIO $ putStrLn $ "Exit Scope: " ++ show topScope
+  --liftIO $ putStrLn $ "Exit Scope: " ++ show topScope
   stateScopeStackPop
   stateScopesDelete topScope
 
@@ -193,7 +195,12 @@ stateFindSym id pos = do
 
 
 stateInsertSym :: Sym -> ParseM ()
-stateInsertSym sym = do
+stateInsertSym sym = case sym_type sym of
+                          FUNCTIONT _ _ -> insertFunctionSym sym
+                          _ -> insertNonFunctionSym sym
+
+insertNonFunctionSym :: Sym -> ParseM ()
+insertNonFunctionSym sym = do
   prevScope <- (sym_scope <$> stateFindSym (sym_Id sym) (0,0))
                 `catchError` (\_ -> return (-1))
   case prevScope == (sym_scope sym) of
@@ -202,3 +209,25 @@ stateInsertSym sym = do
           symTable <- gets state_SymTable
           let newSymTable = symTableInsert sym symTable
           modify (\s -> s{state_SymTable = newSymTable})
+
+
+
+insertFunctionSym :: Sym -> ParseM ()
+insertFunctionSym sym@(Sym scp id _ (FUNCTIONT prms ret)) = do
+  maybeList <- (symTableLoopUp id) <$> (gets state_SymTable)
+  symTable <- gets state_SymTable
+  case maybeList of
+       Nothing -> do
+          let newSymTable = symTableInsert sym symTable
+          modify (\s -> s{state_SymTable = newSymTable})
+       Just l -> do
+          case find (sameParams prms) l of
+               Just x -> catchAlreadyDefinedInScope (AlreadyDefinedInScope sym)
+               Nothing -> do
+                  let newSymTable = symTableInsert sym symTable
+                  modify (\s -> s{state_SymTable = newSymTable})
+  where
+    sameParms :: [OKType] -> Sym -> Bool
+    sameParams l (Sym _ _ _ (FUNCTIONT prms _)) = l==prms
+    sameParms _ _ = False
+

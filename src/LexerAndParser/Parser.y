@@ -4,6 +4,7 @@
 {
 module Parser where
 import Lexer
+import LowLevelAlex
 import ParseMonad
 import Tokens
 import Control.Monad.Except
@@ -135,10 +136,15 @@ OUTSIDEFUNCTION : FUNCTIONINIC OUTSIDEFUNCTION            { (OUTFUNCTIONINIC $1)
 
 
 FUNCTIONINIC :: { FUNCTIONINICN }
-FUNCTIONINIC : dafunk BEGIN id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE BLOCK    { FUNCTIONINICN (tknString $3) $5 $8 $9 }
+FUNCTIONINIC : FUNCTIONSIGN BLOCK    { let (tkn, prms, ret) = $1 in FUNCTIONINICN (tknString tkn) prms ret $2 }
 
+FUNCTIONSIGN :: { (Token, [Parameter], OKReturnType) }
+FUNCTIONSIGN : dafunk BEGIN id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE {%
+        do
+            addFunToSymTable (FUNCTIONT (map param_type $5) $8) (tknString $3) (tknPos $3)
+            return ($3, $5, $8)}
 
-RETURNTYPE :: { RETURNTYPEN }
+RETURNTYPE :: { OKReturnType }
 RETURNTYPE: intothevoid                                                 { OKvoid }
           | TYPE                                                        { OKnotvoid $1 }
 
@@ -154,9 +160,9 @@ FUNCTIONPARAMETER :: { Parameter }
 FUNCTIONPARAMETER : TYPE id
                           {% do
                              scope <- stateScopeStackTop
-                             addTokenToSymTable $2
+                             addToSymTable $1 (tknString $2) (tknPos $2)
                              return $ Parameter $1 (tknString $2, scope) }
-           -- | TYPE id '[' ']'                       {% liftIO $ putStrLn "FUNCTIONPARAMETER  -> TYPE id '[' ']'" } --TODO
+
 BLOCK :: { [INSTRUCTIONN] }
 BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION END                    { reverse $4 }
       -- | MAYBELINE INSTRUCTION                                           { [] } -- TODO
@@ -176,8 +182,8 @@ DECLARATION :: { [EXPRESSIONN] } -- All Expressions are assignments
 DECLARATION : TYPE DECLARATIONVARS {%
       do  let decls = reverse $2
               assigns = filter (isJust.snd) decls
-              vars = map fst decls
-          mapM_ addTokenToSymTable vars
+              vars = map (\x -> (tknString.fst $ x, tknPos.fst $ x)) decls
+          mapM_ (uncurry (addToSymTable $1)) vars
           mapM createAssign (map (\(x,y) -> (x,fromJust y)) assigns)
 }
 
@@ -191,11 +197,11 @@ DECLARATIONVARS : id '=' EXPRESSION                 { [($1, Just $3)] }
             | DECLARATIONVARS ',' id                { ($3, Nothing):($1) }
 
 
-TYPE :: { OKTYPE }
-TYPE : TYPE2              { NOPOINTER $1 }
-    |  TYPE2 '^'          { POINTER $1 }
+TYPE :: { OKType }
+TYPE : TYPE2              { NOPOINTERT $1 }
+    |  TYPE '^'          { POINTERT $1 }
 
-TYPE2 :: { BASICOKTYPE }
+TYPE2 :: { OKBasicType }
 TYPE2 : int                                    { OKint }
    | float                                    { OKfloat }
    | boolean                                  { OKboolean }
@@ -306,10 +312,14 @@ MAYBELINE : {- empty -}                   { }
 
 {
 
-addTokenToSymTable :: Token -> ParseM ()
-addTokenToSymTable tkn = do
+addToSymTable :: OKType -> Id -> Pos -> ParseM ()
+addToSymTable t id pos = do
         scope <- stateScopeStackTop
-        stateInsertSym $ Sym scope (tknString tkn) (tknPos tkn) -- TODO real symbol (type...)
+        stateInsertSym $ Sym scope id pos t -- TODO real symbol (type...)
+
+addFunToSymTable :: OKType -> Id -> Pos -> ParseM ()
+addFunToSymTable t id pos = do
+        stateInsertSym $ Sym 1 id pos t -- TODO real symbol (type...)
 
 createAssign :: (Token, EXPRESSIONN) -> ParseM (EXPRESSIONN)
 createAssign (tkn, exp) = do
