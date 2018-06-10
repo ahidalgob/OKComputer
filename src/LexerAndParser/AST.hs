@@ -1,5 +1,5 @@
 module AST where
-import SymTable(Id, SymId, OKReturnType(..), OKType(..), OKBasicType(..))
+import SymTable(Id, SymId, OKType(..))
 import Control.Monad
 
 data STARTN = STARTN [IMPORTN] [OUTSIDEN] deriving Show
@@ -13,7 +13,7 @@ data OUTSIDEN =
           deriving Show
 
 data FUNCTIONINICN =
-        FUNCTIONINICN Id [Parameter] OKReturnType [INSTRUCTIONN] deriving Show -- TODO SymId
+        FUNCTIONINICN Id [Parameter] OKType [INSTRUCTIONN] deriving Show -- TODO SymId
 
 data Parameter = Parameter{param_type :: OKType, paramId :: SymId} deriving Show -- TODO Should we save this on the AST? It's basically the same as a
                                                       -- declaration
@@ -61,7 +61,7 @@ data IFELSEN = IFELSEVOID                              |
 --        PRINTSTRING String
 --        deriving Show
 
-data PRINTN =   PRINTSTRING String
+data PRINTN =   PRINTSTRING EXPRESSIONN
         deriving Show
 
 {-
@@ -90,15 +90,15 @@ data EXPRESSIONN = IDEXPRESSION SymId                  |
            EXPSTRUCTN EXPRESSIONSTRUCTN                |
            FUNCCALLN FUNCTIONCALLN                     |
            NEWLIFEN EXPRESSIONN                        |
-           POINTERN String                             |
+           POINTERN EXPRESSIONN                             |
            ASSIGNN SymId EXPRESSIONN
            deriving Show
 
 --data IDEXPRESSION = IDEXPRESSIONN String deriving Show
 
-data ARRAYPOSN = ARRAYPOSN String String deriving Show
+data ARRAYPOSN = ARRAYPOSN EXPRESSIONN EXPRESSIONN deriving Show
 
-data EXPRESSIONSTRUCTN = EXPRESSIONSTRUCTN String String deriving Show
+data EXPRESSIONSTRUCTN = EXPRESSIONSTRUCTN EXPRESSIONN String deriving Show
 
 data FUNCTIONCALLN = FUNCTIONCALLN String [EXPRESSIONN] deriving Show
 
@@ -178,7 +178,8 @@ printExpN n (NEWLIFEN exp) = do
    printExpN (n+2) exp
 
 printExpN n (POINTERN pointed) = do
-   putStrLnWithIdent n $ "Pointer: " ++ pointed
+   putStrLnWithIdent n $ "Pointer: "
+   printExpN (n+2) pointed
 
 printExpN n (ASSIGNN symid exp) = do
    putStrLnWithIdent n $ "Assignation: "
@@ -189,12 +190,12 @@ printExpN n (ASSIGNN symid exp) = do
 
 printArrayPosN :: Int -> ARRAYPOSN -> IO()
 printArrayPosN n (ARRAYPOSN arrayid posnumber) = do
-    printId n arrayid
-    printId n posnumber -- Agregar que imprima numeros
+    printExpN n arrayid
+    printExpN n posnumber -- Agregar que imprima numeros
 
 printExpStructN :: Int -> EXPRESSIONSTRUCTN -> IO()
 printExpStructN n (EXPRESSIONSTRUCTN structid instructid) = do
-    printId n structid
+    printExpN n structid
     printId n instructid
 
 printFunctionCallN :: Int -> FUNCTIONCALLN -> IO()
@@ -231,7 +232,7 @@ printFuncInic n (FUNCTIONINICN funcid parameters rtype instructions) = do
   putStrLnWithIdent n "Function parameters: "
   mapM_ (printParameter (n+1)) parameters
   putStrLnWithIdent n "Return type: "
-  printReturnType (n+1) rtype
+  printOKType (n+1) rtype
   putStrLnWithIdent n "Instructions list: "
   mapM_ (printInstruction (n+1)) instructions
 
@@ -243,38 +244,33 @@ printParameter n (Parameter oktyp okid) = do
   printIdSymbol (n+1) okid
 
 printOKType :: Int -> OKType -> IO()
-printOKType n (POINTERT inner) = do
+printOKType n (OKPointer inner) = do
   putStrWithIdent n "Pointer "
   printOKType n inner
 
-printOKType n (NOPOINTERT basics) = do
-  printBasicOKType n basics
+printOKType n (OKboolean) = do
+  putStrLnWithIdent n "Boolean"
 
-printBasicOKType :: Int -> OKBasicType -> IO()
-printBasicOKType n (OKboolean) = do
-  putStrLnWithIdent n "Boolean "
-
-printBasicOKType n (OKint) = do
+printOKType n (OKint) = do
   putStrLnWithIdent n "Int"
 
-printBasicOKType n (OKfloat) = do
+printOKType n (OKfloat) = do
   putStrLnWithIdent n "Float"
 
-printBasicOKType n (OKchar) = do
+printOKType n (OKchar) = do
   putStrLnWithIdent n "Char"
 
-printBasicOKType n (OKstring) = do
+printOKType n (OKstring) = do
   putStrLnWithIdent n "String"
 
-printBasicOKType n (StructId struct) = do
-  putStrLnWithIdent n $ "Struct of type: " ++ struct
+printOKType n (OKFunc args ret) = do
+  putStrLnWithIdent n $ "Function: " ++ show args ++ "->" ++ show ret
 
-printReturnType :: Int -> OKReturnType -> IO()
-printReturnType n (OKvoid) = do
+printOKType n (OKNameType name) = do
+  putStrLnWithIdent n $ "Name of type: " ++ name
+
+printOKType n (OKVoid) = do
   putStrLnWithIdent n "Void "
-
-printReturnType n (OKnotvoid rtype) = do
-  printOKType n rtype
 
 printInstruction :: Int -> INSTRUCTIONN -> IO()
 printInstruction n (EXITMUSICN) = do
@@ -361,4 +357,4 @@ printIfelse n (OTHERSIDEN instrs) = do
 printPrints :: Int -> PRINTN -> IO()
 printPrints n (PRINTSTRING printable) = do
   putStrLnWithIdent n "Printable: "
-  printId (n+2) printable
+  printExpN (n+2) printable

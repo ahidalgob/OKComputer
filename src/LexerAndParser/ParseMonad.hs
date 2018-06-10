@@ -196,7 +196,7 @@ stateFindSym id pos = do
 
 stateInsertSym :: Sym -> ParseM ()
 stateInsertSym sym = case sym_type sym of
-                          FUNCTIONT _ _ -> insertFunctionSym sym
+                          OKFunc _ _ -> insertFunctionSym sym
                           _ -> insertNonFunctionSym sym
 
 insertNonFunctionSym :: Sym -> ParseM ()
@@ -213,7 +213,7 @@ insertNonFunctionSym sym = do
 
 
 insertFunctionSym :: Sym -> ParseM ()
-insertFunctionSym sym@(Sym scp id _ (FUNCTIONT prms ret)) = do
+insertFunctionSym sym@(Sym scp id _ (OKFunc prms ret) []) = do
   maybeList <- (symTableLoopUp id) <$> (gets state_SymTable)
   symTable <- gets state_SymTable
   case maybeList of
@@ -228,6 +228,6 @@ insertFunctionSym sym@(Sym scp id _ (FUNCTIONT prms ret)) = do
                   modify (\s -> s{state_SymTable = newSymTable})
   where
     sameParms :: [OKType] -> Sym -> Bool
-    sameParams l (Sym _ _ _ (FUNCTIONT prms _)) = l==prms
+    sameParams l (Sym _ _ _ (OKFunc prms _) []) = l==prms
     sameParms _ _ = False
 

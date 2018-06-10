@@ -95,6 +95,7 @@ import Data.Maybe
 -- TODO:
 -- duets or tuples in general.
 -- Array expression  {1,2,3}
+-- Array type
 -- char
 -- braces
 -- string operations
@@ -107,17 +108,19 @@ import Data.Maybe
 %left '+' '-'
 %left '*' '/' '%' mod div
 %nonassoc not
+%nonassoc '^' --TODO check
+%nonassoc '['
+%nonassoc '.'
 
 -- TODO
 -- unary minus sign
--- unary ^
 %%
 START :: { STARTN }
-START : IMPORTS OUTSIDEFUNCTION         { STARTN $1 $2 }
+START : IMPORTS OUTSIDEFUNCTION         { STARTN (reverse $1) $2 }
 
 
 IMPORTS :: { [IMPORTN] }
-IMPORTS : IMPORT newline IMPORTS        { (IMPORTN $1):$3  } --TODO Left Recursion   IMPORTS IMPORT newline ?
+IMPORTS : IMPORTS newline IMPORT        { (IMPORTN $3):$1 }
         | {- empty -}                   { [] }
 
 IMPORT :: { [Id] }
@@ -131,29 +134,28 @@ IDS : IDS ',' id                             { (tknString $3):$1 }
 OUTSIDEFUNCTION :: { [OUTSIDEN] }
 OUTSIDEFUNCTION : FUNCTIONINIC OUTSIDEFUNCTION            { (OUTFUNCTIONINIC $1):$2 }
                 | DECLARATION newline OUTSIDEFUNCTION     { (OUTASSIGN $1):$3 }
---           | DEFINESTRUCT newline OUTSIDEFUNCTION         { (OUTDEFINE $1):$3 } --TODO
-           | {- empty -}                            { [] }
+                | {- empty -}                             { [] }
 
 
 FUNCTIONINIC :: { FUNCTIONINICN }
-FUNCTIONINIC : FUNCTIONSIGN BLOCK    { let (tkn, prms, ret) = $1 in FUNCTIONINICN (tknString tkn) prms ret $2 }
+FUNCTIONINIC : FUNCTIONSIGN BLOCK    { let (tkn, prms, ret) = $1 in FUNCTIONINICN (tknString tkn) prms ret $2 } --TODO modify Function symbol
 
-FUNCTIONSIGN :: { (Token, [Parameter], OKReturnType) }
+FUNCTIONSIGN :: { (Token, [Parameter], OKType) }
 FUNCTIONSIGN : dafunk BEGIN id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE {%
         do
-            addFunToSymTable (FUNCTIONT (map param_type $5) $8) (tknString $3) (tknPos $3)
+            addFuncToSymTable (OKFunc (map param_type $5) $8) (tknString $3) (tknPos $3) --TODO we need to save the list of the param names
             return ($3, $5, $8)}
 
-RETURNTYPE :: { OKReturnType }
-RETURNTYPE: intothevoid                                                 { OKvoid }
-          | TYPE                                                        { OKnotvoid $1 }
+RETURNTYPE :: { OKType }
+RETURNTYPE: intothevoid                                                 { OKVoid }
+          | TYPE                                                        { $1 }
 
 LPARAMETERSFUNC :: { [Parameter] }
 LPARAMETERSFUNC : {- empty -}                                           { [] }
-                | NONEMPTYLPARAMETERSFUNC                               { $1 }
+                | NONEMPTYLPARAMETERSFUNC                               { reverse $1 }
 
 NONEMPTYLPARAMETERSFUNC :: { [Parameter] }
-NONEMPTYLPARAMETERSFUNC : FUNCTIONPARAMETER ',' NONEMPTYLPARAMETERSFUNC { $1:($3) } -- TODO  right recursion?
+NONEMPTYLPARAMETERSFUNC : NONEMPTYLPARAMETERSFUNC ',' FUNCTIONPARAMETER { $3:($1) }
                         | FUNCTIONPARAMETER                             { [$1] }
 
 FUNCTIONPARAMETER :: { Parameter }
@@ -173,7 +175,7 @@ END : whereiend                                                           {% sta
 
 INSIDEFUNCTION :: { [INSTRUCTIONN] }
 INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                             { $2:$1 }
-              | INSIDEFUNCTION DECLARATION newline                              { (map EXPRESSIONNINST $ reverse $2)++$1 }
+              | INSIDEFUNCTION DECLARATION newline                      { (map EXPRESSIONNINST $ reverse $2)++$1 }
               | {- empty -}                                             { [] }
 
 
@@ -198,49 +200,38 @@ DECLARATIONVARS : id '=' EXPRESSION                 { [($1, Just $3)] }
 
 
 TYPE :: { OKType }
-TYPE : TYPE2              { NOPOINTERT $1 }
-    |  TYPE '^'          { POINTERT $1 }
+TYPE : TYPE2              { $1 }
+    |  TYPE '^'          { OKPointer $1 }
 
-TYPE2 :: { OKBasicType }
+TYPE2 :: { OKType }
 TYPE2 : int                                    { OKint }
    | float                                    { OKfloat }
    | boolean                                  { OKboolean }
    | char                                     { OKchar }
    | string                                   { OKstring }
-   | id                                       { StructId $ tknString $1 }
+   | id                                       { OKNameType $ tknString $1 }
 
 
-
-INSTRUCTION : go '(' PRINT ')' newline                                               { GOINGN $3 }
-            | goslowly '(' PRINT ')' newline                                         { GOINGSLOWLYN $3 }
-            | gomental '(' PRINT ')' newline                                         { GOINGMENTALN $3 }
-            | readmymind '(' LVALS ')' newline                                         { READMYMINDN $3 }
-            | amnesiac '(' id ')' newline                                            { AMNESIACN $ tknString $3 }
-            | if EXPRESSION BEGIN BLOCK IFELSE                                             { IFN $2 (reverse $4) $5 }
-            | cantstop EXPRESSION BEGIN BLOCK                                              { CANTSTOPN $2 (reverse $4) }
+INSTRUCTION :: { INSTRUCTIONN }
+INSTRUCTION : go '(' PRINT ')' newline                                          { GOINGN $ reverse $3 }
+            | goslowly '(' PRINT ')' newline                                    { GOINGSLOWLYN $ reverse $3 }
+            | gomental '(' PRINT ')' newline                                    { GOINGMENTALN $ reverse $3 }
+            | readmymind '(' LVALS ')' newline                                  { READMYMINDN $3 }
+            | amnesiac '(' id ')' newline                                       { AMNESIACN $ tknString $3 }
+            | if EXPRESSION BEGIN BLOCK IFELSE                                  { IFN $2 (reverse $4) $5 }
+            | cantstop EXPRESSION BEGIN BLOCK                                   { CANTSTOPN $2 (reverse $4) }
             | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION BLOCK { ONEMORETIMEN $3 $5 $7 (reverse $8) }
-            | getback EXPRESSION newline                                             { GETBACKN $2 }
-            | breakthru newline                                                      { BREAKTHRUN }
-            | exitmusic newline                                                      { EXITMUSICN }
-            | EXPRESSION newline                                                     { EXPRESSIONNINST $1 }
+            | getback EXPRESSION newline                                        { GETBACKN $2 }
+            | breakthru newline                                                 { BREAKTHRUN }
+            | exitmusic newline                                                 { EXITMUSICN }
+            | EXPRESSION newline                                                { EXPRESSIONNINST $1 }
 
-IFELSE : ifyouhavetoask EXPRESSION BEGIN BLOCK IFELSE                                     { IFASKN $2 $4 $5 }
-       | otherside BEGIN BLOCK                                                            { OTHERSIDEN $3 }
-       | {- empty -}                                                                { IFELSEVOID }
+IFELSE : ifyouhavetoask EXPRESSION BEGIN BLOCK IFELSE                           { IFASKN $2 $4 $5 }
+       | otherside BEGIN BLOCK                                                  { OTHERSIDEN $3 }
+       | {- empty -}                                                            { IFELSEVOID }
 
--- Probablemente tenga un detallito aca
-PRINT : string ',' PRINT                     { (PRINTSTRING (tknString $1)):($3)  }
-     | id ','     PRINT                      { (PRINTSTRING (tknString $1)):($3) }
-     | string                                { [PRINTSTRING $ tknString $1] }
-     | id                                    { [PRINTSTRING $ tknString $1] }
-{-
-DEFINESTRUCT : band id '{' newline LDECLARATIONS newline'}'    {BANDN  (tknString $2) $5}
-             | union id '{' newline LDECLARATIONS newline '}'   {UNIONN (tknString $2) $5}
--}
-{-
-LDECLARATIONS : LDECLARATIONS newline DECLARATION  { REC1 $1 $3 }
-              | DECLARATION                        { REC2 $1 }
--}
+PRINT : PRINT ',' EXPRESSION                     { (PRINTSTRING $3):($1)  }
+      | EXPRESSION                               { [PRINTSTRING $ $1] }
 
 EXPRESSION :: { EXPRESSIONN }
 EXPRESSION : id
@@ -270,13 +261,12 @@ EXPRESSION : id
            | EXPRESSION '%' EXPRESSION  { ARITN $1 "%" $3 }
            | EXPRESSION mod EXPRESSION  { ARITN $1 "mod" $3 }
            | EXPRESSION div EXPRESSION  { ARITN $1 "div" $3 }
-           -- | EXPRESSIONTUPLE            { % liftIO $ putStrLn "EXPRESSION -> EXPRESSIONTUPLE " }
            | ARRAYPOSITION              { ARRAYINSTN $1 } -- TODO check sym
            | EXPRESSIONSTRUCT           { EXPSTRUCTN $1 } -- TODO check sym
            | FUNCTIONCALL               { FUNCCALLN $1 }
            | newlife '(' EXPRESSION ')' { NEWLIFEN $3 }
-           | '^' id                     { POINTERN $ tknString $2 }
-           | LVAL '=' EXPRESSION          { ASSIGNN $1 $3 }
+           | '^' EXPRESSION             { POINTERN $ $2 }
+           | LVAL '=' EXPRESSION        { ASSIGNN $1 $3 }
 
 EXPRESSIONS :: { [EXPRESSIONN] }
 EXPRESSIONS :                       { [] }
@@ -286,28 +276,29 @@ NONEMPTYEXPRESSIONS :: { [EXPRESSIONN] }
 NONEMPTYEXPRESSIONS : NONEMPTYEXPRESSIONS ',' EXPRESSION        { $3 : $1 }
                     | EXPRESSION                                { [$1] }
 
+-- Anything with L-Value: variables, record.member, array[position]...
 LVAL :: { SymId }
 LVAL : id                               {% do
                                           scope <- stateFindSymScope (tknString $1) (tknPos $1)
                                           return (tknString $1, scope)}
 
-
+LVALS :: { [SymId] }
 LVALS :                                 { [] }
       | NONEMPTYLVALS                   { reverse ($1) }
 
+NONEMPTYLVALS :: { [SymId] }
 NONEMPTYLVALS : NONEMPTYLVALS ',' LVAL    { $3 : $1 }
               | LVAL                      { [$1] }
 
+-- Things that can evaluate to array:
+-- id, struct.member
+ARRAYPOSITION : EXPRESSION '[' EXPRESSION ']'                   { ARRAYPOSN $1 $3 }
 
-ARRAYPOSITION : id '[' n ']'                                { ARRAYPOSN (tknString $1) (tknString $3) }
-         | id '[' id ']'                                    { ARRAYPOSN (tknString $1) (tknString $3) }
-
-EXPRESSIONSTRUCT : id '.' id                                { EXPRESSIONSTRUCTN (tknString $1) (tknString $3) }
+EXPRESSIONSTRUCT : EXPRESSION '.' id                            { EXPRESSIONSTRUCTN $1 (tknString $3) }
 
 FUNCTIONCALL : id '(' EXPRESSIONS ')'                                {%
                                                     do  scope <- stateFindSymScope (tknString $1) (tknPos $1)
                                                         return $ FUNCTIONCALLN (tknString $1) $3} -- TODO Flat
-
 
 MAYBELINE : {- empty -}                   { }
           | newline                       { }
@@ -317,11 +308,11 @@ MAYBELINE : {- empty -}                   { }
 addToSymTable :: OKType -> Id -> Pos -> ParseM ()
 addToSymTable t id pos = do
         scope <- stateScopeStackTop
-        stateInsertSym $ Sym scope id pos t -- TODO real symbol (type...)
+        stateInsertSym $ Sym scope id pos t [] -- TODO real symbol (type...)
 
-addFunToSymTable :: OKType -> Id -> Pos -> ParseM ()
-addFunToSymTable t id pos = do
-        stateInsertSym $ Sym 1 id pos t -- TODO real symbol (type...)
+addFuncToSymTable :: OKType -> Id -> Pos -> ParseM ()
+addFuncToSymTable t id pos = do
+        stateInsertSym $ Sym 1 id pos t [] -- TODO real symbol (type...)
 
 createAssign :: (Token, EXPRESSIONN) -> ParseM (EXPRESSIONN)
 createAssign (tkn, exp) = do

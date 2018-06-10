@@ -35,9 +35,9 @@ data Sym = Sym{
   sym_scope :: Scope,
   sym_Id :: Id,
   sym_pos :: Pos, -- declaration position
-  sym_type :: OKType
+  sym_type :: OKType,
+  sym_info :: [SymId]
 } deriving Show
-
 
 
 ----------------------------------
@@ -59,15 +59,5 @@ symTableLoopUp = H.lookup
 
 
 
-
-
-
-
-
-
-
-data OKReturnType = OKvoid | OKnotvoid OKType deriving (Show, Eq)
-
-data OKType = POINTERT OKType | NOPOINTERT OKBasicType | FUNCTIONT [OKType] OKReturnType  deriving (Show, Eq)
-
-data OKBasicType = OKboolean | OKint | OKfloat | OKchar | OKstring | StructId Id deriving (Show, Eq)
+data OKType = OKPointer OKType | OKVoid | OKFunc [OKType] OKType
+            | OKboolean | OKint | OKfloat | OKchar | OKstring | OKNameType Id deriving (Show, Eq)
