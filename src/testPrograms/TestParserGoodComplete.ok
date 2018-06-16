@@ -38,6 +38,8 @@ youbegin
     	whereiend
     whereiend
 
+    bac = x[3]
+
     onemoretime int ola = 5 ; ola<10 ; ola=ola+1 youbegin
     	exitmusic
     whereiend
