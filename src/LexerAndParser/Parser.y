@@ -240,7 +240,7 @@ EXPRESSION : id
                     return $ IDEXPRESSION $ (tknString $1, scope) }
            | n                          { NUMBEREXPN $ tknString $1 }
            | string                     { STRINGEXPN $ tknString $1 }
-           | c                          { CHAREXP $ tknChar $1 }
+           | c                          { CHAREXPN $ tknChar $1 }
            | ok                         { OKN }
            | notok                      { NOTOKN }
            | '(' EXPRESSION ')'         { PARENTESISN $2 }

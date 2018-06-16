@@ -74,25 +74,25 @@ data LDECLARATIONSN = REC1 LDECLARATIONSN DECLARATIONN |
             REC2 DECLARATIONN deriving Show
 -}
 
-data EXPRESSIONN = IDEXPRESSION SymId                  |
-           NUMBEREXPN String                           |
-           STRINGEXPN String                           |
-           CHAREXP Char                                |
-           OKN                                         |
-           NOTOKN                                      |
-           PARENTESISN EXPRESSIONN                     |
-           COMPARN EXPRESSIONN String EXPRESSIONN      |
-           NOTN EXPRESSIONN                            |
-           LOGICN EXPRESSIONN String EXPRESSIONN       |
-           MINUSN String EXPRESSIONN                   |
-           ARITN EXPRESSIONN String EXPRESSIONN        |
-           ARRAYINSTN ARRAYPOSN                        |
-           EXPSTRUCTN EXPRESSIONSTRUCTN                |
-           FUNCCALLN FUNCTIONCALLN                     |
-           NEWLIFEN EXPRESSIONN                        |
-           POINTERN EXPRESSIONN                             |
-           ASSIGNN SymId EXPRESSIONN
-           deriving Show
+data EXPRESSIONN = IDEXPRESSION SymId                     |
+                   NUMBEREXPN String                      |
+                   STRINGEXPN String                      |
+                   CHAREXPN Char                          |
+                   OKN                                    |
+                   NOTOKN                                 |
+                   PARENTESISN EXPRESSIONN                |
+                   COMPARN EXPRESSIONN String EXPRESSIONN |
+                   NOTN EXPRESSIONN                       |
+                   LOGICN EXPRESSIONN String EXPRESSIONN  |
+                   MINUSN String EXPRESSIONN              |
+                   ARITN EXPRESSIONN String EXPRESSIONN   |
+                   ARRAYINSTN ARRAYPOSN                   |
+                   EXPSTRUCTN EXPRESSIONSTRUCTN           |
+                   FUNCCALLN FUNCTIONCALLN                |
+                   NEWLIFEN EXPRESSIONN                   |
+                   POINTERN EXPRESSIONN                   |
+                   ASSIGNN SymId EXPRESSIONN
+                   deriving Show
 
 --data IDEXPRESSION = IDEXPRESSIONN String deriving Show
 
@@ -118,6 +118,12 @@ printExpN n (IDEXPRESSION s) = do
 
 printExpN n (NUMBEREXPN s) = do
     putStrLnWithIdent n $ "Literal number: " ++ s
+
+printExpN n (STRINGEXPN s) = do
+    putStrLnWithIdent n $ "Literal string: " ++ s
+
+printExpN n (CHAREXPN c) = do
+    putStrLnWithIdent n $ "Literal char: " ++ [c]
 
 printExpN n (OKN) = do
     putStrLnWithIdent n "Literal boolean: ok"
