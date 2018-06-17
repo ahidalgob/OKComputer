@@ -21,74 +21,74 @@ import Data.Maybe
 %lexer { lexwrap }{ EOFTkn }
 
 %token
-  youbegin                                { YouBeginTkn $$ }        -- Block Start
-  whereiend                               { WhereIEndTkn $$ }       -- Block End
-  if                                      { IfTkn $$ }              -- Selection
-  ifyouhavetoask                          { IfYouHaveToAskTkn $$ }  -- Selection
-  otherside                               { OthersideTkn $$ }       -- Selection
-  cantstop                                { CantStopTkn $$ }        -- While Iteration
-  breakthru                               { BreakthruTkn $$ }       -- Break
-  onemoretime                             { OneMoreTimeTkn $$ }     -- For Iteration
-  ';'                                     { SemiColonTkn $$ }       -- For Iteration
-  readmymind                              { ReadMyMindTkn $$ }      -- Data entry/read
-  go                                      { GoTkn $$ }              -- Data exit/write
-  gomental                                { GoMentalTkn $$ }
-  goslowly                                { GoSlowlyTkn $$ }        -- Data exit/writeln
-  dafunk                                  { DaFunkTkn $$}          -- Method with return/Function
-  ':'                                     { ColonTkn $$ }           -- Method with return/Function
-  getback                                 { GetBackTkn $$ }         -- Return
-  intothevoid                             { IntoTheVoidTkn $$ }     -- Void
-  newlife                                 { NewLifeTkn $$ }         -- Calloc
+  youbegin                                { YouBeginTkn _ }        -- Block Start
+  whereiend                               { WhereIEndTkn _ }       -- Block End
+  if                                      { IfTkn _ }              -- Selection
+  ifyouhavetoask                          { IfYouHaveToAskTkn _ }  -- Selection
+  otherside                               { OthersideTkn _ }       -- Selection
+  cantstop                                { CantStopTkn _ }        -- While Iteration
+  breakthru                               { BreakthruTkn _ }       -- Break
+  onemoretime                             { OneMoreTimeTkn _ }     -- For Iteration
+  ';'                                     { SemiColonTkn _ }       -- For Iteration
+  readmymind                              { ReadMyMindTkn _ }      -- Data entry/read
+  go                                      { GoTkn _ }              -- Data exit/write
+  gomental                                { GoMentalTkn _ }
+  goslowly                                { GoSlowlyTkn _ }        -- Data exit/writeln
+  dafunk                                  { DaFunkTkn _}          -- Method with return/Function
+  ':'                                     { ColonTkn _ }           -- Method with return/Function
+  getback                                 { GetBackTkn _ }         -- Return
+  intothevoid                             { IntoTheVoidTkn _ }     -- Void
+  newlife                                 { NewLifeTkn _ }         -- Calloc
 --  saveme                                  { SaveMeTkn }          -- Malloc
 --  keepyourselfalive                       { KeepAliveTkn }       -- Realloc
-  amnesiac                                { AmnesiacTkn $$ }        -- Free
-  exitmusic                               { ExitMusicTkn $$ }       -- Exit
-  aroundtheworld                          { AroundTheWorldTkn $$ }  -- Import
+  amnesiac                                { AmnesiacTkn _ }        -- Free
+  exitmusic                               { ExitMusicTkn _ }       -- Exit
+  aroundtheworld                          { AroundTheWorldTkn _ }  -- Import
 --  holeinmysoul                            { HoleInMySoulTkn }    -- Templates
 
   -- Type Tokens
-  int                                     { IntTkn $$ }
-  float                                   { FloatTkn $$ }
-  char                                    { CharTkn $$ }
-  boolean                                 { BooleanTkn $$ }
-  ok                                      { OkTkn $$ }              -- True
-  notok                                   { NotOkTkn $$ }           -- False
-  --'{'                                     { OpenBraceTkn $$ }
-  --'}'                                     { CloseBraceTkn $$ }
-  '['                                     { ArrayStartTkn $$ }
-  ']'                                     { ArrayEndTkn $$ }
-  --band                                    { BandTkn $$ }            -- Registers/structs
-  --union                                   { UnionTkn $$ }
-  '.'										                  { DotTkn $$ }
-  '^'									                    { PointerTkn $$ }
+  int                                     { IntTkn _ }
+  float                                   { FloatTkn _ }
+  char                                    { CharTkn _ }
+  boolean                                 { BooleanTkn _ }
+  ok                                      { OkTkn _ }              -- True
+  notok                                   { NotOkTkn _ }           -- False
+  --'{'                                     { OpenBraceTkn _ }
+  --'}'                                     { CloseBraceTkn _ }
+  '['                                     { ArrayStartTkn _ }
+  ']'                                     { ArrayEndTkn _ }
+  --band                                    { BandTkn _ }            -- Registers/structs
+  --union                                   { UnionTkn _ }
+  '.'										                  { DotTkn _ }
+  '^'									                    { PointerTkn _ }
 
   -- Operations Tokens
-  mod                                     { ModTkn $$ }
-  div                                     { DivTkn $$ }
-  not                                     { NotTkn $$ }
-  and                                     { AndTkn $$ }
-  or                                      { OrTkn $$ }
-  ','                                     { CommaTkn $$ }
-  '('                                     { ParenOpenTkn $$ }
-  ')'                                     { ParenCloseTkn $$ }
-  '+'                                     { PlusTkn $$ }
-  '=='                                    { EqualTkn $$ }
-  '*'                                     { ProductTkn $$ }
-  '-'                                     { MinusTkn $$ }
-  '%'                                     { RestTkn $$ }
-  '/'                                     { DivExacTkn $$ }
-  '!='                                    { DifTkn $$ }
-  '>='                                    { GreaterEqualTkn $$ }
-  '<='                                    { LessEqualTkn $$ }
-  '>'                                     { GreaterTkn $$ }
-  '<'                                     { LessTkn $$ }
+  mod                                     { ModTkn _ }
+  div                                     { DivTkn _ }
+  not                                     { NotTkn _ }
+  and                                     { AndTkn _ }
+  or                                      { OrTkn _ }
+  ','                                     { CommaTkn _ }
+  '('                                     { ParenOpenTkn _ }
+  ')'                                     { ParenCloseTkn _ }
+  '+'                                     { PlusTkn _ }
+  '=='                                    { EqualTkn _ }
+  '*'                                     { ProductTkn _ }
+  '-'                                     { MinusTkn _ }
+  '%'                                     { RestTkn _ }
+  '/'                                     { DivExacTkn _ }
+  '!='                                    { DifTkn _ }
+  '>='                                    { GreaterEqualTkn _ }
+  '<='                                    { LessEqualTkn _ }
+  '>'                                     { GreaterTkn _ }
+  '<'                                     { LessTkn _ }
  -- '->'                                    { TypeTkn }
-  '='                                     { AssignTkn $$ }
+  '='                                     { AssignTkn _ }
 
   -- Otros
   id                                      { IdTkn _ _ }
   n                                       { NumLiteralTkn _ _ }
-  newline                                 { NewLineTkn $$ }
+  newline                                 { NewLineTkn _ }
   c                                       { LiteralCharTkn _ _ } -- char
   string                                  { StringTkn _ _ }
 
@@ -212,15 +212,19 @@ INSTRUCTION : go '(' PRINT ')' newline                                          
             | gomental '(' PRINT ')' newline                                    { GOINGMENTALN $ reverse $3 }
             | readmymind '(' LVALS ')' newline                                  { READMYMINDN $3 }
             | amnesiac '(' id ')' newline                                       { AMNESIACN $ tknString $3 }
-            | if EXPRESSION BEGIN BLOCK IFELSE                                  { IFN $2 (reverse $4) $5 }
-            | cantstop EXPRESSION BEGIN BLOCK                                   { CANTSTOPN $2 (reverse $4) }
-            | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION BLOCK { ONEMORETIMEN $3 $5 $7 (reverse $8) }
-            | getback EXPRESSION newline                                        { GETBACKN $2 }
+            | if EXPRESSION BEGIN BLOCK IFELSE                                  {%
+                                                                              checkSameType (tknPos $1) (expType $2) OKBoolean >> (return $ IFN $2 (reverse $4) $5) }
+            | cantstop EXPRESSION BEGIN BLOCK                                   {%
+                                                                              checkSameType (tknPos $1) (expType $2) OKBoolean >> (return $ CANTSTOPN $2 (reverse $4)) }
+            | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION BLOCK {%
+                                                                              checkSameType (tknPos $1) (expType $5) OKBoolean >> (return $ ONEMORETIMEN $3 $5 $7 (reverse $8)) }
+            | getback EXPRESSION newline                                        { GETBACKN $2 } --TODO should we check we're inside a function with that type?
             | breakthru newline                                                 { BREAKTHRUN }
             | exitmusic newline                                                 { EXITMUSICN }
             | EXPRESSION newline                                                { EXPRESSIONNINST $1 }
 
-IFELSE : ifyouhavetoask EXPRESSION BEGIN BLOCK IFELSE                           { IFASKN $2 $4 $5 }
+IFELSE : ifyouhavetoask EXPRESSION BEGIN BLOCK IFELSE                           {%
+                                                                              checkSameType (tknPos $1) (expType $2) OKBoolean >> (return $ IFASKN $2 $4 $5) }
        | otherside BEGIN BLOCK                                                  { OTHERSIDEN $3 }
        | {- empty -}                                                            { IFELSEVOID }
 
@@ -228,8 +232,7 @@ PRINT : PRINT ',' EXPRESSION                     { (PRINTSTRING $3):($1)  }
       | EXPRESSION                               { [PRINTSTRING $ $1] }
 
 EXPRESSION :: { EXPRESSIONN }
-EXPRESSION : id
-                {% do
+EXPRESSION : id {% do
                     sym <- stateFindSym (tknString $1) (tknPos $1)
                     return $ IDEXPRESSION (tknString $1, sym_scope sym) (sym_type sym)}
            | n                          { NUMBEREXPN (tknString $1) OKFloat}
@@ -238,29 +241,29 @@ EXPRESSION : id
            | ok                         { BOOLEANEXPN True OKBoolean}
            | notok                      { BOOLEANEXPN False OKBoolean}
            | '(' EXPRESSION ')'         { PARENTESISN $2 (expType $2)}
-           | EXPRESSION '<' EXPRESSION  { COMPARN $1 "<" $3 OKBoolean}
-           | EXPRESSION '>' EXPRESSION  { COMPARN $1 ">" $3 OKBoolean}
-           | EXPRESSION '<=' EXPRESSION { COMPARN $1 "<=" $3 OKBoolean}
-           | EXPRESSION '>=' EXPRESSION { COMPARN $1 ">=" $3 OKBoolean}
-           | EXPRESSION '==' EXPRESSION { COMPARN $1 "==" $3 OKBoolean}
-           | EXPRESSION '!=' EXPRESSION { COMPARN $1 "!=" $3 OKBoolean}
-           | not EXPRESSION             { NOTN $2 OKBoolean}
-           | EXPRESSION and EXPRESSION  { LOGICN $1 "and" $3 OKBoolean}
-           | EXPRESSION or EXPRESSION   { LOGICN $1 "or" $3 OKBoolean}
-           | '-' EXPRESSION             { MINUSN $2 OKFloat}
-           | EXPRESSION '+' EXPRESSION  { ARITN $1 "+" $3 OKFloat}
-           | EXPRESSION '-' EXPRESSION  { ARITN $1 "-" $3 OKFloat}
-           | EXPRESSION '*' EXPRESSION  { ARITN $1 "*" $3 OKFloat}
-           | EXPRESSION '/' EXPRESSION  { ARITN $1 "/" $3 OKFloat}
-           | EXPRESSION '%' EXPRESSION  { ARITN $1 "%" $3 OKFloat}
-           | EXPRESSION mod EXPRESSION  { ARITN $1 "mod" $3 OKFloat}
-           | EXPRESSION div EXPRESSION  { ARITN $1 "div" $3 OKFloat}
+           | EXPRESSION '<' EXPRESSION  {% (checkOrdCompType (tknPos $2) (expType $1) (expType $3)) >>= return . COMPARN $1 "<" $3 }
+           | EXPRESSION '>' EXPRESSION  {% (checkOrdCompType (tknPos $2) (expType $1) (expType $3)) >>= return . COMPARN $1 ">" $3 }
+           | EXPRESSION '<=' EXPRESSION {% (checkOrdCompType (tknPos $2) (expType $1) (expType $3)) >>= return . COMPARN $1 "<=" $3 }
+           | EXPRESSION '>=' EXPRESSION {% (checkOrdCompType (tknPos $2) (expType $1) (expType $3)) >>= return . COMPARN $1 ">=" $3 }
+           | EXPRESSION '==' EXPRESSION {% (checkCompType (tknPos $2) (expType $1) (expType $3)) >>= return . COMPARN $1 "==" $3 }
+           | EXPRESSION '!=' EXPRESSION {% (checkCompType (tknPos $2) (expType $1) (expType $3)) >>= return . COMPARN $1 "!=" $3 }
+           | not EXPRESSION             {% (checkSameType (tknPos $1) (expType $2) OKBoolean) >>= return . NOTN $2 }
+           | EXPRESSION and EXPRESSION  {% (checkBooleanOpType (tknPos $2) (expType $1) (expType $3)) >>= return . LOGICN $1 "and" $3 }
+           | EXPRESSION or EXPRESSION   {% (checkBooleanOpType (tknPos $2) (expType $1) (expType $3)) >>= return . LOGICN $1 "or" $3 }
+           | '-' EXPRESSION             {% (checkSameType (tknPos $1) (expType $2) OKFloat) >>= return . MINUSN $2 }
+           | EXPRESSION '+' EXPRESSION  {% (checkNumOpType (tknPos $2) (expType $1) (expType $3)) >>= return . ARITN $1 "+" $3 }
+           | EXPRESSION '-' EXPRESSION  {% (checkNumOpType (tknPos $2) (expType $1) (expType $3)) >>= return . ARITN $1 "-" $3 }
+           | EXPRESSION '*' EXPRESSION  {% (checkNumOpType (tknPos $2) (expType $1) (expType $3)) >>= return . ARITN $1 "*" $3 }
+           | EXPRESSION '/' EXPRESSION  {% (checkNumOpType (tknPos $2) (expType $1) (expType $3)) >>= return . ARITN $1 "/" $3 }
+           | EXPRESSION '%' EXPRESSION  {% (checkNumOpType (tknPos $2) (expType $1) (expType $3)) >>= return . ARITN $1 "%" $3 }
+           | EXPRESSION mod EXPRESSION  {% (checkIntOpType (tknPos $2) (expType $1) (expType $3)) >>= return . ARITN $1 "mod" $3 }
+           | EXPRESSION div EXPRESSION  {% (checkIntOpType (tknPos $2) (expType $1) (expType $3)) >>= return . ARITN $1 "div" $3 }
            | ARRAYPOSITION              { $1 } -- TODO check sym
            | EXPRESSIONSTRUCT           { $1 } -- TODO check sym
            | FUNCTIONCALL               { $1 }
-           | newlife '(' EXPRESSION ')' { NEWLIFEN $3 $ OKPointer (expType $3)}
-           | '^' EXPRESSION             { POINTERN $2 (pointerType.expType $ $2)}
-           | LVAL '=' EXPRESSION        { ASSIGNN $1 $3 (expType $3)}
+           | newlife '(' EXPRESSION ')' { NEWLIFEN $3 $ OKPointer (expType $3)} -- TODO ??????????????????????
+           | '^' EXPRESSION             {% (checkAndGetPointerType (tknPos $1) (expType $2)) >>= return . POINTERN $2 }
+           | LVAL '=' EXPRESSION        { ASSIGNN $1 $3 (expType $3)} --Lookup for type
 
 EXPRESSIONS :: { [EXPRESSIONN] }
 EXPRESSIONS :                       { [] }
@@ -321,6 +324,48 @@ createAssign (tkn, exp) = do
         scope <- stateFindSymScope (tknString tkn) (tknPos tkn)
         --TODO Checktype of Sym with type of exp
         return $ ASSIGNN (tknString tkn, scope) exp (expType exp)
+
+
+checkSameType :: Pos -> OKType -> OKType -> ParseM (OKType)
+checkSameType (line, _) OKErrorT _ = return OKErrorT
+checkSameType (line, _) _ OKErrorT = return OKErrorT
+checkSameType (line, _) t1 t2 = if (t1 /= t2) then return OKErrorT --TODO throw some error
+                                              else return t1
+
+checkOrdCompType :: Pos -> OKType -> OKType -> ParseM (OKType)
+checkOrdCompType (line, _) OKErrorT _ = return OKErrorT
+checkOrdCompType (line, _) _ OKErrorT = return OKErrorT
+checkOrdCompType (line, _) t1 t2 = if t1 == t2 && isNumericalType t2 then return OKBoolean
+                                                                     else return OKErrorT --TODO throw some error
+checkCompType :: Pos -> OKType -> OKType -> ParseM (OKType)
+checkCompType (line, _) OKErrorT _ = return OKErrorT
+checkCompType (line, _) _ OKErrorT = return OKErrorT
+checkCompType (line, _) t1 t2 = if t1 == t2 then return OKBoolean
+                                            else return OKErrorT --TODO throw some error
+
+checkBooleanOpType :: Pos -> OKType -> OKType -> ParseM (OKType)
+checkBooleanOpType (line, _) OKErrorT _ = return OKErrorT
+checkBooleanOpType (line, _) _ OKErrorT = return OKErrorT
+checkBooleanOpType (line, _) t1 t2 = if t1 == t2 && t1 == OKBoolean then return OKBoolean
+                                                                    else return OKErrorT --TODO throw some error
+
+checkNumOpType :: Pos -> OKType -> OKType -> ParseM (OKType)
+checkNumOpType (line, _) OKErrorT _ = return OKErrorT
+checkNumOpType (line, _) _ OKErrorT = return OKErrorT
+checkNumOpType (line, _) t1 t2 = if t1 == t2 && isNumericalType t1 then return t1
+                                                                   else return OKErrorT --TODO throw some error
+
+
+checkIntOpType :: Pos -> OKType -> OKType -> ParseM (OKType)
+checkIntOpType (line, _) OKErrorT _ = return OKErrorT
+checkIntOpType (line, _) _ OKErrorT = return OKErrorT
+checkIntOpType (line, _) t1 t2 = if t1 == t2 && t1 == OKInt then return t1
+                                                            else return OKErrorT --TODO throw some error
+
+checkAndGetPointerType :: Pos -> OKType -> ParseM (OKType)
+checkAndGetPointerType (line, _) OKErrorT = return OKErrorT
+checkAndGetPointerType (line, _) (OKPointer t) = return t
+checkAndGetPointerType (line, _) _ = return OKErrorT --TODO throw some error
 
 lexwrap :: (Token -> ParseM a) -> ParseM a
 lexwrap cont = do
