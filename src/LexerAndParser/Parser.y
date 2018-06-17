@@ -371,23 +371,23 @@ checkAndGetPointerType (line, _) t = throwNotPointerType line t
 
 
 throwDifferentTypeError line t1 t2 = do
-    liftIO $ putStrLn $ "Expected same type, found " ++ show t1 ++ " and " ++ show t2 ++ "."
+    liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected same type, found " ++ show t1 ++ " and " ++ show t2 ++ "."
     return OKErrorT
 
 throwNotNumericalTypeError line t1 t2 = do
-    liftIO $ putStrLn $ "Expected a number types, found " ++ show t1 ++ "and" ++ show t2 ++ "."
+    liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected a number types, found " ++ show t1 ++ " and " ++ show t2 ++ "."
     return OKErrorT
 
 throwNotBooleanError line t1 t2 = do
-    liftIO $ putStrLn $ "Expected boolean values, found " ++ show t1 ++ " and " ++ show t2 ++ "."
+    liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected boolean values, found " ++ show t1 ++ " and " ++ show t2 ++ "."
     return OKErrorT
 
 throwNotIntType line t1 t2 = do
-    liftIO $ putStrLn $ "Expected int values, found " ++ show t1 ++ " and " ++ show t2 ++ "."
+    liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected int values, found " ++ show t1 ++ " and " ++ show t2 ++ "."
     return OKErrorT
 
 throwNotPointerType line t = do
-    liftIO $ putStrLn $ "Expected pointer value, found " ++ show t ++ "."
+    liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected pointer value, found " ++ show t ++ "."
     return OKErrorT
 
 lexwrap :: (Token -> ParseM a) -> ParseM a
