@@ -329,43 +329,66 @@ createAssign (tkn, exp) = do
 checkSameType :: Pos -> OKType -> OKType -> ParseM (OKType)
 checkSameType (line, _) OKErrorT _ = return OKErrorT
 checkSameType (line, _) _ OKErrorT = return OKErrorT
-checkSameType (line, _) t1 t2 = if (t1 /= t2) then return OKErrorT --TODO throw some error
+checkSameType (line, _) t1 t2 = if (t1 /= t2) then throwDifferentTypeError line t1 t2
                                               else return t1
 
 checkOrdCompType :: Pos -> OKType -> OKType -> ParseM (OKType)
 checkOrdCompType (line, _) OKErrorT _ = return OKErrorT
 checkOrdCompType (line, _) _ OKErrorT = return OKErrorT
-checkOrdCompType (line, _) t1 t2 = if t1 == t2 && isNumericalType t2 then return OKBoolean
-                                                                     else return OKErrorT --TODO throw some error
+checkOrdCompType (line, _) t1 t2 = if t1 /= t2 then throwDifferentTypeError line t1 t2
+                                               else if isNumericalType t1 then return OKBoolean
+                                                    else throwNotNumericalTypeError line t1 t2
+
 checkCompType :: Pos -> OKType -> OKType -> ParseM (OKType)
 checkCompType (line, _) OKErrorT _ = return OKErrorT
 checkCompType (line, _) _ OKErrorT = return OKErrorT
 checkCompType (line, _) t1 t2 = if t1 == t2 then return OKBoolean
-                                            else return OKErrorT --TODO throw some error
+                                            else throwDifferentTypeError line t1 t2
 
 checkBooleanOpType :: Pos -> OKType -> OKType -> ParseM (OKType)
 checkBooleanOpType (line, _) OKErrorT _ = return OKErrorT
 checkBooleanOpType (line, _) _ OKErrorT = return OKErrorT
 checkBooleanOpType (line, _) t1 t2 = if t1 == t2 && t1 == OKBoolean then return OKBoolean
-                                                                    else return OKErrorT --TODO throw some error
+                                                                    else throwNotBooleanError line t1 t2
 
 checkNumOpType :: Pos -> OKType -> OKType -> ParseM (OKType)
 checkNumOpType (line, _) OKErrorT _ = return OKErrorT
 checkNumOpType (line, _) _ OKErrorT = return OKErrorT
 checkNumOpType (line, _) t1 t2 = if t1 == t2 && isNumericalType t1 then return t1
-                                                                   else return OKErrorT --TODO throw some error
+                                                                   else throwNotNumericalTypeError line t1 t2
 
 
 checkIntOpType :: Pos -> OKType -> OKType -> ParseM (OKType)
 checkIntOpType (line, _) OKErrorT _ = return OKErrorT
 checkIntOpType (line, _) _ OKErrorT = return OKErrorT
 checkIntOpType (line, _) t1 t2 = if t1 == t2 && t1 == OKInt then return t1
-                                                            else return OKErrorT --TODO throw some error
+                                                            else throwNotIntType line t1 t2
 
 checkAndGetPointerType :: Pos -> OKType -> ParseM (OKType)
 checkAndGetPointerType (line, _) OKErrorT = return OKErrorT
 checkAndGetPointerType (line, _) (OKPointer t) = return t
-checkAndGetPointerType (line, _) _ = return OKErrorT --TODO throw some error
+checkAndGetPointerType (line, _) t = throwNotPointerType line t
+
+
+throwDifferentTypeError line t1 t2 = do
+    liftIO $ putStrLn $ "Expected same type, found " ++ show t1 ++ " and " ++ show t2 ++ "."
+    return OKErrorT
+
+throwNotNumericalTypeError line t1 t2 = do
+    liftIO $ putStrLn $ "Expected a number types, found " ++ show t1 ++ "and" ++ show t2 ++ "."
+    return OKErrorT
+
+throwNotBooleanError line t1 t2 = do
+    liftIO $ putStrLn $ "Expected boolean values, found " ++ show t1 ++ " and " ++ show t2 ++ "."
+    return OKErrorT
+
+throwNotIntType line t1 t2 = do
+    liftIO $ putStrLn $ "Expected int values, found " ++ show t1 ++ " and " ++ show t2 ++ "."
+    return OKErrorT
+
+throwNotPointerType line t = do
+    liftIO $ putStrLn $ "Expected pointer value, found " ++ show t ++ "."
+    return OKErrorT
 
 lexwrap :: (Token -> ParseM a) -> ParseM a
 lexwrap cont = do
