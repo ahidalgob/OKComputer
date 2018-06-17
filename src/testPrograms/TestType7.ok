@@ -1,0 +1,19 @@
+#Error in == operation
+
+int a = 30
+bool b = ok
+float c = 20.12
+
+dafunk maintheme() : intothevoid 
+youbegin
+    int n
+    bool x=ok, y=ok, z=notok
+    b = not (ok and notok)
+    c = 30.5 mod 20.3
+
+    b = (300 == "errorsazo")
+
+    if 1<a youbegin
+        breakthru
+        exitmusic
+    whereiend

@@ -1,0 +1,17 @@
+# Error inside if expression
+
+int a = 30
+bool b = ok
+float c = 20
+
+dafunk maintheme() : intothevoid 
+youbegin
+    int n = 5
+    bool x=ok, y=ok, z=notok
+    b = not (ok and notok)
+    n = - 2 * 2 - 2*n
+
+    if 1<ok youbegin
+        breakthru
+        exitmusic
+    whereiend
