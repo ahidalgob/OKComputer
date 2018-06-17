@@ -254,19 +254,19 @@ printOKType n (OKPointer inner) = do
   putStrWithIdent n "Pointer "
   printOKType n inner
 
-printOKType n (OKboolean) = do
+printOKType n (OKBoolean) = do
   putStrLnWithIdent n "Boolean"
 
-printOKType n (OKint) = do
+printOKType n (OKInt) = do
   putStrLnWithIdent n "Int"
 
-printOKType n (OKfloat) = do
+printOKType n (OKFloat) = do
   putStrLnWithIdent n "Float"
 
-printOKType n (OKchar) = do
+printOKType n (OKChar) = do
   putStrLnWithIdent n "Char"
 
-printOKType n (OKstring) = do
+printOKType n (OKString) = do
   putStrLnWithIdent n "String"
 
 printOKType n (OKFunc args ret) = do

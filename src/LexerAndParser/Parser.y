@@ -204,11 +204,11 @@ TYPE : TYPE2              { $1 }
     |  TYPE '^'          { OKPointer $1 }
 
 TYPE2 :: { OKType }
-TYPE2 : int                                    { OKint }
-   | float                                    { OKfloat }
-   | boolean                                  { OKboolean }
-   | char                                     { OKchar }
-   | string                                   { OKstring }
+TYPE2 : int                                    { OKInt }
+   | float                                    { OKFloat }
+   | boolean                                  { OKBoolean }
+   | char                                     { OKChar }
+   | string                                   { OKString }
    | id                                       { OKNameType $ tknString $1 }
 
 
