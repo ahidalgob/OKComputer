@@ -181,13 +181,7 @@ INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                             { $2:$1 
 
 -- Get all the assignments and then do the declarations
 DECLARATION :: { [EXPRESSIONN] } -- All Expressions are assignments
-DECLARATION : TYPE DECLARATIONVARS {%
-      do  let decls = reverse $2
-              assigns = filter (isJust.snd) decls
-              vars = map (\x -> (tknString.fst $ x, tknPos.fst $ x)) decls
-          mapM_ (uncurry (addToSymTable $1)) vars
-          mapM createAssign (map (\(x,y) -> (x,fromJust y)) assigns)
-}
+DECLARATION : TYPE DECLARATIONVARS {% declarationAction $1 $2 }
 
 
 -- TODO Arrays and other things
@@ -236,37 +230,37 @@ PRINT : PRINT ',' EXPRESSION                     { (PRINTSTRING $3):($1)  }
 EXPRESSION :: { EXPRESSIONN }
 EXPRESSION : id
                 {% do
-                    scope <- stateFindSymScope (tknString $1) (tknPos $1)
-                    return $ IDEXPRESSION $ (tknString $1, scope) }
-           | n                          { NUMBEREXPN $ tknString $1 }
-           | string                     { STRINGEXPN $ tknString $1 }
-           | c                          { CHAREXPN $ tknChar $1 }
-           | ok                         { OKN }
-           | notok                      { NOTOKN }
-           | '(' EXPRESSION ')'         { PARENTESISN $2 }
-           | EXPRESSION '<' EXPRESSION  { COMPARN $1 "<" $3 }
-           | EXPRESSION '>' EXPRESSION  { COMPARN $1 ">" $3 }
-           | EXPRESSION '<=' EXPRESSION { COMPARN $1 "<=" $3 }
-           | EXPRESSION '>=' EXPRESSION { COMPARN $1 ">=" $3 }
-           | EXPRESSION '==' EXPRESSION { COMPARN $1 "==" $3 }
-           | EXPRESSION '!=' EXPRESSION { COMPARN $1 "!=" $3 }
-           | not EXPRESSION             { NOTN $2  }
-           | EXPRESSION and EXPRESSION  { LOGICN $1 "and" $3 }
-           | EXPRESSION or EXPRESSION   { LOGICN $1 "or" $3 }
-           | '-' EXPRESSION             { MINUSN "-" $2 }
-           | EXPRESSION '+' EXPRESSION  { ARITN $1 "+" $3 }
-           | EXPRESSION '-' EXPRESSION  { ARITN $1 "-" $3 }
-           | EXPRESSION '*' EXPRESSION  { ARITN $1 "*" $3 }
-           | EXPRESSION '/' EXPRESSION  { ARITN $1 "/" $3 }
-           | EXPRESSION '%' EXPRESSION  { ARITN $1 "%" $3 }
-           | EXPRESSION mod EXPRESSION  { ARITN $1 "mod" $3 }
-           | EXPRESSION div EXPRESSION  { ARITN $1 "div" $3 }
-           | ARRAYPOSITION              { ARRAYINSTN $1 } -- TODO check sym
-           | EXPRESSIONSTRUCT           { EXPSTRUCTN $1 } -- TODO check sym
-           | FUNCTIONCALL               { FUNCCALLN $1 }
-           | newlife '(' EXPRESSION ')' { NEWLIFEN $3 }
-           | '^' EXPRESSION             { POINTERN $ $2 }
-           | LVAL '=' EXPRESSION        { ASSIGNN $1 $3 }
+                    sym <- stateFindSym (tknString $1) (tknPos $1)
+                    return $ IDEXPRESSION (tknString $1, sym_scope sym) (sym_type sym)}
+           | n                          { NUMBEREXPN (tknString $1) OKFloat}
+           | string                     { STRINGEXPN (tknString $1) OKString}
+           | c                          { CHAREXPN (tknChar $1) OKChar}
+           | ok                         { BOOLEANEXPN True OKBoolean}
+           | notok                      { BOOLEANEXPN False OKBoolean}
+           | '(' EXPRESSION ')'         { PARENTESISN $2 (expType $2)}
+           | EXPRESSION '<' EXPRESSION  { COMPARN $1 "<" $3 OKBoolean}
+           | EXPRESSION '>' EXPRESSION  { COMPARN $1 ">" $3 OKBoolean}
+           | EXPRESSION '<=' EXPRESSION { COMPARN $1 "<=" $3 OKBoolean}
+           | EXPRESSION '>=' EXPRESSION { COMPARN $1 ">=" $3 OKBoolean}
+           | EXPRESSION '==' EXPRESSION { COMPARN $1 "==" $3 OKBoolean}
+           | EXPRESSION '!=' EXPRESSION { COMPARN $1 "!=" $3 OKBoolean}
+           | not EXPRESSION             { NOTN $2 OKBoolean}
+           | EXPRESSION and EXPRESSION  { LOGICN $1 "and" $3 OKBoolean}
+           | EXPRESSION or EXPRESSION   { LOGICN $1 "or" $3 OKBoolean}
+           | '-' EXPRESSION             { MINUSN $2 OKFloat}
+           | EXPRESSION '+' EXPRESSION  { ARITN $1 "+" $3 OKFloat}
+           | EXPRESSION '-' EXPRESSION  { ARITN $1 "-" $3 OKFloat}
+           | EXPRESSION '*' EXPRESSION  { ARITN $1 "*" $3 OKFloat}
+           | EXPRESSION '/' EXPRESSION  { ARITN $1 "/" $3 OKFloat}
+           | EXPRESSION '%' EXPRESSION  { ARITN $1 "%" $3 OKFloat}
+           | EXPRESSION mod EXPRESSION  { ARITN $1 "mod" $3 OKFloat}
+           | EXPRESSION div EXPRESSION  { ARITN $1 "div" $3 OKFloat}
+           | ARRAYPOSITION              { $1 } -- TODO check sym
+           | EXPRESSIONSTRUCT           { $1 } -- TODO check sym
+           | FUNCTIONCALL               { $1 }
+           | newlife '(' EXPRESSION ')' { NEWLIFEN $3 $ OKPointer (expType $3)}
+           | '^' EXPRESSION             { POINTERN $2 (pointerType.expType $ $2)}
+           | LVAL '=' EXPRESSION        { ASSIGNN $1 $3 (expType $3)}
 
 EXPRESSIONS :: { [EXPRESSIONN] }
 EXPRESSIONS :                       { [] }
@@ -292,13 +286,13 @@ NONEMPTYLVALS : NONEMPTYLVALS ',' LVAL    { $3 : $1 }
 
 -- Things that can evaluate to array:
 -- id, struct.member
-ARRAYPOSITION : EXPRESSION '[' EXPRESSION ']'                   { ARRAYPOSN $1 $3 }
+ARRAYPOSITION : EXPRESSION '[' EXPRESSION ']'                   { ARRAYPOSN $1 $3 (arrayType.expType $ $1)}
 
-EXPRESSIONSTRUCT : EXPRESSION '.' id                            { EXPRESSIONSTRUCTN $1 (tknString $3) }
+EXPRESSIONSTRUCT : EXPRESSION '.' id                            { EXPRESSIONSTRUCTN $1 (tknString $3) (expType $1)} --TODO NOOOOOOOOOOOOOOOOOOOOOOOOO
 
 FUNCTIONCALL : id '(' EXPRESSIONS ')'                                {%
-                                                    do  scope <- stateFindSymScope (tknString $1) (tknPos $1)
-                                                        return $ FUNCTIONCALLN (tknString $1) $3} -- TODO Flat
+                                                    do  sym <- stateFindSym (tknString $1) (tknPos $1)
+                                                        return $ FUNCTIONCALLN (tknString $1) $3 (funcRetType.sym_type $ sym)} -- TODO Flat
 
 MAYBELINE : {- empty -}                   { }
           | newline                       { }
@@ -314,10 +308,19 @@ addFuncToSymTable :: OKType -> Id -> Pos -> ParseM ()
 addFuncToSymTable t id pos = do
         stateInsertSym $ Sym 1 id pos t [] -- TODO real symbol (type...)
 
+declarationAction :: OKType -> [(Token, Maybe EXPRESSIONN)] -> ParseM ([EXPRESSIONN])
+declarationAction t l =
+      do  let decls = reverse l
+              assigns = filter (isJust.snd) decls
+              vars = map (\x -> (tknString.fst $ x, tknPos.fst $ x)) decls
+          mapM_ (uncurry (addToSymTable t)) vars
+          mapM createAssign (map (\(x,y) -> (x,fromJust y)) assigns)
+
 createAssign :: (Token, EXPRESSIONN) -> ParseM (EXPRESSIONN)
 createAssign (tkn, exp) = do
         scope <- stateFindSymScope (tknString tkn) (tknPos tkn)
-        return $ ASSIGNN (tknString tkn, scope) exp
+        --TODO Checktype of Sym with type of exp
+        return $ ASSIGNN (tknString tkn, scope) exp (expType exp)
 
 lexwrap :: (Token -> ParseM a) -> ParseM a
 lexwrap cont = do

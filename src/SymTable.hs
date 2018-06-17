@@ -57,7 +57,7 @@ symTableLoopUp = H.lookup
 
 
 
-data OKType = OKPointer OKType | OKVoid | OKFunc [OKType] OKType
+data OKType = OKPointer {pointerType::OKType} | OKVoid | OKFunc {funcParamTypes::[OKType], funcRetType::OKType}
             | OKBoolean | OKInt | OKFloat | OKChar | OKString | OKNameType Id
-            | OKArray Int OKType | OKTuple [OKType] | OKList OKType |
+            | OKArray {arraySize::Int, arrayType::OKType} | OKTuple [OKType] | OKList OKType |
             OKErrorT deriving (Show, Eq)

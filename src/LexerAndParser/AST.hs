@@ -74,33 +74,26 @@ data LDECLARATIONSN = REC1 LDECLARATIONSN DECLARATIONN |
             REC2 DECLARATIONN deriving Show
 -}
 
-data EXPRESSIONN = IDEXPRESSION SymId                     |
-                   NUMBEREXPN String                      |
-                   STRINGEXPN String                      |
-                   CHAREXPN Char                          |
-                   OKN                                    |
-                   NOTOKN                                 |
-                   PARENTESISN EXPRESSIONN                |
-                   COMPARN EXPRESSIONN String EXPRESSIONN |
-                   NOTN EXPRESSIONN                       |
-                   LOGICN EXPRESSIONN String EXPRESSIONN  |
-                   MINUSN String EXPRESSIONN              |
-                   ARITN EXPRESSIONN String EXPRESSIONN   |
-                   ARRAYINSTN ARRAYPOSN                   |
-                   EXPSTRUCTN EXPRESSIONSTRUCTN           |
-                   FUNCCALLN FUNCTIONCALLN                |
-                   NEWLIFEN EXPRESSIONN                   |
-                   POINTERN EXPRESSIONN                   |
-                   ASSIGNN SymId EXPRESSIONN
+data EXPRESSIONN = IDEXPRESSION {expId::SymId, expType::OKType}                                       |
+                   NUMBEREXPN {expVal::String, expType::OKType}                                       |
+                   STRINGEXPN {expVal::String, expType::OKType}                                       |
+                   CHAREXPN {expChar::Char, expType::OKType}                                          |
+                   BOOLEANEXPN {expBooleanVal::Bool, expType::OKType}                                 |
+                   PARENTESISN {expExp::EXPRESSIONN, expType::OKType}                                 |
+                   COMPARN {expExp1::EXPRESSIONN, expComp::String, expExp2::EXPRESSIONN, expType::OKType}                  |
+                   NOTN {expExp::EXPRESSIONN, expType::OKType}                                        |
+                   LOGICN {expExp1::EXPRESSIONN, expOp::String, expExp2::EXPRESSIONN, expType::OKType}                   |
+                   MINUSN {expExp::EXPRESSIONN, expType::OKType}                                      |
+                   ARITN {expExp1::EXPRESSIONN, expOp::String, expExp2::EXPRESSIONN, expType::OKType} |
+                   ARRAYPOSN {expExp::EXPRESSIONN, expExpIn::EXPRESSIONN, expType::OKType}            |
+                   EXPRESSIONSTRUCTN {expExp::EXPRESSIONN, expName::String, expType::OKType}          |
+                   FUNCTIONCALLN {expFuncName::String, expArgs::[EXPRESSIONN], expType::OKType}       |
+                   NEWLIFEN {expExp::EXPRESSIONN, expType::OKType}                                    |
+                   POINTERN {expExp::EXPRESSIONN, expType::OKType}                                    |
+                   ASSIGNN {expId::SymId, expExp::EXPRESSIONN, expType::OKType}
                    deriving Show
 
 --data IDEXPRESSION = IDEXPRESSIONN String deriving Show
-
-data ARRAYPOSN = ARRAYPOSN EXPRESSIONN EXPRESSIONN deriving Show
-
-data EXPRESSIONSTRUCTN = EXPRESSIONSTRUCTN EXPRESSIONN String deriving Show
-
-data FUNCTIONCALLN = FUNCTIONCALLN String [EXPRESSIONN] deriving Show
 
 ident = "|  "
 
@@ -113,29 +106,26 @@ printIdSymbol n s = putStrLnWithIdent n $ "ID: " ++ (fst s) ++ " Scope: " ++ sho
 printId n s = putStrLnWithIdent n $ "ID: " ++ s
 
 printExpN :: Int -> EXPRESSIONN -> IO()
-printExpN n (IDEXPRESSION s) = do
+printExpN n (IDEXPRESSION s t) = do
     printIdSymbol n s
 
-printExpN n (NUMBEREXPN s) = do
+printExpN n (NUMBEREXPN s t) = do
     putStrLnWithIdent n $ "Literal number: " ++ s
 
-printExpN n (STRINGEXPN s) = do
+printExpN n (STRINGEXPN s t) = do
     putStrLnWithIdent n $ "Literal string: " ++ s
 
-printExpN n (CHAREXPN c) = do
+printExpN n (CHAREXPN c t) = do
     putStrLnWithIdent n $ "Literal char: " ++ [c]
 
-printExpN n (OKN) = do
-    putStrLnWithIdent n "Literal boolean: ok"
+printExpN n (BOOLEANEXPN val t) = do
+    putStrLnWithIdent n $ "Literal boolean: " ++ show val
 
-printExpN n (NOTOKN) = do
-    putStrLnWithIdent n "Literal boolean: notok"
-
-printExpN n (PARENTESISN exp) = do
+printExpN n (PARENTESISN exp t) = do
     putStrLnWithIdent n "Parenthesis expression:"
     printExpN (n+1) exp
 
-printExpN n (COMPARN exp s exp1) = do
+printExpN n (COMPARN exp s exp1 t) = do
     putStrLnWithIdent n "Comparison operation: "
     putStrLnWithIdent (n+1) $ "Comparator: " ++ s
     putStrLnWithIdent (n+1) "Left side:"
@@ -143,11 +133,11 @@ printExpN n (COMPARN exp s exp1) = do
     putStrLnWithIdent (n+1) "Right side:"
     printExpN (n+2) exp1
 
-printExpN n (NOTN exp) = do
+printExpN n (NOTN exp t) = do
     putStrLnWithIdent n "Boolean negation:"
     printExpN (n+2) exp
 
-printExpN n (LOGICN exp s exp1) = do
+printExpN n (LOGICN exp s exp1 t) = do
     putStrLnWithIdent n "Binary logic operation:"
     putStrLnWithIdent (n+1) $ "Operator: " ++ s
     putStrLnWithIdent (n+1) "Left side:"
@@ -155,11 +145,11 @@ printExpN n (LOGICN exp s exp1) = do
     putStrLnWithIdent (n+1) "Right side:"
     printExpN (n+2) exp1
 
-printExpN n (MINUSN s exp) = do
+printExpN n (MINUSN exp t) = do
     putStrLnWithIdent n "Unary minus:"
     printExpN (n+1) exp
 
-printExpN n (ARITN exp s exp1) = do
+printExpN n (ARITN exp s exp1 t) = do
     putStrLnWithIdent n "Binary arithmetic operation:"
     putStrLnWithIdent (n+1) $ "Operator: " ++ s
     putStrLnWithIdent (n+1) "Left side:"
@@ -167,48 +157,36 @@ printExpN n (ARITN exp s exp1) = do
     putStrLnWithIdent (n+1) "Right side:"
     printExpN (n+2) exp1
 
-printExpN n (ARRAYINSTN arraypos) = do
+printExpN n (ARRAYPOSN arrayid posnumber t) = do
     putStrLnWithIdent n "Operation with Array Position:"
-    printArrayPosN (n+2) arraypos
+    printExpN n arrayid
+    printExpN n posnumber -- Agregar que imprima numeros
 
-printExpN n (EXPSTRUCTN expstruct) = do
+printExpN n (EXPRESSIONSTRUCTN structid instructid t) = do
     putStrLnWithIdent n "Operation with Struct Id:"
-    printExpStructN (n+2) expstruct
+    printExpN n structid
+    printId n instructid
 
-printExpN n (FUNCCALLN func) = do
-   putStrLnWithIdent n "Function Call:"
-   printFunctionCallN (n+2) func
+printExpN n (FUNCTIONCALLN funcid listid t) = do
+    putStrLnWithIdent n "Function Call:"
+    printId n funcid
+    putStrLnWithIdent n "With the next IDs: "
+    mapM_ (printExpN (n+1)) listid
 
-printExpN n (NEWLIFEN exp) = do
+printExpN n (NEWLIFEN exp t) = do
    putStrLnWithIdent n "New life declaration called:"
    printExpN (n+2) exp
 
-printExpN n (POINTERN pointed) = do
+printExpN n (POINTERN pointed t) = do
    putStrLnWithIdent n $ "Pointer: "
    printExpN (n+2) pointed
 
-printExpN n (ASSIGNN symid exp) = do
+printExpN n (ASSIGNN symid exp t) = do
    putStrLnWithIdent n $ "Assignation: "
    putStrLnWithIdent (n+1) $ "Left side: "
    printIdSymbol (n+2) symid
    putStrLnWithIdent (n+1) $ "Right side: "
    printExpN (n+2) exp
-
-printArrayPosN :: Int -> ARRAYPOSN -> IO()
-printArrayPosN n (ARRAYPOSN arrayid posnumber) = do
-    printExpN n arrayid
-    printExpN n posnumber -- Agregar que imprima numeros
-
-printExpStructN :: Int -> EXPRESSIONSTRUCTN -> IO()
-printExpStructN n (EXPRESSIONSTRUCTN structid instructid) = do
-    printExpN n structid
-    printId n instructid
-
-printFunctionCallN :: Int -> FUNCTIONCALLN -> IO()
-printFunctionCallN n (FUNCTIONCALLN funcid listid) = do
-    printId n funcid
-    putStrLnWithIdent n "With the next IDs: "
-    mapM_ (printExpN (n+1)) listid
 
 printSTARTN :: Int -> STARTN -> IO()
 printSTARTN n (STARTN imports outsides) = do
