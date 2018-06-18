@@ -194,7 +194,7 @@ stateFindAllSyms id pos = do
 -- Finds the first symbol on the list of the give Id such that its scope is active
 stateFindSym :: Id -> Pos -> ParseM Sym
 stateFindSym id pos = do
-  l <- stateFindAllSyms id pos
+  l <- stateFindAllSyms id pos `catchError` (\_ -> return [])
   activeScopes <- gets state_ScopeSet
   case find (scopeIsIn activeScopes) l of
        Nothing -> throwError (IdNotInScope id pos)

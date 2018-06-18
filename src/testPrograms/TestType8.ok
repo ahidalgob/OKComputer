@@ -4,13 +4,12 @@ int a = 30
 bool b = ok
 float c = 20
 
-dafunk maintheme() : intothevoid 
+dafunk maintheme() : intothevoid
 youbegin
     int n
     bool y=ok, z=notok
     b = not (ok and notok)
-    n = - 2 * 2 - 2*notok
-
+    n = - 2 * 2 - 2*notok + hola[3]
     if 1<5 youbegin
         breakthru
         exitmusic

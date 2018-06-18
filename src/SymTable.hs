@@ -31,13 +31,19 @@ scopeSetInsert = S.insert
 ----------------------------------
 -------------Symbols--------------
 ----------------------------------
-data Sym = Sym{
-  sym_scope :: Scope,
-  sym_Id :: Id,
-  sym_pos :: Pos, -- declaration position
-  sym_type :: OKType,
-  sym_info :: [SymId]
-} deriving Show
+data Sym = Sym{ sym_scope :: Scope,
+                sym_Id :: Id,
+                sym_pos :: Pos, -- declaration position
+                sym_type :: OKType,
+                sym_info :: [SymId]
+           }
+          | ErrorSym {
+                sym_scope :: Scope,
+                sym_Id :: Id,
+                sym_pos :: Pos, -- declaration position
+                sym_type :: OKType,
+                sym_info :: [SymId]
+            } deriving Show
 
 
 ----------------------------------
