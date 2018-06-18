@@ -1,5 +1,6 @@
 module AST where
-import SymTable(Id, SymId, OKType(..))
+import SymTable(SymId)
+import OKTypes
 import Control.Monad
 
 data STARTN = STARTN [IMPORTN] [OUTSIDEN] deriving Show

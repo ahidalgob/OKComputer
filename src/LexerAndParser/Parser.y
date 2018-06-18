@@ -10,6 +10,7 @@ import Tokens
 import Control.Monad.Except
 import AST
 import SymTable
+import OKTypes
 
 import Data.Maybe
 }
@@ -132,19 +133,16 @@ IDS : IDS ',' id                             { (tknString $3):$1 }
 
 
 OUTSIDEFUNCTION :: { [OUTSIDEN] }
-OUTSIDEFUNCTION : FUNCTIONINIC OUTSIDEFUNCTION            { (OUTFUNCTIONINIC $1):$2 }
+OUTSIDEFUNCTION : FUNCTIONDEF OUTSIDEFUNCTION            { (OUTFUNCTIONINIC $1):$2 }
                 | DECLARATION newline OUTSIDEFUNCTION     { (OUTASSIGN $1):$3 }
                 | {- empty -}                             { [] }
 
-
-FUNCTIONINIC :: { FUNCTIONINICN }
-FUNCTIONINIC : FUNCTIONSIGN BLOCK    { let (tkn, prms, ret) = $1 in FUNCTIONINICN (tknString tkn) prms ret $2 } --TODO modify Function symbol
+FUNCTIONDEF :: { FUNCTIONINICN }
+FUNCTIONDEF : FUNCTIONSIGN BLOCK {% functionDefAction $1 $2}
 
 FUNCTIONSIGN :: { (Token, [Parameter], OKType) }
-FUNCTIONSIGN : dafunk BEGIN id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE {%
-        do
-            addFuncToSymTable (OKFunc (map param_type $5) $8) (tknString $3) (tknPos $3) --TODO we need to save the list of the param names
-            return ($3, $5, $8)}
+FUNCTIONSIGN : dafunk BEGIN id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE     {% functionSignAction $3 $5 $8 }
+-- Creates the function symbol and inserts it to the sym table
 
 RETURNTYPE :: { OKType }
 RETURNTYPE: intothevoid                                                 { OKVoid }
@@ -159,11 +157,7 @@ NONEMPTYLPARAMETERSFUNC : NONEMPTYLPARAMETERSFUNC ',' FUNCTIONPARAMETER { $3:($1
                         | FUNCTIONPARAMETER                             { [$1] }
 
 FUNCTIONPARAMETER :: { Parameter }
-FUNCTIONPARAMETER : TYPE id
-                          {% do
-                             scope <- stateScopeStackTop
-                             addToSymTable $1 (tknString $2) (tknPos $2)
-                             return $ Parameter $1 (tknString $2, scope) }
+FUNCTIONPARAMETER : TYPE id         {% functionParameterAction $1 $2}
 
 BLOCK :: { [INSTRUCTIONN] }
 BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION END                    { reverse $4 }
@@ -212,19 +206,15 @@ INSTRUCTION : go '(' PRINT ')' newline                                          
             | gomental '(' PRINT ')' newline                                    { GOINGMENTALN $ reverse $3 }
             | readmymind '(' LVALS ')' newline                                  { READMYMINDN $3 }
             | amnesiac '(' id ')' newline                                       { AMNESIACN $ tknString $3 }
-            | if EXPRESSION BEGIN BLOCK IFELSE                                  {%
-                                                                              checkSameType (tknPos $1) (expType $2) OKBoolean >> (return $ IFN $2 (reverse $4) $5) }
-            | cantstop EXPRESSION BEGIN BLOCK                                   {%
-                                                                              checkSameType (tknPos $1) (expType $2) OKBoolean >> (return $ CANTSTOPN $2 (reverse $4)) }
-            | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION BLOCK {%
-                                                                              checkSameType (tknPos $1) (expType $5) OKBoolean >> (return $ ONEMORETIMEN $3 $5 $7 (reverse $8)) }
+            | if EXPRESSION BEGIN BLOCK IFELSE                                  {% ifAction $1 $2 (reverse $4) $5 }
+            | cantstop EXPRESSION BEGIN BLOCK                                   {% cantStopAction $1 $2 (reverse $4) }
+            | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION BLOCK {% oneMoreTimeAction $1 $5 $3 $7 (reverse $8) }
             | getback EXPRESSION newline                                        { GETBACKN $2 } --TODO should we check we're inside a function with that type?
             | breakthru newline                                                 { BREAKTHRUN }
             | exitmusic newline                                                 { EXITMUSICN }
             | EXPRESSION newline                                                { EXPRESSIONNINST $1 }
 
-IFELSE : ifyouhavetoask EXPRESSION BEGIN BLOCK IFELSE                           {%
-                                                                              checkSameType (tknPos $1) (expType $2) OKBoolean >> (return $ IFASKN $2 $4 $5) }
+IFELSE : ifyouhavetoask EXPRESSION BEGIN BLOCK IFELSE                           {% ifYouHaveToAskAction $1 $2 (reverse $4) $5 }
        | otherside BEGIN BLOCK                                                  { OTHERSIDEN $3 }
        | {- empty -}                                                            { IFELSEVOID }
 
@@ -289,13 +279,14 @@ NONEMPTYLVALS : NONEMPTYLVALS ',' LVAL    { $3 : $1 }
 
 -- Things that can evaluate to array:
 -- id, struct.member
-ARRAYPOSITION : EXPRESSION '[' EXPRESSION ']'                   { ARRAYPOSN $1 $3 (arrayType.expType $ $1)}
+ARRAYPOSITION : EXPRESSION '[' EXPRESSION ']'                   { ARRAYPOSN $1 $3 (arrayType.expType $ $1)} -- TODO Check E1 type for array
 
-EXPRESSIONSTRUCT : EXPRESSION '.' id                            { EXPRESSIONSTRUCTN $1 (tknString $3) (expType $1)} --TODO NOOOOOOOOOOOOOOOOOOOOOOOOO
+                                                                    --TODO find type of E1, has to be a record, add its scope in the dot, look id, pop scope
+EXPRESSIONSTRUCT : EXPRESSION '.' id                            { EXPRESSIONSTRUCTN $1 (tknString $3) (expType $1)}
 
 FUNCTIONCALL : id '(' EXPRESSIONS ')'                                {%
                                                     do  sym <- stateFindSym (tknString $1) (tknPos $1)
-                                                        return $ FUNCTIONCALLN (tknString $1) $3 (funcRetType.sym_type $ sym)} -- TODO Flat
+                                                        return $ FUNCTIONCALLN (tknString $1) $3 (funcRetType.sym_type $ sym)}
 
 MAYBELINE : {- empty -}                   { }
           | newline                       { }
@@ -307,9 +298,24 @@ addToSymTable t id pos = do
         scope <- stateScopeStackTop
         stateInsertSym $ Sym scope id pos t [] -- TODO real symbol (type...)
 
-addFuncToSymTable :: OKType -> Id -> Pos -> ParseM ()
-addFuncToSymTable t id pos = do
-        stateInsertSym $ Sym 1 id pos t [] -- TODO real symbol (type...)
+
+
+functionDefAction :: (Token, [Parameter], OKType) -> [INSTRUCTIONN] -> ParseM FUNCTIONINICN
+functionDefAction (tkn, prms, ret) instrs = return $ FUNCTIONINICN (tknString tkn) prms ret instrs
+
+functionSignAction :: Token -> [Parameter] -> OKType -> ParseM (Token, [Parameter], OKType)
+functionSignAction tkn params ret = do
+        let oktype = OKFunc (map param_type params) ret
+            id = tknString tkn
+            pos = tknPos tkn
+        stateInsertSym $ Sym 1 id pos oktype [] --TODO we need to save the list of the param names
+        return (tkn, params, ret)
+
+functionParameterAction :: OKType -> Token -> ParseM Parameter
+functionParameterAction oktype id = do
+                             scope <- stateScopeStackTop
+                             addToSymTable oktype (tknString id) (tknPos id)
+                             return $ Parameter oktype (tknString id, scope)
 
 declarationAction :: OKType -> [(Token, Maybe EXPRESSIONN)] -> ParseM ([EXPRESSIONN])
 declarationAction t l =
@@ -318,13 +324,42 @@ declarationAction t l =
               vars = map (\x -> (tknString.fst $ x, tknPos.fst $ x)) decls
           mapM_ (uncurry (addToSymTable t)) vars
           mapM createAssign (map (\(x,y) -> (x,fromJust y)) assigns)
+  where
+    createAssign :: (Token, EXPRESSIONN) -> ParseM (EXPRESSIONN)
+    createAssign (tkn, exp) = do
+            scope <- stateFindSymScope (tknString tkn) (tknPos tkn)
+            --TODO Checktype of Sym with type of exp
+            return $ ASSIGNN (tknString tkn, scope) exp (expType exp)
 
-createAssign :: (Token, EXPRESSIONN) -> ParseM (EXPRESSIONN)
-createAssign (tkn, exp) = do
-        scope <- stateFindSymScope (tknString tkn) (tknPos tkn)
-        --TODO Checktype of Sym with type of exp
-        return $ ASSIGNN (tknString tkn, scope) exp (expType exp)
+ifAction :: Token -> EXPRESSIONN -> [INSTRUCTIONN] -> IFELSEN -> ParseM INSTRUCTIONN
+ifAction tkn condition blk ifelse = do
+          checkExpectedType (tknPos tkn) OKBoolean (expType condition)
+          return $ IFN condition blk ifelse
 
+cantStopAction :: Token -> EXPRESSIONN -> [INSTRUCTIONN] -> ParseM INSTRUCTIONN
+cantStopAction tkn condition blk = do
+          checkExpectedType (tknPos tkn) OKBoolean (expType condition)
+          return $ CANTSTOPN condition blk
+
+-- TODO The step should be an instruccion?
+oneMoreTimeAction :: Token -> EXPRESSIONN -> [EXPRESSIONN] -> EXPRESSIONN -> [INSTRUCTIONN] -> ParseM INSTRUCTIONN
+oneMoreTimeAction tkn condition init step blk = do
+          checkExpectedType (tknPos tkn) OKBoolean (expType condition)
+          return $ ONEMORETIMEN init condition step blk
+
+
+ifYouHaveToAskAction :: Token -> EXPRESSIONN -> [INSTRUCTIONN] -> IFELSEN -> ParseM IFELSEN
+ifYouHaveToAskAction tkn condition blk ifelse = do
+          checkExpectedType (tknPos tkn) OKBoolean (expType condition)
+          return $ IFASKN condition blk ifelse
+
+
+checkExpectedType :: Pos -> OKType -> OKType -> ParseM OKType
+checkExpectedType pos oktype found = do
+    case found of
+         OKErrorT -> return OKErrorT
+         oktype -> return oktype
+         _ -> throwNotWhatIExpectedAndImNotSatisfied pos oktype found
 
 checkSameType :: Pos -> OKType -> OKType -> ParseM (OKType)
 checkSameType (line, _) OKErrorT _ = return OKErrorT
@@ -376,6 +411,11 @@ throwDifferentTypeError line t1 t2 = do
 
 throwNotNumericalTypeError line t1 t2 = do
     liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected a number types, found " ++ show t1 ++ " and " ++ show t2 ++ "."
+    return OKErrorT
+
+throwNotWhatIExpectedAndImNotSatisfied line t1 t2 = do
+    liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected " ++ show t1 ++ ", found " ++ show t2 ++ "."
+    liftIO $ putStrLn $ "Not What I Expected And I'm Not Satisfied."
     return OKErrorT
 
 throwNotBooleanError line t1 t2 = do

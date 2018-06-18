@@ -2,6 +2,7 @@ module ParseMonad where
 import Tokens
 import LowLevelAlex
 import SymTable
+import OKTypes
 
 import Control.Monad.State.Lazy
 import Control.Monad.Except
@@ -19,7 +20,6 @@ import Data.List(find)
 -- -----------------------------------------------------------------------------
 
 import Data.Char (ord)
-
 
 
 data ParseState = ParseState {
@@ -57,6 +57,7 @@ initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
 --------------------------------------------------------
 
 data ParseMError = IdNotFound Id Pos |
+                   IdNotInScope Id Pos |
                    AlreadyDefinedInScope Sym |
                    ParseError String
                  deriving Show
@@ -173,27 +174,36 @@ stateEndScope = do
   stateScopeStackPop
   stateScopesDelete topScope
 
+
+
+
 -- Find the first symbol scope of the list such that the scope is active
 stateFindSymScope :: Id -> Pos -> ParseM Scope
 stateFindSymScope id pos = (sym_scope <$> stateFindSym id pos)
                       `catchError` catchIdNotFound
 
 
-stateFindSym :: Id -> Pos -> ParseM Sym
-stateFindSym id pos = do
-  maybeList <- (symTableLoopUp id) <$> (gets state_SymTable)
+-- Finds all the symbols associated with an Id
+stateFindAllSyms :: Id -> Pos -> ParseM [Sym]
+stateFindAllSyms id pos = do
+  maybeList <- (symTableLookUp id) <$> (gets state_SymTable)
   case maybeList of
        Nothing -> throwError (IdNotFound id pos)
-       Just l -> do
-          scopes <- gets state_ScopeSet
-          case find (scopeIsActive scopes) l of
-               Nothing -> throwError (IdNotFound id pos)
-               Just sym -> return sym
+       Just syms -> return syms
+
+-- Finds the first symbol on the list of the give Id such that its scope is active
+stateFindSym :: Id -> Pos -> ParseM Sym
+stateFindSym id pos = do
+  l <- stateFindAllSyms id pos
+  activeScopes <- gets state_ScopeSet
+  case find (scopeIsIn activeScopes) l of
+       Nothing -> throwError (IdNotInScope id pos)
+       Just sym -> return sym
   where
-    scopeIsActive :: ScopeSet -> Sym -> Bool
-    scopeIsActive ss sym = scopeSetMember (sym_scope sym) ss
+    scopeIsIn :: ScopeSet -> Sym -> Bool
+    scopeIsIn ss sym = scopeSetMember (sym_scope sym) ss
 
-
+--
 stateInsertSym :: Sym -> ParseM ()
 stateInsertSym sym = case sym_type sym of
                           OKFunc _ _ -> insertFunctionSym sym
@@ -214,7 +224,7 @@ insertNonFunctionSym sym = do
 
 insertFunctionSym :: Sym -> ParseM ()
 insertFunctionSym sym@(Sym scp id _ (OKFunc prms ret) []) = do
-  maybeList <- (symTableLoopUp id) <$> (gets state_SymTable)
+  maybeList <- (symTableLookUp id) <$> (gets state_SymTable)
   symTable <- gets state_SymTable
   case maybeList of
        Nothing -> do

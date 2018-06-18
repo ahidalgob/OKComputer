@@ -1,10 +1,10 @@
 module SymTable where
 import LowLevelAlex
+import OKTypes
 import qualified Data.HashMap.Strict as H
 import qualified Data.Set as S
 
 type Scope = Int
-type Id = String
 type SymId = (Id, Scope)
 
 type ScopeStack = [Scope]
@@ -52,18 +52,7 @@ emptySymTable = H.empty
 symTableInsert :: Sym -> SymTable -> SymTable
 symTableInsert s st = H.insertWith (++) (sym_Id s) [s] st
 
-symTableLoopUp :: Id -> SymTable -> Maybe [Sym]
-symTableLoopUp = H.lookup
+symTableLookUp :: Id -> SymTable -> Maybe [Sym]
+symTableLookUp = H.lookup
 
-
-
-data OKType = OKPointer {pointerType::OKType} | OKVoid | OKFunc {funcParamTypes::[OKType], funcRetType::OKType}
-            | OKBoolean | OKInt | OKFloat | OKChar | OKString | OKNameType Id
-            | OKArray {arraySize::Int, arrayType::OKType} | OKTuple [OKType] | OKList OKType |
-            OKErrorT deriving (Show, Eq)
-
-isNumericalType :: OKType -> Bool
-isNumericalType OKFloat = True
-isNumericalType OKInt = True
-isNumericalType _ = False
 
