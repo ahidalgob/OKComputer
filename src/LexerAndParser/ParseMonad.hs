@@ -83,9 +83,9 @@ runParseM f s = runStateT (runExceptT f) (initParseState s)
 
 
 --------------------------------------------------------
---------------------------------------------------------
 ----------------------- Alex
 --------------------------------------------------------
+-- {{{
 
 getAlexInput :: ParseM AlexInput
 getAlexInput = gets alex_inp
@@ -99,7 +99,10 @@ getAlexStartCode = gets alex_scd
 setAlexStartCode:: Int -> ParseM ()
 setAlexStartCode sc = modify (\s -> s{alex_scd=sc})
 
-
+-- {{{2
+--
+--
+-- 22}}}
 
 pushStrC :: Char -> ParseM ()
 pushStrC c = modify (\s -> s{alex_str = c:alex_str s})
@@ -125,16 +128,16 @@ getLastNewLine = gets last_new_line
 setLastNewLine :: Bool -> ParseM ()
 setLastNewLine b = modify (\s -> s{last_new_line = b})
 
---------------------------------------------------------
---------------------------------------------------------
+--}}}
 --------------------------------------------------------
 
 
 -----------------------------------------------
 ----------------------- SYM TABLE
------------------------------------------------
+----------------------------------------------- {{{1
 
 ---------------------- ScopeStack
+--{{{2
 stateScopeStackTop :: ParseM Scope
 stateScopeStackTop = head <$> (gets state_ScopeStack)
 
@@ -145,9 +148,10 @@ stateScopeStackPop = modify
 stateScopeStackPush :: Scope -> ParseM ()
 stateScopeStackPush sc = modify
       (\s -> s{state_ScopeStack = sc:(state_ScopeStack s)})
-
+--}}}
 
 ------------------- ScopeSet
+-- {{{2
 stateScopesMember :: Scope -> ParseM Bool
 stateScopesMember sc = (scopeSetMember sc) <$> (gets state_ScopeSet)
 
@@ -176,7 +180,7 @@ stateEndScope = do
   --liftIO $ putStrLn $ "Exit Scope: " ++ show topScope
   stateScopeStackPop
   stateScopesDelete topScope
-
+--}}}
 
 
 
@@ -244,3 +248,4 @@ insertFunctionSym sym@(FuncSym scp id _ (OKFunc prms ret) argsId) = do
     sameParams l (FuncSym _ _ _ (OKFunc prms _) _) = l==prms
     sameParms _ _ = False
 
+--}}}
