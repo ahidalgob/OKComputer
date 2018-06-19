@@ -1,11 +1,13 @@
+
+
 OKC: Lexer Parser
-	ghc -i./LexerAndParser --make OKC
+	ghc -i./src:./src/LexerAndParser:./src/OKMonad --make OKC
 
-Lexer: LexerAndParser/Lexer.x
-	alex LexerAndParser/Lexer.x
+Lexer: src/LexerAndParser/Lexer.x
+	alex src/LexerAndParser/Lexer.x
 
-Parser: LexerAndParser/Parser.y
-	happy LexerAndParser/Parser.y
+Parser: src/LexerAndParser/Parser.y
+	happy src/LexerAndParser/Parser.y
 
 clean:
 	-rm -f *.hi

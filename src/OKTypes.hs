@@ -1,16 +1,16 @@
 module OKTypes where
 type Id = String
 
-data OKType = OKPointer {pointerType::OKType}
+data OKType = OKPointer {pointer_Type::OKType}
             | OKVoid
-            | OKFunc {funcParamTypes::[OKType], funcRetType::OKType}
+            | OKFunc {func_ParamTypes::[OKType], func_RetType::OKType}
             | OKBoolean
             | OKInt
             | OKFloat
             | OKChar
             | OKString
             | OKNameType Id
-            | OKArray {arraySize::Int, arrayType::OKType}
+            | OKArray {array_Size::Int, array_Type::OKType}
             | OKTuple [OKType]
             | OKList OKType
 

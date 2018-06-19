@@ -1,5 +1,7 @@
 *.swp
 *.hi
 *.o
+*.info
+OKC
 Lexer.hs
 Parser.hs

@@ -30,19 +30,17 @@ data DECLARATIONTYPEN = DECTYPEN1 ID2N EXPRESSIONN |
 data ID2N = IDNORMALN String |
       IDARRAYN String EXPRESSIONN deriving Show
 
-data INSTRUCTIONN = GOINGN [PRINTN]                                                    |
-          GOINGSLOWLYN [PRINTN]                                                        |
-          GOINGMENTALN [PRINTN]                                                        |
-          READMYMINDN [SymId]                                                           |
-          AMNESIACN String                                                             |
-          IFN EXPRESSIONN [INSTRUCTIONN] IFELSEN                                       |
-          CANTSTOPN EXPRESSIONN [INSTRUCTIONN]                                         |
+data INSTRUCTIONN = GOINGN [PRINTN]                                         |
+          GOINGSLOWLYN [PRINTN]                                             |
+          GOINGMENTALN [PRINTN]                                             |
+          READMYMINDN [SymId]                                               |
+          AMNESIACN String                                                  |
+          IFN EXPRESSIONN [INSTRUCTIONN] IFELSEN                            |
+          CANTSTOPN EXPRESSIONN [INSTRUCTIONN]                              |
           ONEMORETIMEN [EXPRESSIONN] EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
-          --ONEMORETIMEN OKType String EXPRESSIONN EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
-          GETBACKN EXPRESSIONN                                                         |
-          BREAKTHRUN                                                                   |
-          EXITMUSICN                                                                   |
-        --DECLARATIONNINST DECLARATIONN                                                |
+          GETBACKN EXPRESSIONN                                              |
+          BREAKTHRUN                                                        |
+          EXITMUSICN                                                        |
           EXPRESSIONNINST EXPRESSIONN
           deriving Show
 

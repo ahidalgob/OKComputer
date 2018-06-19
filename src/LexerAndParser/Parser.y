@@ -279,14 +279,14 @@ NONEMPTYLVALS : NONEMPTYLVALS ',' LVAL    { $3 : $1 }
 
 -- Things that can evaluate to array:
 -- id, struct.member
-ARRAYPOSITION : EXPRESSION '[' EXPRESSION ']'                   { ARRAYPOSN $1 $3 (arrayType.expType $ $1)} -- TODO Check E1 type for array
+ARRAYPOSITION : EXPRESSION '[' EXPRESSION ']'                   { ARRAYPOSN $1 $3 (array_Type.expType $ $1)} -- TODO Check E1 type for array
 
                                                                     --TODO find type of E1, has to be a record, add its scope in the dot, look id, pop scope
 EXPRESSIONSTRUCT : EXPRESSION '.' id                            { EXPRESSIONSTRUCTN $1 (tknString $3) (expType $1)}
 
 FUNCTIONCALL : id '(' EXPRESSIONS ')'                                {%
                                                     do  sym <- stateFindSym (tknString $1) (tknPos $1)
-                                                        return $ FUNCTIONCALLN (tknString $1) $3 (funcRetType.sym_type $ sym)}
+                                                        return $ FUNCTIONCALLN (tknString $1) $3 (func_RetType.sym_type $ sym)}
 
 MAYBELINE : {- empty -}                   { }
           | newline                       { }
@@ -296,7 +296,7 @@ MAYBELINE : {- empty -}                   { }
 addToSymTable :: OKType -> Id -> Pos -> ParseM ()
 addToSymTable t id pos = do
         scope <- stateScopeStackTop
-        stateInsertSym $ Sym scope id pos t [] -- TODO real symbol (type...)
+        stateInsertSym $ Sym scope id pos t -- TODO real symbol (type...)
 
 
 
@@ -308,7 +308,7 @@ functionSignAction tkn params ret = do
         let oktype = OKFunc (map param_type params) ret
             id = tknString tkn
             pos = tknPos tkn
-        stateInsertSym $ Sym 1 id pos oktype [] --TODO we need to save the list of the param names
+        stateInsertSym $ FuncSym 1 id pos oktype [] --TODO we need to save the list of the param names
         return (tkn, params, ret)
 
 functionParameterAction :: OKType -> Token -> ParseM Parameter

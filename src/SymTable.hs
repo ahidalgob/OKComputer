@@ -34,15 +34,20 @@ scopeSetInsert = S.insert
 data Sym = Sym{ sym_scope :: Scope,
                 sym_Id :: Id,
                 sym_pos :: Pos, -- declaration position
+                sym_type :: OKType
+           }
+          | FuncSym{ sym_scope :: Scope,
+                sym_Id :: Id,
+                sym_pos :: Pos, -- declaration position
                 sym_type :: OKType,
-                sym_info :: [SymId]
+                sym_argsId :: [SymId]
+                --sym_AST :: [INSTRUCTIONN]
            }
           | ErrorSym {
                 sym_scope :: Scope,
                 sym_Id :: Id,
                 sym_pos :: Pos, -- declaration position
-                sym_type :: OKType,
-                sym_info :: [SymId]
+                sym_type :: OKType
             } deriving Show
 
 

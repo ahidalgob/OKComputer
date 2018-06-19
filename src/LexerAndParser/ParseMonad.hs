@@ -9,6 +9,7 @@ import Control.Monad.Except
 
 import Data.List(find)
 
+{-
 # 1 "/usr/include/stdc-predef.h" 1 3 4
 # 17 "/usr/include/stdc-predef.h" 3 4
 {-# LINE 9 "<command-line>" #-}
@@ -17,6 +18,7 @@ import Data.List(find)
 {-# LINE 1 "/tmp/ghc9791_0/ghc_2.h" #-}
 {-# LINE 9 "<command-line>" #-}
 {-# LINE 1 "templates/wrappers.hs" #-}
+-}
 -- -----------------------------------------------------------------------------
 
 import Data.Char (ord)
@@ -79,9 +81,10 @@ type ParseM a = ExceptT ParseMError (StateT ParseState IO) a
 runParseM :: ParseM a -> String -> IO(Either ParseMError a, ParseState)
 runParseM f s = runStateT (runExceptT f) (initParseState s)
 
+
 --------------------------------------------------------
 --------------------------------------------------------
---------------------------------------------------------
+----------------------- Alex
 --------------------------------------------------------
 
 getAlexInput :: ParseM AlexInput
@@ -223,7 +226,7 @@ insertNonFunctionSym sym = do
 
 
 insertFunctionSym :: Sym -> ParseM ()
-insertFunctionSym sym@(Sym scp id _ (OKFunc prms ret) []) = do
+insertFunctionSym sym@(FuncSym scp id _ (OKFunc prms ret) argsId) = do
   maybeList <- (symTableLookUp id) <$> (gets state_SymTable)
   symTable <- gets state_SymTable
   case maybeList of
@@ -238,6 +241,6 @@ insertFunctionSym sym@(Sym scp id _ (OKFunc prms ret) []) = do
                   modify (\s -> s{state_SymTable = newSymTable})
   where
     sameParms :: [OKType] -> Sym -> Bool
-    sameParams l (Sym _ _ _ (OKFunc prms _) []) = l==prms
+    sameParams l (FuncSym _ _ _ (OKFunc prms _) _) = l==prms
     sameParms _ _ = False
 
