@@ -3,15 +3,16 @@
 
 {
 module Parser where
-import Lexer
+
 import LowLevelAlex
-import ParseMonad
 import Tokens
-import Control.Monad.Except
+import Lexer
+import ParseMonad
 import AST
 import SymTable
 import OKTypes
 
+import Control.Monad.Except
 import Data.Maybe
 }
 
@@ -21,6 +22,8 @@ import Data.Maybe
 %error { (throwError . ParseError . show) }
 %lexer { lexwrap }{ EOFTkn }
 
+-- Tokens
+-- {{{1
 %token
   youbegin                                { YouBeginTkn _ }        -- Block Start
   whereiend                               { WhereIEndTkn _ }       -- Block End
@@ -92,6 +95,8 @@ import Data.Maybe
   newline                                 { NewLineTkn _ }
   c                                       { LiteralCharTkn _ _ } -- char
   string                                  { StringTkn _ _ }
+
+-- 1}}}
 
 -- TODO:
 -- duets or tuples in general.
@@ -298,8 +303,8 @@ addToSymTable t id pos = do
         scope <- stateScopeStackTop
         stateInsertSym $ Sym scope id pos t -- TODO real symbol (type...)
 
-
-
+-- Actions
+-- {{{1
 functionDefAction :: (Token, [Parameter], OKType) -> [INSTRUCTIONN] -> ParseM FUNCTIONINICN
 functionDefAction (tkn, prms, ret) instrs = return $ FUNCTIONINICN (tknString tkn) prms ret instrs
 
@@ -353,7 +358,10 @@ ifYouHaveToAskAction tkn condition blk ifelse = do
           checkExpectedType (tknPos tkn) OKBoolean (expType condition)
           return $ IFASKN condition blk ifelse
 
+--- 1}}}
 
+-- Type Checking
+-- {{{1
 checkExpectedType :: Pos -> OKType -> OKType -> ParseM OKType
 checkExpectedType pos oktype found = do
     case found of
@@ -404,7 +412,10 @@ checkAndGetPointerType (line, _) OKErrorT = return OKErrorT
 checkAndGetPointerType (line, _) (OKPointer t) = return t
 checkAndGetPointerType (line, _) t = throwNotPointerType line t
 
+-- 1}}}
 
+-- Errors (Horrors)
+-- {{{1
 throwDifferentTypeError line t1 t2 = do
     liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected same type, found " ++ show t1 ++ " and " ++ show t2 ++ "."
     return OKErrorT
@@ -429,6 +440,8 @@ throwNotIntType line t1 t2 = do
 throwNotPointerType line t = do
     liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected pointer value, found " ++ show t ++ "."
     return OKErrorT
+
+--- 1}}}
 
 lexwrap :: (Token -> ParseM a) -> ParseM a
 lexwrap cont = do

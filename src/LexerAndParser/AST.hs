@@ -10,25 +10,12 @@ data IMPORTN = IMPORTN [Id] deriving Show -- TODO SymId
 data OUTSIDEN =
         OUTFUNCTIONINIC FUNCTIONINICN | -- |
         OUTASSIGN [EXPRESSIONN] -- All the expressions are assigns
---        OUTDEFINE DEFINESTRUCTN
           deriving Show
 
 data FUNCTIONINICN =
         FUNCTIONINICN Id [Parameter] OKType [INSTRUCTIONN] deriving Show -- TODO SymId
 
 data Parameter = Parameter{param_type :: OKType, paramId :: SymId} deriving Show -- TODO Should we save this on the AST? It's basically the same as a
-                                                      -- declaration
--- data DECLARATIONN = DECLARATIONN OKType [DECLARATIONTYPEN] deriving Show
-
-data DECLARATIONTYPEN = DECTYPEN1 ID2N EXPRESSIONN |
-            DECTYPEN2 ID2N
-            -- ID2N DECLARATIONTYPEN
-            deriving Show
-
--- Can be empty
---data ID2N = ID2N deriving Show
-data ID2N = IDNORMALN String |
-      IDARRAYN String EXPRESSIONN deriving Show
 
 data INSTRUCTIONN = GOINGN [PRINTN]                                         |
           GOINGSLOWLYN [PRINTN]                                             |
@@ -44,56 +31,38 @@ data INSTRUCTIONN = GOINGN [PRINTN]                                         |
           EXPRESSIONNINST EXPRESSIONN
           deriving Show
 
---data BLOCKN = BLOCKN [INSIDEFUNCTIONN] deriving Show
-
---data INSIDEFUNCTIONN = INSIDEINSTRN INSTRUCTIONN |
---                       INSIDEDECN String
---                       deriving Show
-
 data IFELSEN = IFELSEVOID                              |
          IFASKN EXPRESSIONN [INSTRUCTIONN] IFELSEN     |
          OTHERSIDEN [INSTRUCTIONN]
          deriving Show
 
--- Probablemente un detallito aca
---data PRINTN =   PRINTSTRINGS String PRINTN             |
---        PRINTSTRING String
---        deriving Show
 
 data PRINTN =   PRINTSTRING EXPRESSIONN
         deriving Show
 
-{-
-data DEFINESTRUCTN = BANDN String LDECLARATIONSN       |
-           UNIONN String LDECLARATIONSN                |
-           DEFINESTRUCTN
-           deriving Show
 
-data LDECLARATIONSN = REC1 LDECLARATIONSN DECLARATIONN |
-            REC2 DECLARATIONN deriving Show
--}
-
-data EXPRESSIONN = IDEXPRESSION {expId::SymId, expType::OKType}                                       |
-                   NUMBEREXPN {expVal::String, expType::OKType}                                       |
-                   STRINGEXPN {expVal::String, expType::OKType}                                       |
-                   CHAREXPN {expChar::Char, expType::OKType}                                          |
-                   BOOLEANEXPN {expBooleanVal::Bool, expType::OKType}                                 |
-                   PARENTESISN {expExp::EXPRESSIONN, expType::OKType}                                 |
-                   COMPARN {expExp1::EXPRESSIONN, expComp::String, expExp2::EXPRESSIONN, expType::OKType}                  |
-                   NOTN {expExp::EXPRESSIONN, expType::OKType}                                        |
-                   LOGICN {expExp1::EXPRESSIONN, expOp::String, expExp2::EXPRESSIONN, expType::OKType}                   |
-                   MINUSN {expExp::EXPRESSIONN, expType::OKType}                                      |
-                   ARITN {expExp1::EXPRESSIONN, expOp::String, expExp2::EXPRESSIONN, expType::OKType} |
-                   ARRAYPOSN {expExp::EXPRESSIONN, expExpIn::EXPRESSIONN, expType::OKType}            |
-                   EXPRESSIONSTRUCTN {expExp::EXPRESSIONN, expName::String, expType::OKType}          |
-                   FUNCTIONCALLN {expFuncName::String, expArgs::[EXPRESSIONN], expType::OKType}       |
-                   NEWLIFEN {expExp::EXPRESSIONN, expType::OKType}                                    |
-                   POINTERN {expExp::EXPRESSIONN, expType::OKType}                                    |
+data EXPRESSIONN = IDEXPRESSION {expId::SymId, expType::OKType}                                           |
+                   NUMBEREXPN {expVal::String, expType::OKType}                                           |
+                   STRINGEXPN {expVal::String, expType::OKType}                                           |
+                   CHAREXPN {expChar::Char, expType::OKType}                                              |
+                   BOOLEANEXPN {expBooleanVal::Bool, expType::OKType}                                     |
+                   PARENTESISN {expExp::EXPRESSIONN, expType::OKType}                                     |
+                   COMPARN {expExp1::EXPRESSIONN, expComp::String, expExp2::EXPRESSIONN, expType::OKType} |
+                   NOTN {expExp::EXPRESSIONN, expType::OKType}                                            |
+                   LOGICN {expExp1::EXPRESSIONN, expOp::String, expExp2::EXPRESSIONN, expType::OKType}    |
+                   MINUSN {expExp::EXPRESSIONN, expType::OKType}                                          |
+                   ARITN {expExp1::EXPRESSIONN, expOp::String, expExp2::EXPRESSIONN, expType::OKType}     |
+                   ARRAYPOSN {expExp::EXPRESSIONN, expExpIn::EXPRESSIONN, expType::OKType}                |
+                   EXPRESSIONSTRUCTN {expExp::EXPRESSIONN, expName::String, expType::OKType}              |
+                   FUNCTIONCALLN {expFuncName::String, expArgs::[EXPRESSIONN], expType::OKType}           |
+                   NEWLIFEN {expExp::EXPRESSIONN, expType::OKType}                                        |
+                   POINTERN {expExp::EXPRESSIONN, expType::OKType}                                        |
                    ASSIGNN {expId::SymId, expExp::EXPRESSIONN, expType::OKType}
                    deriving Show
 
---data IDEXPRESSION = IDEXPRESSIONN String deriving Show
 
+-- Print
+-- {{{1
 ident = "|  "
 
 putStrWithIdent n s = (replicateM_ n $ putStr ident) >> putStr s
@@ -341,3 +310,5 @@ printPrints :: Int -> PRINTN -> IO()
 printPrints n (PRINTSTRING printable) = do
   putStrLnWithIdent n "Printable: "
   printExpN (n+2) printable
+
+--- 1}}}
