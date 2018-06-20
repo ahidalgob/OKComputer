@@ -11,6 +11,7 @@ import ParseMonad (ParseM, ParseMError(..))
 import qualified ParseMonad as P
 import AST
 import SymTable
+import Scope
 import OKTypes
 
 import Control.Monad.Except
@@ -142,11 +143,11 @@ IDS : IDS ',' id                             { (tknString $3):$1 }
 
 
 OUTSIDEFUNCTION :: { [OUTSIDEN] }
-OUTSIDEFUNCTION : FUNCTIONDEF OUTSIDEFUNCTION            { (OUTFUNCTIONINIC $1):$2 }
+OUTSIDEFUNCTION : FUNCTIONDEF OUTSIDEFUNCTION            { $2 }
                 | DECLARATION newline OUTSIDEFUNCTION     { (OUTASSIGN $1):$3 }
                 | {- empty -}                             { [] }
 
-FUNCTIONDEF :: { FUNCTIONINICN }
+FUNCTIONDEF :: { () }
 FUNCTIONDEF : FUNCTIONSIGN BLOCK {% functionDefAction $1 $2}
 
 FUNCTIONSIGN :: { (Token, [Parameter], OKType) }
@@ -310,15 +311,19 @@ addToSymTable t id pos = do
 
 -- Actions
 -- {{{1
-functionDefAction :: (Token, [Parameter], OKType) -> [INSTRUCTIONN] -> ParseM FUNCTIONINICN
-functionDefAction (tkn, prms, ret) instrs = return $ FUNCTIONINICN (tknString tkn) prms ret instrs
+functionDefAction :: (Token, [Parameter], OKType) -> [INSTRUCTIONN] -> ParseM ()
+functionDefAction (tkn, params, ret) instrs = do
+        let oktype = OKFunc (map param_type params) ret
+        P.completeFunctionDef tkn oktype instrs
+        return ()
 
 functionSignAction :: Token -> [Parameter] -> OKType -> ParseM (Token, [Parameter], OKType)
 functionSignAction tkn params ret = do
         let oktype = OKFunc (map param_type params) ret
             id = tknString tkn
             pos = tknPos tkn
-        P.insertSym $ FuncSym 1 id pos oktype [] --TODO we need to save the list of the param names
+            param_ids = map param_id params
+        P.insertSym $ FuncSym 1 id pos oktype param_ids []
         return (tkn, params, ret)
 
 functionParameterAction :: OKType -> Token -> ParseM Parameter

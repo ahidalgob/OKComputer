@@ -1,8 +1,11 @@
 module ParseMonad where
 import Tokens
 import LowLevelAlex
+
+import AST
 import SymTable
 import OKTypes
+import Scope
 
 import Control.Monad.State.Lazy
 import Control.Monad.Except
@@ -231,7 +234,7 @@ insertNonFunctionSym sym = do
 
 
 insertFunctionSym :: Sym -> ParseM ()
-insertFunctionSym sym@(FuncSym scp id _ (OKFunc prms ret) argsId) = do
+insertFunctionSym sym@(FuncSym scp id _ (OKFunc prms ret) argsId instrs) = do
   maybeList <- (symTableLookUp id) <$> (gets state_SymTable)
   symTable <- gets state_SymTable
   case maybeList of
@@ -246,7 +249,13 @@ insertFunctionSym sym@(FuncSym scp id _ (OKFunc prms ret) argsId) = do
                   modify (\s -> s{state_SymTable = newSymTable})
   where
     sameParms :: [OKType] -> Sym -> Bool
-    sameParams l (FuncSym _ _ _ (OKFunc prms _) _) = l==prms
+    sameParams l (FuncSym _ _ _ (OKFunc prms _) _ _) = l==prms
     sameParms _ _ = False
+
+
+
+-- TODO
+completeFunctionDef :: Token -> OKType -> [INSTRUCTIONN] -> ParseM ()
+completeFunctionDef = undefined
 
 --}}}

@@ -1,5 +1,5 @@
 module AST where
-import SymTable(SymId)
+import Scope
 import OKTypes
 import Control.Monad
 
@@ -8,14 +8,14 @@ data STARTN = STARTN [IMPORTN] [OUTSIDEN] deriving Show
 data IMPORTN = IMPORTN [Id] deriving Show -- TODO SymId
 
 data OUTSIDEN =
-        OUTFUNCTIONINIC FUNCTIONINICN | -- |
         OUTASSIGN [EXPRESSIONN] -- All the expressions are assigns
           deriving Show
 
+{-
 data FUNCTIONINICN =
         FUNCTIONINICN Id [Parameter] OKType [INSTRUCTIONN] deriving Show -- TODO SymId
-
-data Parameter = Parameter{param_type :: OKType, paramId :: SymId} deriving Show -- TODO Should we save this on the AST? It's basically the same as a
+-}
+data Parameter = Parameter{param_type :: OKType, param_id :: SymId} deriving Show -- TODO Should we save this on the AST? It's basically the same as a
 
 data INSTRUCTIONN = GOINGN [PRINTN]                                         |
           GOINGSLOWLYN [PRINTN]                                             |
@@ -168,15 +168,17 @@ printImportN n (IMPORTN ids) = do
   mapM_ (printId (n+1)) ids
 
 printOutsideListN :: Int -> OUTSIDEN -> IO()
+{-
 printOutsideListN n (OUTFUNCTIONINIC funciones) = do
   putStrLnWithIdent n "Function declared: "
   printFuncInic (n+1) funciones
+-}
 
 printOutsideListN n (OUTASSIGN exps) = do
   putStrLnWithIdent n "Global assigns: "
   mapM_ (printExpN (n+1)) exps
 
-
+{-
 printFuncInic :: Int -> FUNCTIONINICN -> IO()
 printFuncInic n (FUNCTIONINICN funcid parameters rtype instructions) = do
   putStrLnWithIdent n "Function ID: "
@@ -187,6 +189,7 @@ printFuncInic n (FUNCTIONINICN funcid parameters rtype instructions) = do
   printOKType (n+1) rtype
   putStrLnWithIdent n "Instructions list: "
   mapM_ (printInstruction (n+1)) instructions
+-}
 
 printParameter :: Int -> Parameter -> IO()
 printParameter n (Parameter oktyp okid) = do

@@ -1,32 +1,10 @@
 module SymTable where
 import LowLevelAlex
+import Scope
 import OKTypes
+import AST
 import qualified Data.HashMap.Strict as H
-import qualified Data.Set as S
 
-type Scope = Int
-type SymId = (Id, Scope)
-
-type ScopeStack = [Scope]
-emptyScopeStack :: ScopeStack
-emptyScopeStack = [1,0]
-
-----------------------------------
------------Scope Set--------------
-----------------------------------
-type ScopeSet = S.Set Scope
-
-emptyScopeSet :: ScopeSet
-emptyScopeSet = (S.insert 1).(S.insert 0) $ S.empty
-
-scopeSetMember :: Scope -> ScopeSet -> Bool
-scopeSetMember = S.member
-
-scopeSetDelete :: Scope -> ScopeSet -> ScopeSet
-scopeSetDelete = S.delete
-
-scopeSetInsert :: Scope -> ScopeSet -> ScopeSet
-scopeSetInsert = S.insert
 
 ----------------------------------
 -------------Symbols--------------
@@ -40,8 +18,8 @@ data Sym = Sym{ sym_scope :: Scope,
                 sym_Id :: Id,
                 sym_pos :: Pos, -- declaration position
                 sym_type :: OKType,
-                sym_argsId :: [SymId]
-                --sym_AST :: [INSTRUCTIONN]
+                sym_argsId :: [SymId],
+                sym_AST :: [INSTRUCTIONN]
            }
           | ErrorSym {
                 sym_scope :: Scope,
