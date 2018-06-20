@@ -134,74 +134,75 @@ setLastNewLine b = modify (\s -> s{last_new_line = b})
 
 -----------------------------------------------
 ----------------------- SYM TABLE
------------------------------------------------ {{{1
+-----------------------------------------------
+-- {{{1
 
 ---------------------- ScopeStack
 --{{{2
-stateScopeStackTop :: ParseM Scope
-stateScopeStackTop = head <$> (gets state_ScopeStack)
+topScope :: ParseM Scope
+topScope = head <$> (gets state_ScopeStack)
 
-stateScopeStackPop :: ParseM ()
-stateScopeStackPop = modify
+popScope :: ParseM ()
+popScope = modify
       (\s -> s{state_ScopeStack = tail (state_ScopeStack s)})
 
-stateScopeStackPush :: Scope -> ParseM ()
-stateScopeStackPush sc = modify
+pushScope :: Scope -> ParseM ()
+pushScope sc = modify
       (\s -> s{state_ScopeStack = sc:(state_ScopeStack s)})
 --}}}
 
 ------------------- ScopeSet
 -- {{{2
-stateScopesMember :: Scope -> ParseM Bool
-stateScopesMember sc = (scopeSetMember sc) <$> (gets state_ScopeSet)
+scopesMember :: Scope -> ParseM Bool
+scopesMember sc = (scopeSetMember sc) <$> (gets state_ScopeSet)
 
-stateScopesInsert :: Scope -> ParseM ()
-stateScopesInsert sc = do
+insertScope :: Scope -> ParseM ()
+insertScope sc = do
   set <- gets state_ScopeSet
   modify (\s -> s{state_ScopeSet = scopeSetInsert sc set})
 
-stateScopesDelete :: Scope -> ParseM ()
-stateScopesDelete sc = do
+deleteScope :: Scope -> ParseM ()
+deleteScope sc = do
   set <- gets state_ScopeSet
   modify (\s -> s{state_ScopeSet = scopeSetDelete sc set})
 
+--}}}
 
-stateBeginScope :: ParseM ()
-stateBeginScope = do
+beginScope :: ParseM ()
+beginScope = do
   nextScope <- gets state_NextScope
   --liftIO $ putStrLn $ "Enter Scope: " ++ show nextScope
-  stateScopeStackPush nextScope
-  stateScopesInsert nextScope
+  pushScope nextScope
+  insertScope nextScope
   modify (\s -> s{state_NextScope = nextScope+1})
 
-stateEndScope :: ParseM ()
-stateEndScope = do
-  topScope <- stateScopeStackTop
+endScope :: ParseM ()
+endScope = do
+  topScope <- topScope
   --liftIO $ putStrLn $ "Exit Scope: " ++ show topScope
-  stateScopeStackPop
-  stateScopesDelete topScope
---}}}
+  popScope
+  deleteScope topScope
 
 
 
 -- Find the first symbol scope of the list such that the scope is active
-stateFindSymScope :: Id -> Pos -> ParseM Scope
-stateFindSymScope id pos = (sym_scope <$> stateFindSym id pos)
+findSymScope :: Id -> Pos -> ParseM Scope
+findSymScope id pos = (sym_scope <$> findSym id pos)
                       `catchError` catchIdNotFound
 
 
 -- Finds all the symbols associated with an Id
-stateFindAllSyms :: Id -> Pos -> ParseM [Sym]
-stateFindAllSyms id pos = do
+findAllSyms :: Id -> Pos -> ParseM [Sym]
+findAllSyms id pos = do
   maybeList <- (symTableLookUp id) <$> (gets state_SymTable)
   case maybeList of
        Nothing -> throwError (IdNotFound id pos)
        Just syms -> return syms
 
 -- Finds the first symbol on the list of the give Id such that its scope is active
-stateFindSym :: Id -> Pos -> ParseM Sym
-stateFindSym id pos = do
-  l <- stateFindAllSyms id pos `catchError` (\_ -> return [])
+findSym :: Id -> Pos -> ParseM Sym
+findSym id pos = do
+  l <- findAllSyms id pos `catchError` (\_ -> return [])
   activeScopes <- gets state_ScopeSet
   case find (scopeIsIn activeScopes) l of
        Nothing -> throwError (IdNotInScope id pos)
@@ -211,14 +212,14 @@ stateFindSym id pos = do
     scopeIsIn ss sym = scopeSetMember (sym_scope sym) ss
 
 --
-stateInsertSym :: Sym -> ParseM ()
-stateInsertSym sym = case sym_type sym of
+insertSym :: Sym -> ParseM ()
+insertSym sym = case sym_type sym of
                           OKFunc _ _ -> insertFunctionSym sym
                           _ -> insertNonFunctionSym sym
 
 insertNonFunctionSym :: Sym -> ParseM ()
 insertNonFunctionSym sym = do
-  prevScope <- (sym_scope <$> stateFindSym (sym_Id sym) (0,0))
+  prevScope <- (sym_scope <$> findSym (sym_Id sym) (0,0))
                 `catchError` (\_ -> return (-1))
   case prevScope == (sym_scope sym) of
        True -> catchAlreadyDefinedInScope (AlreadyDefinedInScope sym)

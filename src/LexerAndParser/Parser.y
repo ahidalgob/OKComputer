@@ -7,7 +7,8 @@ module Parser where
 import LowLevelAlex
 import Tokens
 import Lexer
-import ParseMonad
+import ParseMonad (ParseM, ParseMError(..))
+import qualified ParseMonad as P
 import AST
 import SymTable
 import OKTypes
@@ -120,6 +121,9 @@ import Data.Maybe
 
 -- TODO
 -- unary minus sign
+
+-- Grammar
+-- {{{1
 %%
 START :: { STARTN }
 START : IMPORTS OUTSIDEFUNCTION         { STARTN (reverse $1) $2 }
@@ -168,9 +172,9 @@ BLOCK :: { [INSTRUCTIONN] }
 BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION END                    { reverse $4 }
       -- | MAYBELINE INSTRUCTION                                           { [] } -- TODO
 
-BEGIN : {- empty -}                                                       {% stateBeginScope }
+BEGIN : {- empty -}                                                       {% P.beginScope }
 
-END : whereiend                                                           {% stateEndScope }
+END : whereiend                                                           {% P.endScope }
 
 INSIDEFUNCTION :: { [INSTRUCTIONN] }
 INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                             { $2:$1 }
@@ -228,7 +232,7 @@ PRINT : PRINT ',' EXPRESSION                     { (PRINTSTRING $3):($1)  }
 
 EXPRESSION :: { EXPRESSIONN }
 EXPRESSION : id {% do
-                    sym <- stateFindSym (tknString $1) (tknPos $1)
+                    sym <- P.findSym (tknString $1) (tknPos $1)
                     return $ IDEXPRESSION (tknString $1, sym_scope sym) (sym_type sym)}
            | n                          { NUMBEREXPN (tknString $1) OKFloat}
            | string                     { STRINGEXPN (tknString $1) OKString}
@@ -271,7 +275,7 @@ NONEMPTYEXPRESSIONS : NONEMPTYEXPRESSIONS ',' EXPRESSION        { $3 : $1 }
 -- Anything with L-Value: variables, record.member, array[position]...
 LVAL :: { SymId }
 LVAL : id                               {% do
-                                          scope <- stateFindSymScope (tknString $1) (tknPos $1)
+                                          scope <- P.findSymScope (tknString $1) (tknPos $1)
                                           return (tknString $1, scope)}
 
 LVALS :: { [SymId] }
@@ -290,18 +294,19 @@ ARRAYPOSITION : EXPRESSION '[' EXPRESSION ']'                   { ARRAYPOSN $1 $
 EXPRESSIONSTRUCT : EXPRESSION '.' id                            { EXPRESSIONSTRUCTN $1 (tknString $3) (expType $1)}
 
 FUNCTIONCALL : id '(' EXPRESSIONS ')'                                {%
-                                                    do  sym <- stateFindSym (tknString $1) (tknPos $1)
+                                                    do  sym <- P.findSym (tknString $1) (tknPos $1)
                                                         return $ FUNCTIONCALLN (tknString $1) $3 (func_RetType.sym_type $ sym)}
 
 MAYBELINE : {- empty -}                   { }
           | newline                       { }
 
+--- 1}}}
 {
 
 addToSymTable :: OKType -> Id -> Pos -> ParseM ()
 addToSymTable t id pos = do
-        scope <- stateScopeStackTop
-        stateInsertSym $ Sym scope id pos t -- TODO real symbol (type...)
+        scope <- P.topScope
+        P.insertSym $ Sym scope id pos t -- TODO real symbol (type...)
 
 -- Actions
 -- {{{1
@@ -313,12 +318,12 @@ functionSignAction tkn params ret = do
         let oktype = OKFunc (map param_type params) ret
             id = tknString tkn
             pos = tknPos tkn
-        stateInsertSym $ FuncSym 1 id pos oktype [] --TODO we need to save the list of the param names
+        P.insertSym $ FuncSym 1 id pos oktype [] --TODO we need to save the list of the param names
         return (tkn, params, ret)
 
 functionParameterAction :: OKType -> Token -> ParseM Parameter
 functionParameterAction oktype id = do
-                             scope <- stateScopeStackTop
+                             scope <- P.topScope
                              addToSymTable oktype (tknString id) (tknPos id)
                              return $ Parameter oktype (tknString id, scope)
 
@@ -332,9 +337,9 @@ declarationAction t l =
   where
     createAssign :: (Token, EXPRESSIONN) -> ParseM (EXPRESSIONN)
     createAssign (tkn, exp) = do
-            scope <- stateFindSymScope (tknString tkn) (tknPos tkn)
+            sym <- P.findSym (tknString tkn) (tknPos tkn)
             --TODO Checktype of Sym with type of exp
-            return $ ASSIGNN (tknString tkn, scope) exp (expType exp)
+            return $ ASSIGNN (tknString tkn, sym_scope sym) exp (expType exp)
 
 ifAction :: Token -> EXPRESSIONN -> [INSTRUCTIONN] -> IFELSEN -> ParseM INSTRUCTIONN
 ifAction tkn condition blk ifelse = do
