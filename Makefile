@@ -10,11 +10,11 @@ Parser: src/LexerAndParser/Parser.y
 	happy src/LexerAndParser/Parser.y
 
 clean:
-	-rm -f *.hi
-	-rm -f *.o
-	-rm -f LexerAndParser/*.hi
-	-rm -f LexerAndParser/*.o
-	-rm -f LexerAndParser/Lexer.hs
-	-rm -f LexerAndParser/Parser.hs
-	-rm -f LexerAndParser/*.info
+	# find . -type f -name "*.o" -exec rm "{}" +
+	# find . -type f -name "*.hi" -exec rm "{}" +
+	# find . -type f -name "*.info" -exec rm "{}" +
+	# pretentious:
+	find . -type f -regextype sed -regex ".*/*\.\(hi\|o\|info\)" -exec rm "{}" +
+	find . -type f -name "Lexer.hs" -exec rm "{}" +
+	find . -type f -name "Parser.hs" -exec rm "{}" +
 	-rm -f OKC
