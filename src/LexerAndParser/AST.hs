@@ -3,61 +3,60 @@ import Scope
 import OKTypes
 import Control.Monad
 
-data STARTN = STARTN [IMPORTN] [OUTSIDEN] deriving Show
+data START = START [IMPORT] [OUTSIDE] deriving Show
 
-data IMPORTN = IMPORTN [Id] deriving Show -- TODO SymId
+data IMPORT = IMPORT [Id] deriving Show -- TODO SymId
 
-data OUTSIDEN =
-        OUTASSIGN [EXPRESSIONN] -- All the expressions are assigns
+data OUTSIDE =
+        OUTASSIGN [EXPRESSION] -- All the expressions are assigns
           deriving Show
 
 {-
 data FUNCTIONINICN =
-        FUNCTIONINICN Id [Parameter] OKType [INSTRUCTIONN] deriving Show -- TODO SymId
+        FUNCTIONINICN Id [Parameter] OKType [INSTRUCTION] deriving Show -- TODO SymId
 -}
 data Parameter = Parameter{param_type :: OKType, param_id :: SymId} deriving Show -- TODO Should we save this on the AST? It's basically the same as a
 
-data INSTRUCTIONN = GOINGN [PRINTN]                                         |
-          GOINGSLOWLYN [PRINTN]                                             |
-          GOINGMENTALN [PRINTN]                                             |
-          READMYMINDN [SymId]                                               |
-          AMNESIACN String                                                  |
-          IFN EXPRESSIONN [INSTRUCTIONN] IFELSEN                            |
-          CANTSTOPN EXPRESSIONN [INSTRUCTIONN]                              |
-          ONEMORETIMEN [EXPRESSIONN] EXPRESSIONN EXPRESSIONN [INSTRUCTIONN] |
-          GETBACKN EXPRESSIONN                                              |
-          BREAKTHRUN                                                        |
-          EXITMUSICN                                                        |
-          EXPRESSIONNINST EXPRESSIONN
+data INSTRUCTION = GOING [PRINT]                                         |
+          GOINGSLOWLY [PRINT]                                             |
+          GOINGMENTAL [PRINT]                                             |
+          READMYMIND [SymId]                                               |
+          AMNESIAC String                                                  |
+          IF EXPRESSION [INSTRUCTION] IFELSE                            |
+          CANTSTOP EXPRESSION [INSTRUCTION]                              |
+          ONEMORETIME [EXPRESSION] EXPRESSION EXPRESSION [INSTRUCTION] |
+          GETBACK EXPRESSION                                              |
+          BREAKTHRU                                                        |
+          EXITMUSIC                                                        |
+          EXPRESSIONINST EXPRESSION
           deriving Show
 
-data IFELSEN = IFELSEVOID                              |
-         IFASKN EXPRESSIONN [INSTRUCTIONN] IFELSEN     |
-         OTHERSIDEN [INSTRUCTIONN]
+data IFELSE = IFELSEVOID                              |
+         IFASK EXPRESSION [INSTRUCTION] IFELSE     |
+         OTHERSIDE [INSTRUCTION]
          deriving Show
 
 
-data PRINTN =   PRINTSTRING EXPRESSIONN
+data PRINT =   PRINTSTRING EXPRESSION
         deriving Show
 
 
-data EXPRESSIONN = IDEXPRESSION {expId::SymId, expType::OKType}                                           |
-                   NUMBEREXPN {expVal::String, expType::OKType}                                           |
-                   STRINGEXPN {expVal::String, expType::OKType}                                           |
-                   CHAREXPN {expChar::Char, expType::OKType}                                              |
-                   BOOLEANEXPN {expBooleanVal::Bool, expType::OKType}                                     |
-                   PARENTESISN {expExp::EXPRESSIONN, expType::OKType}                                     |
-                   COMPARN {expExp1::EXPRESSIONN, expComp::String, expExp2::EXPRESSIONN, expType::OKType} |
-                   NOTN {expExp::EXPRESSIONN, expType::OKType}                                            |
-                   LOGICN {expExp1::EXPRESSIONN, expOp::String, expExp2::EXPRESSIONN, expType::OKType}    |
-                   MINUSN {expExp::EXPRESSIONN, expType::OKType}                                          |
-                   ARITN {expExp1::EXPRESSIONN, expOp::String, expExp2::EXPRESSIONN, expType::OKType}     |
-                   ARRAYPOSN {expExp::EXPRESSIONN, expExpIn::EXPRESSIONN, expType::OKType}                |
-                   EXPRESSIONSTRUCTN {expExp::EXPRESSIONN, expName::String, expType::OKType}              |
-                   FUNCTIONCALLN {expFuncName::String, expArgs::[EXPRESSIONN], expType::OKType}           |
-                   NEWLIFEN {expExp::EXPRESSIONN, expType::OKType}                                        |
-                   POINTERN {expExp::EXPRESSIONN, expType::OKType}                                        |
-                   ASSIGNN {expId::SymId, expExp::EXPRESSIONN, expType::OKType}
+data EXPRESSION = IDEXPRESSION {expId::SymId, exp_type::OKType}                                           |
+                   NUMBEREXP {expVal::String, exp_type::OKType}                                           |
+                   STRINGEXP {expVal::String, exp_type::OKType}                                           |
+                   CHAREXP {expChar::Char, exp_type::OKType}                                              |
+                   BOOLEANEXP {expBooleanVal::Bool, exp_type::OKType}                                     |
+                   COMPAR {expExp1::EXPRESSION, expComp::String, expExp2::EXPRESSION, exp_type::OKType} |
+                   NOT {expExp::EXPRESSION, exp_type::OKType}                                            |
+                   LOGIC {expExp1::EXPRESSION, expOp::String, expExp2::EXPRESSION, exp_type::OKType}    |
+                   MINUS {expExp::EXPRESSION, exp_type::OKType}                                          |
+                   ARIT {expExp1::EXPRESSION, expOp::String, expExp2::EXPRESSION, exp_type::OKType}     |
+                   ARRAYPOS {expExp::EXPRESSION, expExpIn::EXPRESSION, exp_type::OKType}                |
+                   EXPRESSIONSTRUCT {expExp::EXPRESSION, expName::String, exp_type::OKType}              |
+                   FUNCTIONCALL {expFuncName::String, expArgs::[EXPRESSION], exp_type::OKType}           |
+                   NEWLIFE {expExp::EXPRESSION, exp_type::OKType}                                        |
+                   POINTER {expExp::EXPRESSION, exp_type::OKType}                                        |
+                   ASSIGN {expId::SymId, expExp::EXPRESSION, exp_type::OKType}
                    deriving Show
 
 
@@ -73,27 +72,23 @@ printIdSymbol n s = putStrLnWithIdent n $ "ID: " ++ (fst s) ++ " Scope: " ++ sho
 
 printId n s = putStrLnWithIdent n $ "ID: " ++ s
 
-printExpN :: Int -> EXPRESSIONN -> IO()
+printExpN :: Int -> EXPRESSION -> IO()
 printExpN n (IDEXPRESSION s t) = do
     printIdSymbol n s
 
-printExpN n (NUMBEREXPN s t) = do
+printExpN n (NUMBEREXP s t) = do
     putStrLnWithIdent n $ "Literal number: " ++ s
 
-printExpN n (STRINGEXPN s t) = do
+printExpN n (STRINGEXP s t) = do
     putStrLnWithIdent n $ "Literal string: " ++ s
 
-printExpN n (CHAREXPN c t) = do
+printExpN n (CHAREXP c t) = do
     putStrLnWithIdent n $ "Literal char: " ++ [c]
 
-printExpN n (BOOLEANEXPN val t) = do
+printExpN n (BOOLEANEXP val t) = do
     putStrLnWithIdent n $ "Literal boolean: " ++ show val
 
-printExpN n (PARENTESISN exp t) = do
-    putStrLnWithIdent n "Parenthesis expression:"
-    printExpN (n+1) exp
-
-printExpN n (COMPARN exp s exp1 t) = do
+printExpN n (COMPAR exp s exp1 t) = do
     putStrLnWithIdent n "Comparison operation: "
     putStrLnWithIdent (n+1) $ "Comparator: " ++ s
     putStrLnWithIdent (n+1) "Left side:"
@@ -101,11 +96,11 @@ printExpN n (COMPARN exp s exp1 t) = do
     putStrLnWithIdent (n+1) "Right side:"
     printExpN (n+2) exp1
 
-printExpN n (NOTN exp t) = do
+printExpN n (NOT exp t) = do
     putStrLnWithIdent n "Boolean negation:"
     printExpN (n+2) exp
 
-printExpN n (LOGICN exp s exp1 t) = do
+printExpN n (LOGIC exp s exp1 t) = do
     putStrLnWithIdent n "Binary logic operation:"
     putStrLnWithIdent (n+1) $ "Operator: " ++ s
     putStrLnWithIdent (n+1) "Left side:"
@@ -113,11 +108,11 @@ printExpN n (LOGICN exp s exp1 t) = do
     putStrLnWithIdent (n+1) "Right side:"
     printExpN (n+2) exp1
 
-printExpN n (MINUSN exp t) = do
+printExpN n (MINUS exp t) = do
     putStrLnWithIdent n "Unary minus:"
     printExpN (n+1) exp
 
-printExpN n (ARITN exp s exp1 t) = do
+printExpN n (ARIT exp s exp1 t) = do
     putStrLnWithIdent n "Binary arithmetic operation:"
     putStrLnWithIdent (n+1) $ "Operator: " ++ s
     putStrLnWithIdent (n+1) "Left side:"
@@ -125,49 +120,49 @@ printExpN n (ARITN exp s exp1 t) = do
     putStrLnWithIdent (n+1) "Right side:"
     printExpN (n+2) exp1
 
-printExpN n (ARRAYPOSN arrayid posnumber t) = do
+printExpN n (ARRAYPOS arrayid posnumber t) = do
     putStrLnWithIdent n "Operation with Array Position:"
     printExpN n arrayid
     printExpN n posnumber -- Agregar que imprima numeros
 
-printExpN n (EXPRESSIONSTRUCTN structid instructid t) = do
+printExpN n (EXPRESSIONSTRUCT structid instructid t) = do
     putStrLnWithIdent n "Operation with Struct Id:"
     printExpN n structid
     printId n instructid
 
-printExpN n (FUNCTIONCALLN funcid listid t) = do
+printExpN n (FUNCTIONCALL funcid listid t) = do
     putStrLnWithIdent n "Function Call:"
     printId n funcid
     putStrLnWithIdent n "With the next IDs: "
     mapM_ (printExpN (n+1)) listid
 
-printExpN n (NEWLIFEN exp t) = do
+printExpN n (NEWLIFE exp t) = do
    putStrLnWithIdent n "New life declaration called:"
    printExpN (n+2) exp
 
-printExpN n (POINTERN pointed t) = do
+printExpN n (POINTER pointed t) = do
    putStrLnWithIdent n $ "Pointer: "
    printExpN (n+2) pointed
 
-printExpN n (ASSIGNN symid exp t) = do
+printExpN n (ASSIGN symid exp t) = do
    putStrLnWithIdent n $ "Assignation: "
    putStrLnWithIdent (n+1) $ "Left side: "
    printIdSymbol (n+2) symid
    putStrLnWithIdent (n+1) $ "Right side: "
    printExpN (n+2) exp
 
-printSTARTN :: Int -> STARTN -> IO()
-printSTARTN n (STARTN imports outsides) = do
+printSTARTN :: Int -> START -> IO()
+printSTARTN n (START imports outsides) = do
     putStrLnWithIdent n "Program start: "
     mapM_ (printImportN (n+1)) imports
     mapM_ (printOutsideListN (n+1)) outsides
 
-printImportN :: Int -> IMPORTN -> IO()
-printImportN n (IMPORTN ids) = do
+printImportN :: Int -> IMPORT -> IO()
+printImportN n (IMPORT ids) = do
   putStrLnWithIdent n "Imports list: "
   mapM_ (printId (n+1)) ids
 
-printOutsideListN :: Int -> OUTSIDEN -> IO()
+printOutsideListN :: Int -> OUTSIDE -> IO()
 {-
 printOutsideListN n (OUTFUNCTIONINIC funciones) = do
   putStrLnWithIdent n "Function declared: "
@@ -227,42 +222,42 @@ printOKType n (OKNameType name) = do
 printOKType n (OKVoid) = do
   putStrLnWithIdent n "Void "
 
-printInstruction :: Int -> INSTRUCTIONN -> IO()
-printInstruction n (EXITMUSICN) = do
+printInstruction :: Int -> INSTRUCTION -> IO()
+printInstruction n (EXITMUSIC) = do
   putStrLnWithIdent n "Exit Instruction"
 
-printInstruction n (BREAKTHRUN) = do
+printInstruction n (BREAKTHRU) = do
   putStrLnWithIdent n "Break Instruction"
 
-printInstruction n (GETBACKN exps) = do
+printInstruction n (GETBACK exps) = do
   putStrLnWithIdent n "GetBack instruction: "
   printExpN (n+2) exps
 
-printInstruction n (EXPRESSIONNINST exps) = do
+printInstruction n (EXPRESSIONINST exps) = do
   putStrLnWithIdent n "Expression Instruction: "
   printExpN (n+2) exps
 
-printInstruction n (AMNESIACN free) = do
+printInstruction n (AMNESIAC free) = do
   putStrLnWithIdent n "Amnesiac Instruction: "
   printId (n+2) free
 
-printInstruction n (READMYMINDN simbs) = do
+printInstruction n (READMYMIND simbs) = do
   putStrLnWithIdent n "ReadMyMind Instruction: "
   mapM_ (printIdSymbol (n+2)) simbs
 
-printInstruction n (GOINGN prints) = do
+printInstruction n (GOING prints) = do
   putStrLnWithIdent n "Go Instruction: "
   mapM_ (printPrints (n+2)) prints
 
-printInstruction n (GOINGSLOWLYN prints) = do
+printInstruction n (GOINGSLOWLY prints) = do
   putStrLnWithIdent n "GoSlowly Instruction: "
   mapM_ (printPrints (n+2)) prints
 
-printInstruction n (GOINGMENTALN prints) = do
+printInstruction n (GOINGMENTAL prints) = do
   putStrLnWithIdent n "GoMental Instruction: "
   mapM_ (printPrints (n+2)) prints
 
-printInstruction n (IFN exps instrs elses) = do
+printInstruction n (IF exps instrs elses) = do
   putStrLnWithIdent n "If Instruction: "
   putStrLnWithIdent n "Conditional: "
   printExpN (n+2) exps
@@ -270,15 +265,15 @@ printInstruction n (IFN exps instrs elses) = do
   mapM_ (printInstruction (n+2)) instrs
   printIfelse n elses
 
-printInstruction n (CANTSTOPN exps instrs) = do
+printInstruction n (CANTSTOP exps instrs) = do
   putStrLnWithIdent n "CantStop Instruction: "
   putStrLnWithIdent n "Conditional: "
   printExpN (n+2) exps
   putStrLnWithIdent n "Instructions list: "
   mapM_ (printInstruction (n+2)) instrs
 
---printInstruction n (ONEMORETIMEN declars exp2 exp3 instrs) = do
-printInstruction n (ONEMORETIMEN decls exp2 exp3 instrs) = do
+--printInstruction n (ONEMORETIME declars exp2 exp3 instrs) = do
+printInstruction n (ONEMORETIME decls exp2 exp3 instrs) = do
   putStrLnWithIdent n "OneMoreTime Instruction: "
   putStrLnWithIdent n "Initialization: "
   mapM_ (printExpN (n+2)) decls
@@ -292,11 +287,11 @@ printInstruction n (ONEMORETIMEN decls exp2 exp3 instrs) = do
 
 
 
-printIfelse :: Int -> IFELSEN -> IO()
+printIfelse :: Int -> IFELSE -> IO()
 printIfelse n (IFELSEVOID) = do
   putStrLnWithIdent n "End of If Instruction: "
 
-printIfelse n (IFASKN exps instrs elses) = do
+printIfelse n (IFASK exps instrs elses) = do
   putStrLnWithIdent n "IfYouHaveToAsk Instruction: "
   putStrLnWithIdent n "Conditional: "
   printExpN (n+2) exps
@@ -304,12 +299,12 @@ printIfelse n (IFASKN exps instrs elses) = do
   mapM_ (printInstruction (n+2)) instrs
   printIfelse n elses
 
-printIfelse n (OTHERSIDEN instrs) = do
+printIfelse n (OTHERSIDE instrs) = do
   putStrLnWithIdent n "Otherside Instruction: "
   putStrLnWithIdent n "Instructions list: "
   mapM_ (printInstruction (n+2)) instrs
 
-printPrints :: Int -> PRINTN -> IO()
+printPrints :: Int -> PRINT -> IO()
 printPrints n (PRINTSTRING printable) = do
   putStrLnWithIdent n "Printable: "
   printExpN (n+2) printable

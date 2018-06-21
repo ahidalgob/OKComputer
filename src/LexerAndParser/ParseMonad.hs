@@ -2,7 +2,7 @@ module ParseMonad where
 import Tokens
 import LowLevelAlex
 
-import AST
+import qualified AST
 import SymTable
 import OKTypes
 import Scope
@@ -255,7 +255,7 @@ insertFunctionSym sym@(FuncSym scp id _ (OKFunc prms ret) argsId instrs) = do
 
 
 -- TODO
-completeFunctionDef :: Token -> OKType -> [INSTRUCTIONN] -> ParseM ()
+completeFunctionDef :: Token -> OKType -> [AST.INSTRUCTION] -> ParseM ()
 completeFunctionDef = undefined
 
 --}}}

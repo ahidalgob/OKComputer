@@ -9,7 +9,8 @@ import Tokens
 import Lexer
 import ParseMonad (ParseM, ParseMError(..))
 import qualified ParseMonad as P
-import AST
+import qualified AST
+import AST (exp_type, param_type, param_id)
 import SymTable
 import Scope
 import OKTypes
@@ -126,31 +127,31 @@ import Data.Maybe
 -- Grammar
 -- {{{1
 %%
-START :: { STARTN }
-START : IMPORTS OUTSIDEFUNCTION         { STARTN (reverse $1) $2 }
+START :: { AST.START }
+START : IMPORTS OUTSIDEFUNCTION         { AST.START (reverse $1) $2 }
 
 
-IMPORTS :: { [IMPORTN] }
-IMPORTS : IMPORTS newline IMPORT        { (IMPORTN $3):$1 }
+IMPORTS :: { [AST.IMPORT] }
+IMPORTS : IMPORTS newline IMPORT        { (AST.IMPORT $3):$1 }
         | {- empty -}                   { [] }
 
 IMPORT :: { [Id] }
 IMPORT : aroundtheworld IDS             { reverse $2 }
 
 IDS :: { [Id] }
-IDS : IDS ',' id                             { (tknString $3):$1 }
-  | id                                       { [tknString $1] }
+IDS : IDS ',' id                             { (tkn_string $3):$1 }
+  | id                                       { [tkn_string $1] }
 
 
-OUTSIDEFUNCTION :: { [OUTSIDEN] }
+OUTSIDEFUNCTION :: { [AST.OUTSIDE] }
 OUTSIDEFUNCTION : FUNCTIONDEF OUTSIDEFUNCTION            { $2 }
-                | DECLARATION newline OUTSIDEFUNCTION     { (OUTASSIGN $1):$3 }
+                | DECLARATION newline OUTSIDEFUNCTION     { (AST.OUTASSIGN $1):$3 }
                 | {- empty -}                             { [] }
 
 FUNCTIONDEF :: { () }
 FUNCTIONDEF : FUNCTIONSIGN BLOCK {% functionDefAction $1 $2}
 
-FUNCTIONSIGN :: { (Token, [Parameter], OKType) }
+FUNCTIONSIGN :: { (Token, [AST.Parameter], OKType) }
 FUNCTIONSIGN : dafunk BEGIN id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE     {% functionSignAction $3 $5 $8 }
 -- Creates the function symbol and inserts it to the sym table
 
@@ -158,18 +159,18 @@ RETURNTYPE :: { OKType }
 RETURNTYPE: intothevoid                                                 { OKVoid }
           | TYPE                                                        { $1 }
 
-LPARAMETERSFUNC :: { [Parameter] }
+LPARAMETERSFUNC :: { [AST.Parameter] }
 LPARAMETERSFUNC : {- empty -}                                           { [] }
                 | NONEMPTYLPARAMETERSFUNC                               { reverse $1 }
 
-NONEMPTYLPARAMETERSFUNC :: { [Parameter] }
+NONEMPTYLPARAMETERSFUNC :: { [AST.Parameter] }
 NONEMPTYLPARAMETERSFUNC : NONEMPTYLPARAMETERSFUNC ',' FUNCTIONPARAMETER { $3:($1) }
                         | FUNCTIONPARAMETER                             { [$1] }
 
-FUNCTIONPARAMETER :: { Parameter }
+FUNCTIONPARAMETER :: { AST.Parameter }
 FUNCTIONPARAMETER : TYPE id         {% functionParameterAction $1 $2}
 
-BLOCK :: { [INSTRUCTIONN] }
+BLOCK :: { [AST.INSTRUCTION] }
 BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION END                    { reverse $4 }
       -- | MAYBELINE INSTRUCTION                                           { [] } -- TODO
 
@@ -177,20 +178,20 @@ BEGIN : {- empty -}                                                       {% P.b
 
 END : whereiend                                                           {% P.endScope }
 
-INSIDEFUNCTION :: { [INSTRUCTIONN] }
+INSIDEFUNCTION :: { [AST.INSTRUCTION] }
 INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                             { $2:$1 }
-              | INSIDEFUNCTION DECLARATION newline                      { (map EXPRESSIONNINST $ reverse $2)++$1 }
+              | INSIDEFUNCTION DECLARATION newline                      { (map AST.EXPRESSIONINST $ reverse $2)++$1 }
               | {- empty -}                                             { [] }
 
 
 -- Get all the assignments and then do the declarations
-DECLARATION :: { [EXPRESSIONN] } -- All Expressions are assignments
+DECLARATION :: { [AST.EXPRESSION] } -- All Expressions are assignments
 DECLARATION : TYPE DECLARATIONVARS {% declarationAction $1 $2 }
 
 
 -- TODO Arrays and other things
 -- Symbols are added in parent rule
-DECLARATIONVARS :: { [(Token, Maybe EXPRESSIONN)] }
+DECLARATIONVARS :: { [(Token, Maybe AST.EXPRESSION)] }
 DECLARATIONVARS : id '=' EXPRESSION                 { [($1, Just $3)] }
             | DECLARATIONVARS ',' id '=' EXPRESSION { ($3, Just $5):($1) }
             | id                                    { [($1, Nothing)] }
@@ -207,77 +208,77 @@ TYPE2 : int                                    { OKInt }
    | boolean                                  { OKBoolean }
    | char                                     { OKChar }
    | string                                   { OKString }
-   | id                                       { OKNameType $ tknString $1 }
+   | id                                       { OKNameType $ tkn_string $1 }
 
 
-INSTRUCTION :: { INSTRUCTIONN }
-INSTRUCTION : go '(' PRINT ')' newline                                          { GOINGN $ reverse $3 }
-            | goslowly '(' PRINT ')' newline                                    { GOINGSLOWLYN $ reverse $3 }
-            | gomental '(' PRINT ')' newline                                    { GOINGMENTALN $ reverse $3 }
-            | readmymind '(' LVALS ')' newline                                  { READMYMINDN $3 }
-            | amnesiac '(' id ')' newline                                       { AMNESIACN $ tknString $3 }
+INSTRUCTION :: { AST.INSTRUCTION }
+INSTRUCTION : go '(' PRINT ')' newline                                          { AST.GOING $ reverse $3 }
+            | goslowly '(' PRINT ')' newline                                    { AST.GOINGSLOWLY $ reverse $3 }
+            | gomental '(' PRINT ')' newline                                    { AST.GOINGMENTAL $ reverse $3 }
+            | readmymind '(' LVALS ')' newline                                  { AST.READMYMIND $3 }
+            | amnesiac '(' id ')' newline                                       { AST.AMNESIAC $ tkn_string $3 }
             | if EXPRESSION BEGIN BLOCK IFELSE                                  {% ifAction $1 $2 (reverse $4) $5 }
             | cantstop EXPRESSION BEGIN BLOCK                                   {% cantStopAction $1 $2 (reverse $4) }
             | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION BLOCK {% oneMoreTimeAction $1 $5 $3 $7 (reverse $8) }
-            | getback EXPRESSION newline                                        { GETBACKN $2 } --TODO should we check we're inside a function with that type?
-            | breakthru newline                                                 { BREAKTHRUN }
-            | exitmusic newline                                                 { EXITMUSICN }
-            | EXPRESSION newline                                                { EXPRESSIONNINST $1 }
+            | getback EXPRESSION newline                                        { AST.GETBACK $2 } --TODO should we check we're inside a function with that type?
+            | breakthru newline                                                 { AST.BREAKTHRU }
+            | exitmusic newline                                                 { AST.EXITMUSIC }
+            | EXPRESSION newline                                                { AST.EXPRESSIONINST $1 }
 
 IFELSE : ifyouhavetoask EXPRESSION BEGIN BLOCK IFELSE                           {% ifYouHaveToAskAction $1 $2 (reverse $4) $5 }
-       | otherside BEGIN BLOCK                                                  { OTHERSIDEN $3 }
-       | {- empty -}                                                            { IFELSEVOID }
+       | otherside BEGIN BLOCK                                                  { AST.OTHERSIDE $3 }
+       | {- empty -}                                                            { AST.IFELSEVOID }
 
-PRINT : PRINT ',' EXPRESSION                     { (PRINTSTRING $3):($1)  }
-      | EXPRESSION                               { [PRINTSTRING $ $1] }
+PRINT : PRINT ',' EXPRESSION                     { (AST.PRINTSTRING $3):($1)  }
+      | EXPRESSION                               { [AST.PRINTSTRING $ $1] }
 
-EXPRESSION :: { EXPRESSIONN }
+EXPRESSION :: { AST.EXPRESSION }
 EXPRESSION : id {% do
-                    sym <- P.findSym (tknString $1) (tknPos $1)
-                    return $ IDEXPRESSION (tknString $1, sym_scope sym) (sym_type sym)}
-           | n                          { NUMBEREXPN (tknString $1) OKFloat}
-           | string                     { STRINGEXPN (tknString $1) OKString}
-           | c                          { CHAREXPN (tknChar $1) OKChar}
-           | ok                         { BOOLEANEXPN True OKBoolean}
-           | notok                      { BOOLEANEXPN False OKBoolean}
-           | '(' EXPRESSION ')'         { PARENTESISN $2 (expType $2)}
-           | EXPRESSION '<' EXPRESSION  {% (checkOrdCompType (tknPos $2) (expType $1) (expType $3)) >>= return . COMPARN $1 "<" $3 }
-           | EXPRESSION '>' EXPRESSION  {% (checkOrdCompType (tknPos $2) (expType $1) (expType $3)) >>= return . COMPARN $1 ">" $3 }
-           | EXPRESSION '<=' EXPRESSION {% (checkOrdCompType (tknPos $2) (expType $1) (expType $3)) >>= return . COMPARN $1 "<=" $3 }
-           | EXPRESSION '>=' EXPRESSION {% (checkOrdCompType (tknPos $2) (expType $1) (expType $3)) >>= return . COMPARN $1 ">=" $3 }
-           | EXPRESSION '==' EXPRESSION {% (checkCompType (tknPos $2) (expType $1) (expType $3)) >>= return . COMPARN $1 "==" $3 }
-           | EXPRESSION '!=' EXPRESSION {% (checkCompType (tknPos $2) (expType $1) (expType $3)) >>= return . COMPARN $1 "!=" $3 }
-           | not EXPRESSION             {% (checkSameType (tknPos $1) (expType $2) OKBoolean) >>= return . NOTN $2 }
-           | EXPRESSION and EXPRESSION  {% (checkBooleanOpType (tknPos $2) (expType $1) (expType $3)) >>= return . LOGICN $1 "and" $3 }
-           | EXPRESSION or EXPRESSION   {% (checkBooleanOpType (tknPos $2) (expType $1) (expType $3)) >>= return . LOGICN $1 "or" $3 }
-           | '-' EXPRESSION             {% (checkSameType (tknPos $1) (expType $2) OKFloat) >>= return . MINUSN $2 }
-           | EXPRESSION '+' EXPRESSION  {% (checkNumOpType (tknPos $2) (expType $1) (expType $3)) >>= return . ARITN $1 "+" $3 }
-           | EXPRESSION '-' EXPRESSION  {% (checkNumOpType (tknPos $2) (expType $1) (expType $3)) >>= return . ARITN $1 "-" $3 }
-           | EXPRESSION '*' EXPRESSION  {% (checkNumOpType (tknPos $2) (expType $1) (expType $3)) >>= return . ARITN $1 "*" $3 }
-           | EXPRESSION '/' EXPRESSION  {% (checkNumOpType (tknPos $2) (expType $1) (expType $3)) >>= return . ARITN $1 "/" $3 }
-           | EXPRESSION '%' EXPRESSION  {% (checkNumOpType (tknPos $2) (expType $1) (expType $3)) >>= return . ARITN $1 "%" $3 }
-           | EXPRESSION mod EXPRESSION  {% (checkIntOpType (tknPos $2) (expType $1) (expType $3)) >>= return . ARITN $1 "mod" $3 }
-           | EXPRESSION div EXPRESSION  {% (checkIntOpType (tknPos $2) (expType $1) (expType $3)) >>= return . ARITN $1 "div" $3 }
+                    sym <- P.findSym (tkn_string $1) (tkn_pos $1)
+                    return $ AST.IDEXPRESSION (tkn_string $1, sym_scope sym) (sym_type sym)}
+           | n                          { AST.NUMBEREXP (tkn_string $1) OKFloat}
+           | string                     { AST.STRINGEXP (tkn_string $1) OKString}
+           | c                          { AST.CHAREXP (tkn_char $1) OKChar}
+           | ok                         { AST.BOOLEANEXP True OKBoolean}
+           | notok                      { AST.BOOLEANEXP False OKBoolean}
+           | '(' EXPRESSION ')'         { $2 }
+           | EXPRESSION '<' EXPRESSION  {% (checkOrdCompType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.COMPAR $1 "<" $3 }
+           | EXPRESSION '>' EXPRESSION  {% (checkOrdCompType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.COMPAR $1 ">" $3 }
+           | EXPRESSION '<=' EXPRESSION {% (checkOrdCompType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.COMPAR $1 "<=" $3 }
+           | EXPRESSION '>=' EXPRESSION {% (checkOrdCompType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.COMPAR $1 ">=" $3 }
+           | EXPRESSION '==' EXPRESSION {% (checkCompType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.COMPAR $1 "==" $3 }
+           | EXPRESSION '!=' EXPRESSION {% (checkCompType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.COMPAR $1 "!=" $3 }
+           | not EXPRESSION             {% (checkSameType (tkn_pos $1) (exp_type $2) OKBoolean) >>= return . AST.NOT $2 }
+           | EXPRESSION and EXPRESSION  {% (checkBooleanOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.LOGIC $1 "and" $3 }
+           | EXPRESSION or EXPRESSION   {% (checkBooleanOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.LOGIC $1 "or" $3 }
+           | '-' EXPRESSION             {% (checkSameType (tkn_pos $1) (exp_type $2) OKFloat) >>= return . AST.MINUS $2 }
+           | EXPRESSION '+' EXPRESSION  {% (checkNumOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.ARIT $1 "+" $3 }
+           | EXPRESSION '-' EXPRESSION  {% (checkNumOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.ARIT $1 "-" $3 }
+           | EXPRESSION '*' EXPRESSION  {% (checkNumOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.ARIT $1 "*" $3 }
+           | EXPRESSION '/' EXPRESSION  {% (checkNumOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.ARIT $1 "/" $3 }
+           | EXPRESSION '%' EXPRESSION  {% (checkNumOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.ARIT $1 "%" $3 }
+           | EXPRESSION mod EXPRESSION  {% (checkIntOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.ARIT $1 "mod" $3 }
+           | EXPRESSION div EXPRESSION  {% (checkIntOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.ARIT $1 "div" $3 }
            | ARRAYPOSITION              { $1 } -- TODO check sym
            | EXPRESSIONSTRUCT           { $1 } -- TODO check sym
            | FUNCTIONCALL               { $1 }
-           | newlife '(' EXPRESSION ')' { NEWLIFEN $3 $ OKPointer (expType $3)} -- TODO ??????????????????????
-           | '^' EXPRESSION             {% (checkAndGetPointerType (tknPos $1) (expType $2)) >>= return . POINTERN $2 }
-           | LVAL '=' EXPRESSION        { ASSIGNN $1 $3 (expType $3)} --Lookup for type
+           | newlife '(' EXPRESSION ')' { AST.NEWLIFE $3 $ OKPointer (exp_type $3)} -- TODO ??????????????????????
+           | '^' EXPRESSION             {% (checkAndGetPointerType (tkn_pos $1) (exp_type $2)) >>= return . AST.POINTER $2 }
+           | LVAL '=' EXPRESSION        { AST.ASSIGN $1 $3 (exp_type $3)} --Lookup for type
 
-EXPRESSIONS :: { [EXPRESSIONN] }
+EXPRESSIONS :: { [AST.EXPRESSION] }
 EXPRESSIONS :                       { [] }
             | NONEMPTYEXPRESSIONS   { reverse $ $1 }
 
-NONEMPTYEXPRESSIONS :: { [EXPRESSIONN] }
+NONEMPTYEXPRESSIONS :: { [AST.EXPRESSION] }
 NONEMPTYEXPRESSIONS : NONEMPTYEXPRESSIONS ',' EXPRESSION        { $3 : $1 }
                     | EXPRESSION                                { [$1] }
 
 -- Anything with L-Value: variables, record.member, array[position]...
 LVAL :: { SymId }
 LVAL : id                               {% do
-                                          scope <- P.findSymScope (tknString $1) (tknPos $1)
-                                          return (tknString $1, scope)}
+                                          scope <- P.findSymScope (tkn_string $1) (tkn_pos $1)
+                                          return (tkn_string $1, scope)}
 
 LVALS :: { [SymId] }
 LVALS :                                 { [] }
@@ -289,14 +290,14 @@ NONEMPTYLVALS : NONEMPTYLVALS ',' LVAL    { $3 : $1 }
 
 -- Things that can evaluate to array:
 -- id, struct.member
-ARRAYPOSITION : EXPRESSION '[' EXPRESSION ']'                   { ARRAYPOSN $1 $3 (array_Type.expType $ $1)} -- TODO Check E1 type for array
+ARRAYPOSITION : EXPRESSION '[' EXPRESSION ']'                   { AST.ARRAYPOS $1 $3 (array_Type.exp_type $ $1)} -- TODO Check E1 type for array
 
                                                                     --TODO find type of E1, has to be a record, add its scope in the dot, look id, pop scope
-EXPRESSIONSTRUCT : EXPRESSION '.' id                            { EXPRESSIONSTRUCTN $1 (tknString $3) (expType $1)}
+EXPRESSIONSTRUCT : EXPRESSION '.' id                            { AST.EXPRESSIONSTRUCT $1 (tkn_string $3) (exp_type $1)}
 
 FUNCTIONCALL : id '(' EXPRESSIONS ')'                                {%
-                                                    do  sym <- P.findSym (tknString $1) (tknPos $1)
-                                                        return $ FUNCTIONCALLN (tknString $1) $3 (func_RetType.sym_type $ sym)}
+                                                    do  sym <- P.findSym (tkn_string $1) (tkn_pos $1)
+                                                        return $ AST.FUNCTIONCALL (tkn_string $1) $3 (func_RetType.sym_type $ sym)}
 
 MAYBELINE : {- empty -}                   { }
           | newline                       { }
@@ -311,62 +312,62 @@ addToSymTable t id pos = do
 
 -- Actions
 -- {{{1
-functionDefAction :: (Token, [Parameter], OKType) -> [INSTRUCTIONN] -> ParseM ()
+functionDefAction :: (Token, [AST.Parameter], OKType) -> [AST.INSTRUCTION] -> ParseM ()
 functionDefAction (tkn, params, ret) instrs = do
         let oktype = OKFunc (map param_type params) ret
         P.completeFunctionDef tkn oktype instrs
         return ()
 
-functionSignAction :: Token -> [Parameter] -> OKType -> ParseM (Token, [Parameter], OKType)
+functionSignAction :: Token -> [AST.Parameter] -> OKType -> ParseM (Token, [AST.Parameter], OKType)
 functionSignAction tkn params ret = do
         let oktype = OKFunc (map param_type params) ret
-            id = tknString tkn
-            pos = tknPos tkn
+            id = tkn_string tkn
+            pos = tkn_pos tkn
             param_ids = map param_id params
         P.insertSym $ FuncSym 1 id pos oktype param_ids []
         return (tkn, params, ret)
 
-functionParameterAction :: OKType -> Token -> ParseM Parameter
+functionParameterAction :: OKType -> Token -> ParseM AST.Parameter
 functionParameterAction oktype id = do
                              scope <- P.topScope
-                             addToSymTable oktype (tknString id) (tknPos id)
-                             return $ Parameter oktype (tknString id, scope)
+                             addToSymTable oktype (tkn_string id) (tkn_pos id)
+                             return $ AST.Parameter oktype (tkn_string id, scope)
 
-declarationAction :: OKType -> [(Token, Maybe EXPRESSIONN)] -> ParseM ([EXPRESSIONN])
+declarationAction :: OKType -> [(Token, Maybe AST.EXPRESSION)] -> ParseM ([AST.EXPRESSION])
 declarationAction t l =
       do  let decls = reverse l
               assigns = filter (isJust.snd) decls
-              vars = map (\x -> (tknString.fst $ x, tknPos.fst $ x)) decls
+              vars = map (\x -> (tkn_string.fst $ x, tkn_pos.fst $ x)) decls
           mapM_ (uncurry (addToSymTable t)) vars
           mapM createAssign (map (\(x,y) -> (x,fromJust y)) assigns)
   where
-    createAssign :: (Token, EXPRESSIONN) -> ParseM (EXPRESSIONN)
+    createAssign :: (Token, AST.EXPRESSION) -> ParseM (AST.EXPRESSION)
     createAssign (tkn, exp) = do
-            sym <- P.findSym (tknString tkn) (tknPos tkn)
+            sym <- P.findSym (tkn_string tkn) (tkn_pos tkn)
             --TODO Checktype of Sym with type of exp
-            return $ ASSIGNN (tknString tkn, sym_scope sym) exp (expType exp)
+            return $ AST.ASSIGN (tkn_string tkn, sym_scope sym) exp (exp_type exp)
 
-ifAction :: Token -> EXPRESSIONN -> [INSTRUCTIONN] -> IFELSEN -> ParseM INSTRUCTIONN
+ifAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> AST.IFELSE -> ParseM AST.INSTRUCTION
 ifAction tkn condition blk ifelse = do
-          checkExpectedType (tknPos tkn) OKBoolean (expType condition)
-          return $ IFN condition blk ifelse
+          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition)
+          return $ AST.IF condition blk ifelse
 
-cantStopAction :: Token -> EXPRESSIONN -> [INSTRUCTIONN] -> ParseM INSTRUCTIONN
+cantStopAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> ParseM AST.INSTRUCTION
 cantStopAction tkn condition blk = do
-          checkExpectedType (tknPos tkn) OKBoolean (expType condition)
-          return $ CANTSTOPN condition blk
+          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition)
+          return $ AST.CANTSTOP condition blk
 
 -- TODO The step should be an instruccion?
-oneMoreTimeAction :: Token -> EXPRESSIONN -> [EXPRESSIONN] -> EXPRESSIONN -> [INSTRUCTIONN] -> ParseM INSTRUCTIONN
+oneMoreTimeAction :: Token -> AST.EXPRESSION -> [AST.EXPRESSION] -> AST.EXPRESSION -> [AST.INSTRUCTION] -> ParseM AST.INSTRUCTION
 oneMoreTimeAction tkn condition init step blk = do
-          checkExpectedType (tknPos tkn) OKBoolean (expType condition)
-          return $ ONEMORETIMEN init condition step blk
+          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition)
+          return $ AST.ONEMORETIME init condition step blk
 
 
-ifYouHaveToAskAction :: Token -> EXPRESSIONN -> [INSTRUCTIONN] -> IFELSEN -> ParseM IFELSEN
+ifYouHaveToAskAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> AST.IFELSE -> ParseM AST.IFELSE
 ifYouHaveToAskAction tkn condition blk ifelse = do
-          checkExpectedType (tknPos tkn) OKBoolean (expType condition)
-          return $ IFASKN condition blk ifelse
+          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition)
+          return $ AST.IFASK condition blk ifelse
 
 --- 1}}}
 

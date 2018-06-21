@@ -2,7 +2,7 @@ module SymTable where
 import LowLevelAlex
 import Scope
 import OKTypes
-import AST
+import qualified AST
 import qualified Data.HashMap.Strict as H
 
 
@@ -19,7 +19,7 @@ data Sym = Sym{ sym_scope :: Scope,
                 sym_pos :: Pos, -- declaration position
                 sym_type :: OKType,
                 sym_argsId :: [SymId],
-                sym_AST :: [INSTRUCTIONN]
+                sym_AST :: [AST.INSTRUCTION]
            }
           | ErrorSym {
                 sym_scope :: Scope,
