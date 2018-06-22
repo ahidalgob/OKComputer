@@ -56,7 +56,7 @@ data EXPRESSION = IDEXPRESSION {expId::SymId, exp_type::OKType}                 
                    FUNCTIONCALL {expFuncName::String, expArgs::[EXPRESSION], exp_type::OKType}           |
                    NEWLIFE {expExp::EXPRESSION, exp_type::OKType}                                        |
                    POINTER {expExp::EXPRESSION, exp_type::OKType}                                        |
-                   ASSIGN {expId::SymId, expExp::EXPRESSION, exp_type::OKType}
+                   ASSIGN {expLHS::EXPRESSION, expExp::EXPRESSION, exp_type::OKType}
                    deriving Show
 
 
@@ -147,7 +147,7 @@ printExpN n (POINTER pointed t) = do
 printExpN n (ASSIGN symid exp t) = do
    putStrLnWithIdent n $ "Assignation: "
    putStrLnWithIdent (n+1) $ "Left side: "
-   printIdSymbol (n+2) symid
+   printExpN (n+2) symid
    putStrLnWithIdent (n+1) $ "Right side: "
    printExpN (n+2) exp
 

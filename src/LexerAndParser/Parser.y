@@ -4,6 +4,7 @@
 {
 module Parser where
 
+-- imports {{{
 import LowLevelAlex
 import Tokens
 import Lexer
@@ -17,6 +18,8 @@ import OKTypes
 
 import Control.Monad.Except
 import Data.Maybe
+-- }}}
+
 }
 
 %name parse
@@ -25,8 +28,7 @@ import Data.Maybe
 %error { (throwError . ParseError . show) }
 %lexer { lexwrap }{ EOFTkn }
 
--- Tokens
--- {{{1
+-- Tokens{{{1
 %token
   youbegin                                { YouBeginTkn _ }        -- Block Start
   whereiend                               { WhereIEndTkn _ }       -- Block End
@@ -111,21 +113,21 @@ import Data.Maybe
 --
 
 %right '='
+%nonassoc '!='
 %left or
 %left and
 %nonassoc '>' '<' '==' '!=' '>=' '<='
 %left '+' '-'
 %left '*' '/' '%' mod div
-%nonassoc not
-%nonassoc '^' --TODO check
-%nonassoc '['
+%right not
+%right '^'
+%left '['
 %nonassoc '.'
 
 -- TODO
 -- unary minus sign
 
--- Grammar
--- {{{1
+-- Grammar{{{1
 %%
 START :: { AST.START }
 START : IMPORTS OUTSIDE_FUNCTION         { AST.START (reverse $1) $2 }
@@ -172,7 +174,6 @@ FUNCTIONPARAMETER : TYPE id         {% functionParameterAction $1 $2}
 
 BLOCK :: { [AST.INSTRUCTION] }
 BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION END                    { reverse $4 }
-      -- | MAYBELINE INSTRUCTION                                           { [] } -- TODO
 
 BEGIN : {- empty -}                                                       {% P.beginScope }
 
@@ -189,7 +190,7 @@ DECLARATION :: { [AST.EXPRESSION] } -- All Expressions are assignments
 DECLARATION : TYPE DECLARATIONVARS {% declarationAction $1 $2 }
 
 
--- TODO Arrays and other things
+-- TODO Arrays, lists, tuples
 -- Symbols are added in parent rule
 DECLARATIONVARS :: { [(Token, Maybe AST.EXPRESSION)] }
 DECLARATIONVARS : id '=' EXPRESSION                 { [($1, Just $3)] }
@@ -233,9 +234,7 @@ PRINT : PRINT ',' EXPRESSION                     { (AST.PRINTSTRING $3):($1)  }
       | EXPRESSION                               { [AST.PRINTSTRING $ $1] }
 
 EXPRESSION :: { AST.EXPRESSION }
-EXPRESSION : id {% do
-                    sym <- P.findSym (tkn_string $1) (tkn_pos $1)
-                    return $ AST.IDEXPRESSION (tkn_string $1, sym_scope sym) (sym_type sym)}
+EXPRESSION : LVAL                       { $1 }
            | n                          { AST.NUMBEREXP (tkn_string $1) OKFloat}
            | string                     { AST.STRINGEXP (tkn_string $1) OKString}
            | c                          { AST.CHAREXP (tkn_char $1) OKChar}
@@ -259,11 +258,8 @@ EXPRESSION : id {% do
            | EXPRESSION '%' EXPRESSION  {% numOperationAction $2 $1 $3 }
            | EXPRESSION mod EXPRESSION  {% intOperationAction $2 $1 $3 }
            | EXPRESSION div EXPRESSION  {% intOperationAction $2 $1 $3 }
-           | ARRAYPOSITION              { $1 } -- TODO check sym
-           | EXPRESSIONSTRUCT           { $1 } -- TODO check sym
            | FUNCTIONCALL               { $1 }
            | newlife '(' EXPRESSION ')' { AST.NEWLIFE $3 $ OKPointer (exp_type $3)} -- TODO ??????????????????????
-           | '^' EXPRESSION             {% pointerAction $1 $2 }
            | LVAL '=' EXPRESSION        { AST.ASSIGN $1 $3 (exp_type $3)} --Lookup for type
 
 EXPRESSIONS :: { [AST.EXPRESSION] }
@@ -275,16 +271,19 @@ NONEMPTYEXPRESSIONS : NONEMPTYEXPRESSIONS ',' EXPRESSION        { $3 : $1 }
                     | EXPRESSION                                { [$1] }
 
 -- Anything with L-Value: variables, record.member, array[position]...
-LVAL :: { SymId }
-LVAL : id                               {% do
-                                          scope <- P.findSymScope (tkn_string $1) (tkn_pos $1)
-                                          return (tkn_string $1, scope)}
+LVAL :: { AST.EXPRESSION }
+LVAL :  id {% do
+                    sym <- P.findSym (tkn_string $1) (tkn_pos $1)
+                    return $ AST.IDEXPRESSION (tkn_string $1, sym_scope sym) (sym_type sym)}
+           | ARRAYPOSITION              { $1 } -- TODO check sym
+           | EXPRESSIONSTRUCT           { $1 } -- TODO check sym
+           | '^' EXPRESSION           {% pointerAction $1 $2 }
 
-LVALS :: { [SymId] }
+LVALS :: { [AST.EXPRESSION] }
 LVALS :                                 { [] }
       | NONEMPTYLVALS                   { reverse ($1) }
 
-NONEMPTYLVALS :: { [SymId] }
+NONEMPTYLVALS :: { [AST.EXPRESSION] }
 NONEMPTYLVALS : NONEMPTYLVALS ',' LVAL    { $3 : $1 }
               | LVAL                      { [$1] }
 
@@ -310,8 +309,7 @@ addToSymTable t id pos = do
         scope <- P.topScope
         P.insertSym $ Sym scope id pos t -- TODO real symbol (type...)
 
--- Actions
--- {{{1
+-- Actions{{{1
 functionDefAction :: (Token, [AST.Parameter], OKType) -> [AST.INSTRUCTION] -> ParseM ()
 functionDefAction (tkn, params, ret) instrs = do
         let oktype = OKFunc (map param_type params) ret
@@ -412,8 +410,7 @@ pointerAction tkn exp = do
 
 --- 1}}}
 
--- Type Checking
--- {{{1
+-- Type Checking{{{1
 
 checkNumericalType :: Pos -> OKType -> ParseM OKType
 checkNumericalType pos found = do
@@ -472,8 +469,7 @@ checkAndGetPointerType (line, _) t = throwNotPointerType line t
 
 -- 1}}}
 
--- Errors (Horrors)
--- {{{1
+-- Errors (Horrors){{{1
 throwDifferentTypeError line t1 t2 = do
     liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected same type, found " ++ show t1 ++ " and " ++ show t2 ++ "."
     return OKErrorT
