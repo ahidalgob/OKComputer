@@ -128,7 +128,7 @@ import Data.Maybe
 -- {{{1
 %%
 START :: { AST.START }
-START : IMPORTS OUTSIDEFUNCTION         { AST.START (reverse $1) $2 }
+START : IMPORTS OUTSIDE_FUNCTION         { AST.START (reverse $1) $2 }
 
 
 IMPORTS :: { [AST.IMPORT] }
@@ -143,16 +143,16 @@ IDS : IDS ',' id                             { (tkn_string $3):$1 }
   | id                                       { [tkn_string $1] }
 
 
-OUTSIDEFUNCTION :: { [AST.OUTSIDE] }
-OUTSIDEFUNCTION : FUNCTIONDEF OUTSIDEFUNCTION            { $2 }
-                | DECLARATION newline OUTSIDEFUNCTION     { (AST.OUTASSIGN $1):$3 }
+OUTSIDE_FUNCTION :: { [AST.OUTSIDE] }
+OUTSIDE_FUNCTION : FUNCTION_DEF OUTSIDE_FUNCTION            { $2 }
+                | DECLARATION newline OUTSIDE_FUNCTION     { (AST.OUTASSIGN $1):$3 }
                 | {- empty -}                             { [] }
 
-FUNCTIONDEF :: { () }
-FUNCTIONDEF : FUNCTIONSIGN BLOCK {% functionDefAction $1 $2}
+FUNCTION_DEF :: { () }
+FUNCTION_DEF : FUNCTION_SIGN BLOCK {% functionDefAction $1 $2}
 
-FUNCTIONSIGN :: { (Token, [AST.Parameter], OKType) }
-FUNCTIONSIGN : dafunk BEGIN id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE     {% functionSignAction $3 $5 $8 }
+FUNCTION_SIGN :: { (Token, [AST.Parameter], OKType) }
+FUNCTION_SIGN : dafunk BEGIN id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE     {% functionSignAction $3 $5 $8 }
 -- Creates the function symbol and inserts it to the sym table
 
 RETURNTYPE :: { OKType }
@@ -242,28 +242,28 @@ EXPRESSION : id {% do
            | ok                         { AST.BOOLEANEXP True OKBoolean}
            | notok                      { AST.BOOLEANEXP False OKBoolean}
            | '(' EXPRESSION ')'         { $2 }
-           | EXPRESSION '<' EXPRESSION  {% (checkOrdCompType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.COMPAR $1 "<" $3 }
-           | EXPRESSION '>' EXPRESSION  {% (checkOrdCompType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.COMPAR $1 ">" $3 }
-           | EXPRESSION '<=' EXPRESSION {% (checkOrdCompType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.COMPAR $1 "<=" $3 }
-           | EXPRESSION '>=' EXPRESSION {% (checkOrdCompType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.COMPAR $1 ">=" $3 }
-           | EXPRESSION '==' EXPRESSION {% (checkCompType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.COMPAR $1 "==" $3 }
-           | EXPRESSION '!=' EXPRESSION {% (checkCompType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.COMPAR $1 "!=" $3 }
-           | not EXPRESSION             {% (checkSameType (tkn_pos $1) (exp_type $2) OKBoolean) >>= return . AST.NOT $2 }
-           | EXPRESSION and EXPRESSION  {% (checkBooleanOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.LOGIC $1 "and" $3 }
-           | EXPRESSION or EXPRESSION   {% (checkBooleanOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.LOGIC $1 "or" $3 }
-           | '-' EXPRESSION             {% (checkSameType (tkn_pos $1) (exp_type $2) OKFloat) >>= return . AST.MINUS $2 }
-           | EXPRESSION '+' EXPRESSION  {% (checkNumOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.ARIT $1 "+" $3 }
-           | EXPRESSION '-' EXPRESSION  {% (checkNumOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.ARIT $1 "-" $3 }
-           | EXPRESSION '*' EXPRESSION  {% (checkNumOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.ARIT $1 "*" $3 }
-           | EXPRESSION '/' EXPRESSION  {% (checkNumOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.ARIT $1 "/" $3 }
-           | EXPRESSION '%' EXPRESSION  {% (checkNumOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.ARIT $1 "%" $3 }
-           | EXPRESSION mod EXPRESSION  {% (checkIntOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.ARIT $1 "mod" $3 }
-           | EXPRESSION div EXPRESSION  {% (checkIntOpType (tkn_pos $2) (exp_type $1) (exp_type $3)) >>= return . AST.ARIT $1 "div" $3 }
+           | EXPRESSION '<' EXPRESSION  {% orderCompAction $2 $1 $3 }               --TODO there's no tkn_string in these tokens
+           | EXPRESSION '>' EXPRESSION  {% orderCompAction $2 $1 $3 }
+           | EXPRESSION '<=' EXPRESSION {% orderCompAction $2 $1 $3 }
+           | EXPRESSION '>=' EXPRESSION {% orderCompAction $2 $1 $3 }
+           | EXPRESSION '==' EXPRESSION {% equalityComparAction $2 $1 $3 }
+           | EXPRESSION '!=' EXPRESSION {% equalityComparAction $2 $1 $3 }
+           | not EXPRESSION             {% notAction $1 $2 }
+           | EXPRESSION and EXPRESSION  {% booleanOperationAction $2 $1 $3 }
+           | EXPRESSION or EXPRESSION   {% booleanOperationAction $2 $1 $3 }
+           | '-' EXPRESSION             {% minusAction $1 $2 }
+           | EXPRESSION '+' EXPRESSION  {% numOperationAction $2 $1 $3 }
+           | EXPRESSION '-' EXPRESSION  {% numOperationAction $2 $1 $3 }
+           | EXPRESSION '*' EXPRESSION  {% numOperationAction $2 $1 $3 }
+           | EXPRESSION '/' EXPRESSION  {% numOperationAction $2 $1 $3 }
+           | EXPRESSION '%' EXPRESSION  {% numOperationAction $2 $1 $3 }
+           | EXPRESSION mod EXPRESSION  {% intOperationAction $2 $1 $3 }
+           | EXPRESSION div EXPRESSION  {% intOperationAction $2 $1 $3 }
            | ARRAYPOSITION              { $1 } -- TODO check sym
            | EXPRESSIONSTRUCT           { $1 } -- TODO check sym
            | FUNCTIONCALL               { $1 }
            | newlife '(' EXPRESSION ')' { AST.NEWLIFE $3 $ OKPointer (exp_type $3)} -- TODO ??????????????????????
-           | '^' EXPRESSION             {% (checkAndGetPointerType (tkn_pos $1) (exp_type $2)) >>= return . AST.POINTER $2 }
+           | '^' EXPRESSION             {% pointerAction $1 $2 }
            | LVAL '=' EXPRESSION        { AST.ASSIGN $1 $3 (exp_type $3)} --Lookup for type
 
 EXPRESSIONS :: { [AST.EXPRESSION] }
@@ -369,16 +369,63 @@ ifYouHaveToAskAction tkn condition blk ifelse = do
           checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition)
           return $ AST.IFASK condition blk ifelse
 
+
+orderCompAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
+orderCompAction tkn exp1 exp2 = do
+          oktype <- checkOrdCompType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
+          return $ AST.COMPAR exp1 (tkn_string tkn) exp2 oktype
+
+equalityComparAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
+equalityComparAction tkn exp1 exp2 = do
+          oktype <- checkCompType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
+          return $ AST.COMPAR exp1 (tkn_string tkn) exp2 oktype
+
+notAction :: Token -> AST.EXPRESSION -> ParseM AST.EXPRESSION
+notAction tkn exp = do
+          oktype <- checkExpectedType (tkn_pos tkn) OKBoolean (exp_type exp)
+          return $ AST.NOT exp oktype
+
+booleanOperationAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
+booleanOperationAction tkn exp1 exp2 = do
+          oktype <- checkBooleanOpType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
+          return $ AST.LOGIC exp1 (tkn_string tkn) exp2 oktype
+
+minusAction :: Token -> AST.EXPRESSION -> ParseM AST.EXPRESSION
+minusAction tkn exp = do
+          oktype <- checkNumericalType (tkn_pos tkn) (exp_type exp)
+          return $ AST.MINUS exp oktype
+
+numOperationAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
+numOperationAction tkn exp1 exp2 = do
+          oktype <- checkNumOpType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
+          return $ AST.ARIT exp1 (tkn_string tkn) exp2 oktype
+
+intOperationAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
+intOperationAction tkn exp1 exp2 = do
+          oktype <- checkIntOpType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
+          return $ AST.ARIT exp1 (tkn_string tkn) exp2 oktype
+
+pointerAction :: Token -> AST.EXPRESSION -> ParseM AST.EXPRESSION
+pointerAction tkn exp = do
+          oktype <- checkAndGetPointerType (tkn_pos tkn) (exp_type exp)
+          return $ AST.POINTER exp oktype
+
 --- 1}}}
 
 -- Type Checking
 -- {{{1
+
+checkNumericalType :: Pos -> OKType -> ParseM OKType
+checkNumericalType pos found = do
+    if isNumericalType found then return found
+                             else return OKErrorT
+
 checkExpectedType :: Pos -> OKType -> OKType -> ParseM OKType
-checkExpectedType pos oktype found = do
+checkExpectedType pos expected found = do
     case found of
          OKErrorT -> return OKErrorT
-         oktype -> return oktype
-         _ -> throwNotWhatIExpectedAndImNotSatisfied pos oktype found
+         expected -> return expected
+         _ -> throwNotWhatIExpectedAndImNotSatisfied pos expected found
 
 checkSameType :: Pos -> OKType -> OKType -> ParseM (OKType)
 checkSameType (line, _) OKErrorT _ = return OKErrorT
