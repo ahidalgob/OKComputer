@@ -277,7 +277,7 @@ LVAL :  id {% do
                     return $ AST.IDEXPRESSION (tkn_string $1, sym_scope sym) (sym_type sym)}
            | ARRAYPOSITION              { $1 } -- TODO check sym
            | EXPRESSIONSTRUCT           { $1 } -- TODO check sym
-           | '^' EXPRESSION           {% pointerAction $1 $2 }
+           | '^' '(' EXPRESSION ')'          {% pointerAction $1 $2 }
 
 LVALS :: { [AST.EXPRESSION] }
 LVALS :                                 { [] }
