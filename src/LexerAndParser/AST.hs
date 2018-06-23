@@ -20,7 +20,7 @@ data Parameter = Parameter{param_type :: OKType, param_id :: SymId} deriving Sho
 data INSTRUCTION = GOING [PRINT]                                         |
           GOINGSLOWLY [PRINT]                                             |
           GOINGMENTAL [PRINT]                                             |
-          READMYMIND [SymId]                                               |
+          READMYMIND [EXPRESSION]                                               |
           AMNESIAC String                                                  |
           IF EXPRESSION [INSTRUCTION] IFELSE                            |
           CANTSTOP EXPRESSION [INSTRUCTION]                              |
@@ -243,7 +243,7 @@ printInstruction n (AMNESIAC free) = do
 
 printInstruction n (READMYMIND simbs) = do
   putStrLnWithIdent n "ReadMyMind Instruction: "
-  mapM_ (printIdSymbol (n+2)) simbs
+  mapM_ (printExpN (n+2)) simbs
 
 printInstruction n (GOING prints) = do
   putStrLnWithIdent n "Go Instruction: "

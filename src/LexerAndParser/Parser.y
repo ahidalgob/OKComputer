@@ -260,7 +260,7 @@ EXPRESSION : LVAL                       { $1 }
            | EXPRESSION div EXPRESSION  {% intOperationAction $2 $1 $3 }
            | FUNCTIONCALL               { $1 }
            | newlife '(' EXPRESSION ')' { AST.NEWLIFE $3 $ OKPointer (exp_type $3)} -- TODO ??????????????????????
-           | LVAL '=' EXPRESSION        { AST.ASSIGN $1 $3 (exp_type $3)} --Lookup for type
+           | LVAL '=' EXPRESSION        {% assignAction $1 $3 }
 
 EXPRESSIONS :: { [AST.EXPRESSION] }
 EXPRESSIONS :                       { [] }
@@ -272,12 +272,10 @@ NONEMPTYEXPRESSIONS : NONEMPTYEXPRESSIONS ',' EXPRESSION        { $3 : $1 }
 
 -- Anything with L-Value: variables, record.member, array[position]...
 LVAL :: { AST.EXPRESSION }
-LVAL :  id {% do
-                    sym <- P.findSym (tkn_string $1) (tkn_pos $1)
-                    return $ AST.IDEXPRESSION (tkn_string $1, sym_scope sym) (sym_type sym)}
+LVAL :  id {% idAction $1 }
            | ARRAYPOSITION              { $1 } -- TODO check sym
            | EXPRESSIONSTRUCT           { $1 } -- TODO check sym
-           | '^' '(' EXPRESSION ')'          {% pointerAction $1 $2 }
+           | '^' '(' EXPRESSION ')'          {% pointerAction $1 $3 }
 
 LVALS :: { [AST.EXPRESSION] }
 LVALS :                                 { [] }
@@ -304,11 +302,6 @@ MAYBELINE : {- empty -}                   { }
 --- 1}}}
 {
 
-addToSymTable :: OKType -> Id -> Pos -> ParseM ()
-addToSymTable t id pos = do
-        scope <- P.topScope
-        P.insertSym $ Sym scope id pos t -- TODO real symbol (type...)
-
 -- Actions{{{1
 functionDefAction :: (Token, [AST.Parameter], OKType) -> [AST.INSTRUCTION] -> ParseM ()
 functionDefAction (tkn, params, ret) instrs = do
@@ -328,22 +321,21 @@ functionSignAction tkn params ret = do
 functionParameterAction :: OKType -> Token -> ParseM AST.Parameter
 functionParameterAction oktype id = do
                              scope <- P.topScope
-                             addToSymTable oktype (tkn_string id) (tkn_pos id)
+                             P.insertSym $ Sym scope (tkn_string id) (tkn_pos id) oktype
                              return $ AST.Parameter oktype (tkn_string id, scope)
 
 declarationAction :: OKType -> [(Token, Maybe AST.EXPRESSION)] -> ParseM ([AST.EXPRESSION])
-declarationAction t l =
-      do  let decls = reverse l
-              assigns = filter (isJust.snd) decls
-              vars = map (\x -> (tkn_string.fst $ x, tkn_pos.fst $ x)) decls
-          mapM_ (uncurry (addToSymTable t)) vars
-          mapM createAssign (map (\(x,y) -> (x,fromJust y)) assigns)
-  where
-    createAssign :: (Token, AST.EXPRESSION) -> ParseM (AST.EXPRESSION)
-    createAssign (tkn, exp) = do
-            sym <- P.findSym (tkn_string tkn) (tkn_pos tkn)
-            --TODO Checktype of Sym with type of exp
-            return $ AST.ASSIGN (tkn_string tkn, sym_scope sym) exp (exp_type exp)
+declarationAction oktype l =
+      do  let decls = reverse l                                              :: [(Token, Maybe AST.EXPRESSION)]
+              assigns = filter (isJust.snd) decls                            :: [(Token, Maybe AST.EXPRESSION)]
+              vars = map (\x -> (tkn_string.fst $ x, tkn_pos.fst $ x)) decls :: [(String, Pos)]
+
+          scope <- P.topScope
+          mapM_ (\(id, pos) -> P.insertSym (Sym scope id pos oktype)) vars
+
+          ids <- mapM idAction (map fst assigns)
+          let exps = map (fromJust.snd) assigns
+          mapM (uncurry assignAction) (zip ids exps)
 
 ifAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> AST.IFELSE -> ParseM AST.INSTRUCTION
 ifAction tkn condition blk ifelse = do
@@ -402,6 +394,14 @@ intOperationAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EX
 intOperationAction tkn exp1 exp2 = do
           oktype <- checkIntOpType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
           return $ AST.ARIT exp1 (tkn_string tkn) exp2 oktype
+
+assignAction :: AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
+assignAction lhs rhs = return $ AST.ASSIGN lhs rhs (exp_type rhs) --TODO Lookup for type
+
+idAction :: Token -> ParseM AST.EXPRESSION
+idAction tkn = do
+          sym <- P.findSym (tkn_string tkn) (tkn_pos tkn)
+          return $ AST.IDEXPRESSION (tkn_string tkn, sym_scope sym) (sym_type sym)
 
 pointerAction :: Token -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 pointerAction tkn exp = do
