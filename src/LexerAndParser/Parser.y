@@ -119,8 +119,8 @@ import Data.Maybe
 %nonassoc '>' '<' '==' '!=' '>=' '<='
 %left '+' '-'
 %left '*' '/' '%' mod div
-%right not
 %right '^'
+%right not
 %left '['
 %nonassoc '.'
 
@@ -261,6 +261,10 @@ EXPRESSION : LVAL                       { $1 }
            | FUNCTIONCALL               { $1 }
            | newlife '(' EXPRESSION ')' { AST.NEWLIFE $3 $ OKPointer (exp_type $3)} -- TODO ??????????????????????
            | LVAL '=' EXPRESSION        { AST.ASSIGN $1 $3 (exp_type $3)} --Lookup for type
+           --| '^' EXPRESSION { }
+           --| '^' EXPRESSION '=' EXPRESSION { }
+
+--ASSIGN :         
 
 EXPRESSIONS :: { [AST.EXPRESSION] }
 EXPRESSIONS :                       { [] }
@@ -277,7 +281,9 @@ LVAL :  id {% do
                     return $ AST.IDEXPRESSION (tkn_string $1, sym_scope sym) (sym_type sym)}
            | ARRAYPOSITION              { $1 } -- TODO check sym
            | EXPRESSIONSTRUCT           { $1 } -- TODO check sym
-           | '^' EXPRESSION           {% pointerAction $1 $2 }
+           | '^' id           { }
+           | '^' ARRAYPOSITION              {  } -- TODO check sym
+           | '^' EXPRESSIONSTRUCT           {  } -- TODO check sym
 
 LVALS :: { [AST.EXPRESSION] }
 LVALS :                                 { [] }
@@ -289,10 +295,12 @@ NONEMPTYLVALS : NONEMPTYLVALS ',' LVAL    { $3 : $1 }
 
 -- Things that can evaluate to array:
 -- id, struct.member
-ARRAYPOSITION : EXPRESSION '[' EXPRESSION ']'                   { AST.ARRAYPOS $1 $3 (array_Type.exp_type $ $1)} -- TODO Check E1 type for array
+ARRAYPOSITION : id '[' EXPRESSION ']'                   { AST.ARRAYPOS $1 $3 (array_Type.exp_type $ $1)} -- TODO Check E1 type for array
+              | ARRAYPOSITION '[' EXPRESSION ']' { }
 
                                                                     --TODO find type of E1, has to be a record, add its scope in the dot, look id, pop scope
-EXPRESSIONSTRUCT : EXPRESSION '.' id                            { AST.EXPRESSIONSTRUCT $1 (tkn_string $3) (exp_type $1)}
+EXPRESSIONSTRUCT : id '.' id                            { AST.EXPRESSIONSTRUCT $1 (tkn_string $3) (exp_type $1)}
+                 | ARRAYPOSITION '.' id { }
 
 FUNCTIONCALL : id '(' EXPRESSIONS ')'                                {%
                                                     do  sym <- P.findSym (tkn_string $1) (tkn_pos $1)
