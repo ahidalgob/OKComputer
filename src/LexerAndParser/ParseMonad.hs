@@ -65,17 +65,11 @@ data ParseMError = IdNotFound Id Pos |
                    IdNotInScope Id Pos |
                    AlreadyDefinedInScope Sym |
                    ParseError String |
-                   VarWithFunctionName Sym
+                   VarWithFunctionName Sym |
+                   NameIsUsedForType Id Pos |
+                   NameTypeAlreadyUsed Id Pos
                  deriving Show
 
-catchIdNotFound :: ParseMError -> ParseM Scope
-catchIdNotFound (IdNotFound id pos) = do
-  liftIO $ putStrLn $ "Id " ++ id ++ " is not defined. Line " ++ show (fst pos) ++ "."
-  return (-1)
-
-catchAlreadyDefinedInScope (AlreadyDefinedInScope sym) = do
-  liftIO $ putStrLn $ "Id " ++ (sym_Id sym) ++ " is already defined in the same scope."
-  liftIO $ putStrLn $ "Line " ++ show (fst.sym_pos $ sym) ++ ". Original definition at line __" -- TODO
 --------------------------------------------------------
 --------------------------------------------------------
 
@@ -212,14 +206,23 @@ findSym id pos = do
 insertSym :: Sym -> ParseM ()
 insertSym sym@(Sym _ _ _ _) = insertVarSym sym
 insertSym sym@(FuncSym _ _ _ _ _ _) = insertFunctionSym sym
+insertSym sym@(TypeSym _ _ _ _) = insertTypeSym sym
 insertSym sym@(ErrorSym _ _ _ _) = liftIO $ putStrLn "Trying to add an ErrorSym to SymTable. What ya trying?"
+
+checkDefinedTypeSym :: Id -> Pos -> ParseM ()
+checkDefinedTypeSym id pos = do
+  syms <- findAllSyms id pos
+  case find isTypeSym syms of
+       Nothing -> return ()
+       _ -> throwError $ NameIsUsedForType id pos
 
 insertVarSym :: Sym -> ParseM ()
 insertVarSym sym = do
+  checkDefinedTypeSym (sym_Id sym) (sym_pos sym)
   prevScope <- (sym_scope <$> findSym (sym_Id sym) (sym_pos sym))
                 `catchError` (\_ -> return (-1))
   case prevScope == (sym_scope sym) of
-       True -> catchAlreadyDefinedInScope (AlreadyDefinedInScope sym)
+       True -> throwError $ AlreadyDefinedInScope sym
        False -> do
           symTable <- gets state_SymTable
           let newSymTable = symTableInsert sym symTable
@@ -228,6 +231,7 @@ insertVarSym sym = do
 
 insertFunctionSym :: Sym -> ParseM ()
 insertFunctionSym sym@(FuncSym scp id pos (OKFunc prms ret) argsId instrs) = do
+  checkDefinedTypeSym (sym_Id sym) (sym_pos sym)
   list <- (findAllSyms id pos) `catchError` (\_ -> return [])
   symTable <- gets state_SymTable
 
@@ -240,6 +244,15 @@ insertFunctionSym sym@(FuncSym scp id pos (OKFunc prms ret) argsId instrs) = do
           let newSymTable = symTableInsert sym symTable
           modify (\s -> s{state_SymTable = newSymTable})
 
+insertTypeSym :: Sym -> ParseM ()
+insertTypeSym sym = do
+  syms <- findAllSyms (sym_Id sym) (sym_pos sym)
+  symTable <- gets state_SymTable
+  case null syms of
+       False -> throwError $ NameTypeAlreadyUsed (sym_Id sym) (sym_pos sym)
+       True -> do
+          let newSymTable = symTableInsert sym symTable
+          modify (\s -> s{state_SymTable = newSymTable})
 
 sameParams :: Sym -> Sym -> Bool
 sameParams (FuncSym _ _ _ (OKFunc prms1 _) _ _) (FuncSym _ _ _ (OKFunc prms2 _) _ _) = prms1==prms2

@@ -209,7 +209,7 @@ TYPE2 : int                                   { OKInt }
    | boolean                                  { OKBoolean }
    | char                                     { OKChar }
    | string                                   { OKString }
-   | id                                       { OKNameType (tkn_string $1) OKInt } --TODO
+   | id                                       {% okNameTypeAction $1 }
 
 
 INSTRUCTION :: { AST.INSTRUCTION }
@@ -329,6 +329,14 @@ declarationAction oktype l =
           ids <- mapM idAction (map fst assigns)
           let exps = map (fromJust.snd) assigns
           mapM (uncurry assignAction) (zip ids exps)
+
+okNameTypeAction :: Token -> ParseM OKType
+okNameTypeAction tkn = do
+  sym <- P.findSym (tkn_string tkn) (tkn_pos tkn)
+  case sym of
+      TypeSym _ _ _ _ -> return $ sym_type sym
+      _ -> do -- throwError $ IsNotType (tkn_string tkn) (tkn_pos tkn) --TODO Check
+              return OKErrorT
 
 ifAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> AST.IFELSE -> ParseM AST.INSTRUCTION
 ifAction tkn condition blk ifelse = do
