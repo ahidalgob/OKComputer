@@ -10,7 +10,7 @@ youbegin
     breakthru
 whereiend
 
-dafunk maintheme() : intothevoid 
+dafunk maintheme() : intothevoid
 youbegin
     int b, n
     bool x=ok, y, z=notok
@@ -38,7 +38,7 @@ youbegin
     	whereiend
     whereiend
 
-    bac = x[3]
+    int bac = x[3]
 
     onemoretime int ola = 5 ; ola<10 ; ola=ola+1 youbegin
     	exitmusic

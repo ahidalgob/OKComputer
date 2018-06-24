@@ -43,6 +43,9 @@ emptySymTable = H.empty
 symTableInsert :: Sym -> SymTable -> SymTable
 symTableInsert s st = H.insertWith (++) (sym_Id s) [s] st
 
+symTableModify :: Id -> [Sym] -> SymTable -> SymTable
+symTableModify id s st = H.insert id s st
+
 symTableLookUp :: Id -> SymTable -> Maybe [Sym]
 symTableLookUp = H.lookup
 

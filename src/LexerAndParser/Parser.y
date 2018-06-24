@@ -251,13 +251,13 @@ EXPRESSION : LVAL                       { $1 }
            | EXPRESSION and EXPRESSION  {% booleanOperationAction $2 $1 $3 }
            | EXPRESSION or EXPRESSION   {% booleanOperationAction $2 $1 $3 }
            | '-' EXPRESSION             {% minusAction $1 $2 }
-           | EXPRESSION '+' EXPRESSION  {% numOperationAction $2 $1 $3 }
-           | EXPRESSION '-' EXPRESSION  {% numOperationAction $2 $1 $3 }
-           | EXPRESSION '*' EXPRESSION  {% numOperationAction $2 $1 $3 }
-           | EXPRESSION '/' EXPRESSION  {% numOperationAction $2 $1 $3 }
-           | EXPRESSION '%' EXPRESSION  {% numOperationAction $2 $1 $3 }
-           | EXPRESSION mod EXPRESSION  {% intOperationAction $2 $1 $3 }
-           | EXPRESSION div EXPRESSION  {% intOperationAction $2 $1 $3 }
+           | EXPRESSION '+' EXPRESSION  {% numOperationAction $2 $1 $3 "+" }
+           | EXPRESSION '-' EXPRESSION  {% numOperationAction $2 $1 $3 "-" }
+           | EXPRESSION '*' EXPRESSION  {% numOperationAction $2 $1 $3 "*" }
+           | EXPRESSION '/' EXPRESSION  {% numOperationAction $2 $1 $3 "/" }
+           | EXPRESSION '%' EXPRESSION  {% numOperationAction $2 $1 $3 "%" }
+           | EXPRESSION mod EXPRESSION  {% intOperationAction $2 $1 $3 "mod" }
+           | EXPRESSION div EXPRESSION  {% intOperationAction $2 $1 $3 "div" }
            | FUNCTIONCALL               { $1 }
            | newlife '(' EXPRESSION ')' { AST.NEWLIFE $3 $ OKPointer (exp_type $3)} -- TODO ??????????????????????
            | LVAL '=' EXPRESSION        {% assignAction $1 $3 }
@@ -306,8 +306,7 @@ MAYBELINE : {- empty -}                   { }
 functionDefAction :: (Token, [AST.Parameter], OKType) -> [AST.INSTRUCTION] -> ParseM ()
 functionDefAction (tkn, params, ret) instrs = do
         let oktype = OKFunc (map param_type params) ret
-        P.completeFunctionDef tkn oktype instrs
-        return ()
+        P.completeFunctionDef $ FuncSym 1 (tkn_string tkn) (tkn_pos tkn) oktype (map param_id params) instrs
 
 functionSignAction :: Token -> [AST.Parameter] -> OKType -> ParseM (Token, [AST.Parameter], OKType)
 functionSignAction tkn params ret = do
@@ -385,15 +384,15 @@ minusAction tkn exp = do
           oktype <- checkNumericalType (tkn_pos tkn) (exp_type exp)
           return $ AST.MINUS exp oktype
 
-numOperationAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
-numOperationAction tkn exp1 exp2 = do
+numOperationAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
+numOperationAction tkn exp1 exp2 op = do
           oktype <- checkNumOpType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
-          return $ AST.ARIT exp1 (tkn_string tkn) exp2 oktype
+          return $ AST.ARIT exp1 op exp2 oktype
 
-intOperationAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
-intOperationAction tkn exp1 exp2 = do
+intOperationAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
+intOperationAction tkn exp1 exp2 op = do
           oktype <- checkIntOpType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
-          return $ AST.ARIT exp1 (tkn_string tkn) exp2 oktype
+          return $ AST.ARIT exp1 op exp2 oktype
 
 assignAction :: AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 assignAction lhs rhs = return $ AST.ASSIGN lhs rhs (exp_type rhs) --TODO Lookup for type

@@ -226,26 +226,36 @@ insertVarSym sym = do
           modify (\s -> s{state_SymTable = newSymTable})
 
 
-
 insertFunctionSym :: Sym -> ParseM ()
 insertFunctionSym sym@(FuncSym scp id pos (OKFunc prms ret) argsId instrs) = do
   list <- (findAllSyms id pos) `catchError` (\_ -> return [])
   symTable <- gets state_SymTable
+
   let filterList = filter (\sym -> (sym_scope sym == 1) && isVarSym sym) list
   when (not (null filterList)) $ throwError (VarWithFunctionName sym)
 
-  case find (sameParams prms) list of
+  case find (sameParams sym) list of
        Just x -> throwError (AlreadyDefinedInScope sym)
        Nothing -> do
           let newSymTable = symTableInsert sym symTable
           modify (\s -> s{state_SymTable = newSymTable})
-  where
-    sameParms :: [OKType] -> Sym -> Bool
-    sameParams l (FuncSym _ _ _ (OKFunc prms _) _ _) = l==prms
-    sameParms _ _ = False
 
--- TODO
-completeFunctionDef :: Token -> OKType -> [AST.INSTRUCTION] -> ParseM ()
-completeFunctionDef = undefined
+
+sameParams :: Sym -> Sym -> Bool
+sameParams (FuncSym _ _ _ (OKFunc prms1 _) _ _) (FuncSym _ _ _ (OKFunc prms2 _) _ _) = prms1==prms2
+sameParams _ _ = False
+
+
+completeFunctionDef :: Sym -> ParseM ()
+completeFunctionDef sym = do
+    newList <- updateSym sym <$> findAllSyms (sym_Id sym) (sym_pos sym)
+    symTable <- gets state_SymTable
+    let newSymTable = symTableModify (sym_Id sym) newList symTable
+    modify (\s -> s{state_SymTable = newSymTable})
+  where
+        updateSym :: Sym -> [Sym] -> [Sym]
+        updateSym _ [] = []
+        updateSym s (s' : ss) = let ns = if sameParams s s' then s else s'
+                                in ns : updateSym s ss
 
 --}}}
