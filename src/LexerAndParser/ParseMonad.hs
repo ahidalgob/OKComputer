@@ -211,7 +211,7 @@ insertSym sym@(ErrorSym _ _ _ _) = liftIO $ putStrLn "Trying to add an ErrorSym 
 
 checkDefinedNameTypeSym :: Id -> Pos -> ParseM ()
 checkDefinedNameTypeSym id pos = do
-  syms <- findAllSyms id pos
+  syms <- findAllSyms id pos `catchError` (\_ -> return [])
   case find isNameTypeSym syms of
        Nothing -> return ()
        _ -> throwError $ NameIsUsedForType id pos

@@ -3,3 +3,5 @@
 typedef hola int
 
 typedef chaoo hola
+
+hola x = 3
