@@ -9,7 +9,7 @@ data OKType = OKPointer {pointer_Type::OKType}
             | OKFloat
             | OKChar
             | OKString
-            | OKNameType Id
+            | OKNameType Id OKType
             | OKArray {array_Size::Int, array_Type::OKType}
             | OKTuple [OKType]
             | OKList OKType

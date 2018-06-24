@@ -204,12 +204,12 @@ TYPE : TYPE2              { $1 }
     |  TYPE '^'          { OKPointer $1 }
 
 TYPE2 :: { OKType }
-TYPE2 : int                                    { OKInt }
+TYPE2 : int                                   { OKInt }
    | float                                    { OKFloat }
    | boolean                                  { OKBoolean }
    | char                                     { OKChar }
    | string                                   { OKString }
-   | id                                       { OKNameType $ tkn_string $1 }
+   | id                                       { OKNameType (tkn_string $1) OKInt } --TODO
 
 
 INSTRUCTION :: { AST.INSTRUCTION }
@@ -241,15 +241,15 @@ EXPRESSION : LVAL                       { $1 }
            | ok                         { AST.BOOLEANEXP True OKBoolean}
            | notok                      { AST.BOOLEANEXP False OKBoolean}
            | '(' EXPRESSION ')'         { $2 }
-           | EXPRESSION '<' EXPRESSION  {% orderCompAction $2 $1 $3 }               --TODO there's no tkn_string in these tokens
-           | EXPRESSION '>' EXPRESSION  {% orderCompAction $2 $1 $3 }
-           | EXPRESSION '<=' EXPRESSION {% orderCompAction $2 $1 $3 }
-           | EXPRESSION '>=' EXPRESSION {% orderCompAction $2 $1 $3 }
-           | EXPRESSION '==' EXPRESSION {% equalityComparAction $2 $1 $3 }
-           | EXPRESSION '!=' EXPRESSION {% equalityComparAction $2 $1 $3 }
+           | EXPRESSION '<' EXPRESSION  {% orderCompAction $2 $1 $3 "<" }
+           | EXPRESSION '>' EXPRESSION  {% orderCompAction $2 $1 $3 ">" }
+           | EXPRESSION '<=' EXPRESSION {% orderCompAction $2 $1 $3 "<=" }
+           | EXPRESSION '>=' EXPRESSION {% orderCompAction $2 $1 $3 ">=" }
+           | EXPRESSION '==' EXPRESSION {% equalityComparAction $2 $1 $3 "==" }
+           | EXPRESSION '!=' EXPRESSION {% equalityComparAction $2 $1 $3 "!=" }
            | not EXPRESSION             {% notAction $1 $2 }
-           | EXPRESSION and EXPRESSION  {% booleanOperationAction $2 $1 $3 }
-           | EXPRESSION or EXPRESSION   {% booleanOperationAction $2 $1 $3 }
+           | EXPRESSION and EXPRESSION  {% booleanOperationAction $2 $1 $3 "and" }
+           | EXPRESSION or EXPRESSION   {% booleanOperationAction $2 $1 $3 "or" }
            | '-' EXPRESSION             {% minusAction $1 $2 }
            | EXPRESSION '+' EXPRESSION  {% numOperationAction $2 $1 $3 "+" }
            | EXPRESSION '-' EXPRESSION  {% numOperationAction $2 $1 $3 "-" }
@@ -259,7 +259,7 @@ EXPRESSION : LVAL                       { $1 }
            | EXPRESSION mod EXPRESSION  {% intOperationAction $2 $1 $3 "mod" }
            | EXPRESSION div EXPRESSION  {% intOperationAction $2 $1 $3 "div" }
            | FUNCTIONCALL               { $1 }
-           | newlife '(' EXPRESSION ')' { AST.NEWLIFE $3 $ OKPointer (exp_type $3)} -- TODO ??????????????????????
+           | newlife '(' EXPRESSION ')' { AST.NEWLIFE $3 $ OKPointer (exp_type $3)} -- TODO FFFFFFFFFFF??????????????????????
            | LVAL '=' EXPRESSION        {% assignAction $1 $3 }
 
 EXPRESSIONS :: { [AST.EXPRESSION] }
@@ -273,8 +273,8 @@ NONEMPTYEXPRESSIONS : NONEMPTYEXPRESSIONS ',' EXPRESSION        { $3 : $1 }
 -- Anything with L-Value: variables, record.member, array[position]...
 LVAL :: { AST.EXPRESSION }
 LVAL :  id {% idAction $1 }
-           | ARRAYPOSITION              { $1 } -- TODO check sym
-           | EXPRESSIONSTRUCT           { $1 } -- TODO check sym
+           | EXPRESSION '[' EXPRESSION ']'                   { AST.ARRAYPOS $1 $3 (array_Type.exp_type $ $1)} -- TODO Check E1 type for array
+           | EXPRESSION '.' id                            { AST.EXPRESSIONSTRUCT $1 (tkn_string $3) (exp_type $1)} -- TODO
            | '^' '(' EXPRESSION ')'          {% pointerAction $1 $3 }
 
 LVALS :: { [AST.EXPRESSION] }
@@ -285,16 +285,10 @@ NONEMPTYLVALS :: { [AST.EXPRESSION] }
 NONEMPTYLVALS : NONEMPTYLVALS ',' LVAL    { $3 : $1 }
               | LVAL                      { [$1] }
 
--- Things that can evaluate to array:
--- id, struct.member
-ARRAYPOSITION : EXPRESSION '[' EXPRESSION ']'                   { AST.ARRAYPOS $1 $3 (array_Type.exp_type $ $1)} -- TODO Check E1 type for array
 
-                                                                    --TODO find type of E1, has to be a record, add its scope in the dot, look id, pop scope
-EXPRESSIONSTRUCT : EXPRESSION '.' id                            { AST.EXPRESSIONSTRUCT $1 (tkn_string $3) (exp_type $1)}
-
-FUNCTIONCALL : id '(' EXPRESSIONS ')'                                {%
-                                                    do  sym <- P.findSym (tkn_string $1) (tkn_pos $1)
-                                                        return $ AST.FUNCTIONCALL (tkn_string $1) $3 (func_RetType.sym_type $ sym)}
+FUNCTIONCALL : id '(' EXPRESSIONS ')'          {%  do
+                                                       sym <- P.findSym (tkn_string $1) (tkn_pos $1)
+                                                       return $ AST.FUNCTIONCALL (tkn_string $1) $3 (func_RetType.sym_type $ sym)}
 
 MAYBELINE : {- empty -}                   { }
           | newline                       { }
@@ -359,25 +353,25 @@ ifYouHaveToAskAction tkn condition blk ifelse = do
           return $ AST.IFASK condition blk ifelse
 
 
-orderCompAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
-orderCompAction tkn exp1 exp2 = do
+orderCompAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
+orderCompAction tkn exp1 exp2 op = do
           oktype <- checkOrdCompType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
-          return $ AST.COMPAR exp1 (tkn_string tkn) exp2 oktype
+          return $ AST.COMPAR exp1 op exp2 oktype
 
-equalityComparAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
-equalityComparAction tkn exp1 exp2 = do
+equalityComparAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
+equalityComparAction tkn exp1 exp2 op = do
           oktype <- checkCompType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
-          return $ AST.COMPAR exp1 (tkn_string tkn) exp2 oktype
+          return $ AST.COMPAR exp1 op exp2 oktype
 
 notAction :: Token -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 notAction tkn exp = do
           oktype <- checkExpectedType (tkn_pos tkn) OKBoolean (exp_type exp)
           return $ AST.NOT exp oktype
 
-booleanOperationAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
-booleanOperationAction tkn exp1 exp2 = do
+booleanOperationAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
+booleanOperationAction tkn exp1 exp2 op = do
           oktype <- checkBooleanOpType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
-          return $ AST.LOGIC exp1 (tkn_string tkn) exp2 oktype
+          return $ AST.LOGIC exp1 op exp2 oktype
 
 minusAction :: Token -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 minusAction tkn exp = do

@@ -216,8 +216,9 @@ printOKType n (OKString) = do
 printOKType n (OKFunc args ret) = do
   putStrLnWithIdent n $ "Function: " ++ show args ++ "->" ++ show ret
 
-printOKType n (OKNameType name) = do
+printOKType n (OKNameType name oktype) = do
   putStrLnWithIdent n $ "Name of type: " ++ name
+  printOKType (n+2) oktype
 
 printOKType n (OKVoid) = do
   putStrLnWithIdent n "Void "
