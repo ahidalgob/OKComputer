@@ -158,7 +158,7 @@ TYPEDEF : typedef id TYPE newline                          {% typedefAction $2 $
 FUNCTION_DEF :: { () }
 FUNCTION_DEF : FUNCTION_SIGN BLOCK {% functionDefAction $1 $2}
 
-FUNCTION_SIGN :: { (Token, [AST.Parameter], OKType) }
+FUNCTION_SIGN :: { (Token, [Parameter], OKType) }
 FUNCTION_SIGN : dafunk BEGIN id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE     {% functionSignAction $3 $5 $8 }
 -- Creates the function symbol and inserts it to the sym table
 
@@ -166,15 +166,15 @@ RETURNTYPE :: { OKType }
 RETURNTYPE: intothevoid                                                 { OKVoid }
           | TYPE                                                        { $1 }
 
-LPARAMETERSFUNC :: { [AST.Parameter] }
+LPARAMETERSFUNC :: { [Parameter] }
 LPARAMETERSFUNC : {- empty -}                                           { [] }
                 | NONEMPTYLPARAMETERSFUNC                               { reverse $1 }
 
-NONEMPTYLPARAMETERSFUNC :: { [AST.Parameter] }
+NONEMPTYLPARAMETERSFUNC :: { [Parameter] }
 NONEMPTYLPARAMETERSFUNC : NONEMPTYLPARAMETERSFUNC ',' FUNCTIONPARAMETER { $3:($1) }
                         | FUNCTIONPARAMETER                             { [$1] }
 
-FUNCTIONPARAMETER :: { AST.Parameter }
+FUNCTIONPARAMETER :: { Parameter }
 FUNCTIONPARAMETER : TYPE id         {% functionParameterAction $1 $2}
 
 BLOCK :: { [AST.INSTRUCTION] }
@@ -211,7 +211,7 @@ TYPE : TYPE '^'                             { OKPointer $1 }
      | boolean                                  { OKBoolean }
      | char                                     { OKChar }
      | string                                   { OKString }
-     | id                                       {% okNameTypeAction $1 }
+     | id                                       {% nameTypeAction $1 }
 
 
 
@@ -301,6 +301,9 @@ MAYBELINE : {- empty -}                   { }
 --- 1}}}
 {
 
+
+data Parameter = Parameter{param_type :: OKType, param_id :: SymId} deriving Show
+
 -- Actions{{{1
 
 typedefAction :: Token -> OKType -> ParseM ()
@@ -308,12 +311,12 @@ typedefAction tkn oktype = do
   liftIO $ putStrLn ("agregando un nombre de TIPO " ++ tkn_string tkn)
   P.insertSym $ NameTypeSym 0 (tkn_string tkn) (tkn_pos tkn) (OKNameType (tkn_string tkn) oktype)
 
-functionDefAction :: (Token, [AST.Parameter], OKType) -> [AST.INSTRUCTION] -> ParseM ()
+functionDefAction :: (Token, [Parameter], OKType) -> [AST.INSTRUCTION] -> ParseM ()
 functionDefAction (tkn, params, ret) instrs = do
         let oktype = OKFunc (map param_type params) ret
         P.completeFunctionDef $ FuncSym 1 (tkn_string tkn) (tkn_pos tkn) oktype (map param_id params) instrs
 
-functionSignAction :: Token -> [AST.Parameter] -> OKType -> ParseM (Token, [AST.Parameter], OKType)
+functionSignAction :: Token -> [Parameter] -> OKType -> ParseM (Token, [Parameter], OKType)
 functionSignAction tkn params ret = do
         let oktype = OKFunc (map param_type params) ret
             id = tkn_string tkn
@@ -322,11 +325,11 @@ functionSignAction tkn params ret = do
         P.insertSym $ FuncSym 1 id pos oktype param_ids []
         return (tkn, params, ret)
 
-functionParameterAction :: OKType -> Token -> ParseM AST.Parameter
+functionParameterAction :: OKType -> Token -> ParseM Parameter
 functionParameterAction oktype id = do
-                             scope <- P.topScope
-                             P.insertSym $ Sym scope (tkn_string id) (tkn_pos id) oktype
-                             return $ AST.Parameter oktype (tkn_string id, scope)
+       scope <- P.topScope
+       P.insertSym $ Sym scope (tkn_string id) (tkn_pos id) oktype
+       return $ Parameter oktype (tkn_string id, scope)
 
 declarationAction :: OKType -> [(Token, Maybe AST.EXPRESSION)] -> ParseM ([AST.EXPRESSION])
 declarationAction oktype l =
@@ -341,8 +344,8 @@ declarationAction oktype l =
           let exps = map (fromJust.snd) assigns
           mapM (uncurry assignAction) (zip ids exps)
 
-okNameTypeAction :: Token -> ParseM OKType
-okNameTypeAction tkn = do
+nameTypeAction :: Token -> ParseM OKType
+nameTypeAction tkn = do
   sym <- P.findSym (tkn_string tkn) (tkn_pos tkn)
   case sym of
       NameTypeSym _ _ _ _ -> return $ sym_type sym

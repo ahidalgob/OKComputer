@@ -11,12 +11,6 @@ data OUTSIDE =
         OUTASSIGN [EXPRESSION] -- All the expressions are assigns
           deriving Show
 
-{-
-data FUNCTIONINICN =
-        FUNCTIONINICN Id [Parameter] OKType [INSTRUCTION] deriving Show -- TODO SymId
--}
-data Parameter = Parameter{param_type :: OKType, param_id :: SymId} deriving Show -- TODO Should we save this on the AST? It's basically the same as a
-
 data INSTRUCTION = GOING [PRINT]                                         |
           GOINGSLOWLY [PRINT]                                             |
           GOINGMENTAL [PRINT]                                             |
@@ -163,35 +157,9 @@ printImportN n (IMPORT ids) = do
   mapM_ (printId (n+1)) ids
 
 printOutsideListN :: Int -> OUTSIDE -> IO()
-{-
-printOutsideListN n (OUTFUNCTIONINIC funciones) = do
-  putStrLnWithIdent n "Function declared: "
-  printFuncInic (n+1) funciones
--}
-
 printOutsideListN n (OUTASSIGN exps) = do
   putStrLnWithIdent n "Global assigns: "
   mapM_ (printExpN (n+1)) exps
-
-{-
-printFuncInic :: Int -> FUNCTIONINICN -> IO()
-printFuncInic n (FUNCTIONINICN funcid parameters rtype instructions) = do
-  putStrLnWithIdent n "Function ID: "
-  printId (n+1) funcid
-  putStrLnWithIdent n "Function parameters: "
-  mapM_ (printParameter (n+1)) parameters
-  putStrLnWithIdent n "Return type: "
-  printOKType (n+1) rtype
-  putStrLnWithIdent n "Instructions list: "
-  mapM_ (printInstruction (n+1)) instructions
--}
-
-printParameter :: Int -> Parameter -> IO()
-printParameter n (Parameter oktyp okid) = do
-  putStrLnWithIdent n "Parameter type: "
-  printOKType (n+1) oktyp
-  putStrLnWithIdent n "Parameter id: "
-  printIdSymbol (n+1) okid
 
 printOKType :: Int -> OKType -> IO()
 printOKType n (OKPointer inner) = do
