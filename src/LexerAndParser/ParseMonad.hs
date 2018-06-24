@@ -64,7 +64,8 @@ initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
 data ParseMError = IdNotFound Id Pos |
                    IdNotInScope Id Pos |
                    AlreadyDefinedInScope Sym |
-                   ParseError String
+                   ParseError String |
+                   VarWithFunctionName Sym
                  deriving Show
 
 catchIdNotFound :: ParseMError -> ParseM Scope
@@ -187,13 +188,6 @@ endScope = do
   deleteScope topScope
 
 
-
--- Find the first symbol scope of the list such that the scope is active
-findSymScope :: Id -> Pos -> ParseM Scope
-findSymScope id pos = (sym_scope <$> findSym id pos)
-                      `catchError` catchIdNotFound
-
-
 -- Finds all the symbols associated with an Id
 findAllSyms :: Id -> Pos -> ParseM [Sym]
 findAllSyms id pos = do
@@ -205,7 +199,7 @@ findAllSyms id pos = do
 -- Finds the first symbol on the list of the give Id such that its scope is active
 findSym :: Id -> Pos -> ParseM Sym
 findSym id pos = do
-  l <- findAllSyms id pos `catchError` (\_ -> return [])
+  l <- findAllSyms id pos
   activeScopes <- gets state_ScopeSet
   case find (scopeIsIn activeScopes) l of
        Nothing -> throwError (IdNotInScope id pos)
@@ -214,15 +208,15 @@ findSym id pos = do
     scopeIsIn :: ScopeSet -> Sym -> Bool
     scopeIsIn ss sym = scopeSetMember (sym_scope sym) ss
 
---
-insertSym :: Sym -> ParseM ()
-insertSym sym = case sym_type sym of
-                          OKFunc _ _ -> insertFunctionSym sym
-                          _ -> insertNonFunctionSym sym
 
-insertNonFunctionSym :: Sym -> ParseM ()
-insertNonFunctionSym sym = do
-  prevScope <- (sym_scope <$> findSym (sym_Id sym) (0,0))
+insertSym :: Sym -> ParseM ()
+insertSym sym@(Sym _ _ _ _) = insertVarSym sym
+insertSym sym@(FuncSym _ _ _ _ _ _) = insertFunctionSym sym
+insertSym sym@(ErrorSym _ _ _ _) = liftIO $ putStrLn "Trying to add an ErrorSym to SymTable. What ya trying?"
+
+insertVarSym :: Sym -> ParseM ()
+insertVarSym sym = do
+  prevScope <- (sym_scope <$> findSym (sym_Id sym) (sym_pos sym))
                 `catchError` (\_ -> return (-1))
   case prevScope == (sym_scope sym) of
        True -> catchAlreadyDefinedInScope (AlreadyDefinedInScope sym)
@@ -234,25 +228,21 @@ insertNonFunctionSym sym = do
 
 
 insertFunctionSym :: Sym -> ParseM ()
-insertFunctionSym sym@(FuncSym scp id _ (OKFunc prms ret) argsId instrs) = do
-  maybeList <- (symTableLookUp id) <$> (gets state_SymTable)
+insertFunctionSym sym@(FuncSym scp id pos (OKFunc prms ret) argsId instrs) = do
+  list <- (findAllSyms id pos) `catchError` (\_ -> return [])
   symTable <- gets state_SymTable
-  case maybeList of
+  let filterList = filter (\sym -> (sym_scope sym == 1) && isVarSym sym) list
+  when (not (null filterList)) $ throwError (VarWithFunctionName sym)
+
+  case find (sameParams prms) list of
+       Just x -> throwError (AlreadyDefinedInScope sym)
        Nothing -> do
           let newSymTable = symTableInsert sym symTable
           modify (\s -> s{state_SymTable = newSymTable})
-       Just l -> do
-          case find (sameParams prms) l of
-               Just x -> catchAlreadyDefinedInScope (AlreadyDefinedInScope sym)
-               Nothing -> do
-                  let newSymTable = symTableInsert sym symTable
-                  modify (\s -> s{state_SymTable = newSymTable})
   where
     sameParms :: [OKType] -> Sym -> Bool
     sameParams l (FuncSym _ _ _ (OKFunc prms _) _ _) = l==prms
     sameParms _ _ = False
-
-
 
 -- TODO
 completeFunctionDef :: Token -> OKType -> [AST.INSTRUCTION] -> ParseM ()

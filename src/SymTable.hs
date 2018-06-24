@@ -28,6 +28,8 @@ data Sym = Sym{ sym_scope :: Scope,
                 sym_type :: OKType
             } deriving Show
 
+isVarSym (Sym _ _ _ _) = True
+isVarSym _ = False
 
 ----------------------------------
 -----------Sym Table--------------
