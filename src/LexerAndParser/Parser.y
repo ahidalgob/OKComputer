@@ -30,6 +30,7 @@ import Data.Maybe
 
 -- Tokens{{{1
 %token
+  typedef                                 { TypedefTkn _ }
   youbegin                                { YouBeginTkn _ }        -- Block Start
   whereiend                               { WhereIEndTkn _ }       -- Block End
   if                                      { IfTkn _ }              -- Selection
@@ -146,9 +147,13 @@ IDS : IDS ',' id                             { (tkn_string $3):$1 }
 
 
 OUTSIDE_FUNCTION :: { [AST.OUTSIDE] }
-OUTSIDE_FUNCTION : FUNCTION_DEF OUTSIDE_FUNCTION            { $2 }
+OUTSIDE_FUNCTION : FUNCTION_DEF OUTSIDE_FUNCTION           { $2 }
                 | DECLARATION newline OUTSIDE_FUNCTION     { (AST.OUTASSIGN $1):$3 }
-                | {- empty -}                             { [] }
+                | TYPEDEF OUTSIDE_FUNCTION                 { $2 }
+                | {- empty -}                              { [] }
+
+TYPEDEF :: { () }
+TYPEDEF : typedef id TYPE newline                          {% typedefAction $2 $3 }
 
 FUNCTION_DEF :: { () }
 FUNCTION_DEF : FUNCTION_SIGN BLOCK {% functionDefAction $1 $2}
@@ -200,16 +205,16 @@ DECLARATIONVARS : id '=' EXPRESSION                 { [($1, Just $3)] }
 
 
 TYPE :: { OKType }
-TYPE : TYPE2              { $1 }
-    |  TYPE '^'          { OKPointer $1 }
+TYPE : TYPE '^'                             { OKPointer $1 }
+     | int                                   { OKInt }
+     | float                                    { OKFloat }
+     | boolean                                  { OKBoolean }
+     | char                                     { OKChar }
+     | string                                   { OKString }
+     | id                                       {% okNameTypeAction $1 }
 
-TYPE2 :: { OKType }
-TYPE2 : int                                   { OKInt }
-   | float                                    { OKFloat }
-   | boolean                                  { OKBoolean }
-   | char                                     { OKChar }
-   | string                                   { OKString }
-   | id                                       {% okNameTypeAction $1 }
+
+
 
 
 INSTRUCTION :: { AST.INSTRUCTION }
@@ -297,6 +302,12 @@ MAYBELINE : {- empty -}                   { }
 {
 
 -- Actions{{{1
+
+typedefAction :: Token -> OKType -> ParseM ()
+typedefAction tkn oktype = do
+  liftIO $ putStrLn ("agregando un nombre de TIPO " ++ tkn_string tkn)
+  P.insertSym $ NameTypeSym 0 (tkn_string tkn) (tkn_pos tkn) (OKNameType (tkn_string tkn) oktype)
+
 functionDefAction :: (Token, [AST.Parameter], OKType) -> [AST.INSTRUCTION] -> ParseM ()
 functionDefAction (tkn, params, ret) instrs = do
         let oktype = OKFunc (map param_type params) ret
@@ -334,7 +345,7 @@ okNameTypeAction :: Token -> ParseM OKType
 okNameTypeAction tkn = do
   sym <- P.findSym (tkn_string tkn) (tkn_pos tkn)
   case sym of
-      TypeSym _ _ _ _ -> return $ sym_type sym
+      NameTypeSym _ _ _ _ -> return $ sym_type sym
       _ -> do -- throwError $ IsNotType (tkn_string tkn) (tkn_pos tkn) --TODO Check
               return OKErrorT
 

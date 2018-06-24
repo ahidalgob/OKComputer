@@ -17,6 +17,7 @@ tokens :-
 <0>  "#".*                                      ; -- skip comments
 
   -- Instructions
+<0>  typedef                                 {newToken TypedefTkn}
 <0>  youbegin                                {newToken YouBeginTkn}        -- Block Start
 <0>  whereiend                               {newEndTkn}                   -- Block End
 <0>  if                                      {newToken IfTkn}              -- Selection

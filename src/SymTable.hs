@@ -21,7 +21,7 @@ data Sym = Sym{ sym_scope :: Scope,
                 sym_argsId :: [SymId],
                 sym_AST :: [AST.INSTRUCTION]
            }
-          | TypeSym{ sym_scope :: Scope,
+          | NameTypeSym{ sym_scope :: Scope,
                      sym_Id :: Id,
                      sym_pos :: Pos, -- declaration position
                      sym_type :: OKType
@@ -36,8 +36,8 @@ data Sym = Sym{ sym_scope :: Scope,
 isVarSym (Sym _ _ _ _) = True
 isVarSym _ = False
 
-isTypeSym (TypeSym _ _ _ _) = True
-isTypeSym _ = False
+isNameTypeSym (NameTypeSym _ _ _ _) = True
+isNameTypeSym _ = False
 
 ----------------------------------
 -----------Sym Table--------------

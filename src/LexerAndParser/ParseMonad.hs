@@ -206,19 +206,19 @@ findSym id pos = do
 insertSym :: Sym -> ParseM ()
 insertSym sym@(Sym _ _ _ _) = insertVarSym sym
 insertSym sym@(FuncSym _ _ _ _ _ _) = insertFunctionSym sym
-insertSym sym@(TypeSym _ _ _ _) = insertTypeSym sym
+insertSym sym@(NameTypeSym _ _ _ _) = insertNameTypeSym sym
 insertSym sym@(ErrorSym _ _ _ _) = liftIO $ putStrLn "Trying to add an ErrorSym to SymTable. What ya trying?"
 
-checkDefinedTypeSym :: Id -> Pos -> ParseM ()
-checkDefinedTypeSym id pos = do
+checkDefinedNameTypeSym :: Id -> Pos -> ParseM ()
+checkDefinedNameTypeSym id pos = do
   syms <- findAllSyms id pos
-  case find isTypeSym syms of
+  case find isNameTypeSym syms of
        Nothing -> return ()
        _ -> throwError $ NameIsUsedForType id pos
 
 insertVarSym :: Sym -> ParseM ()
 insertVarSym sym = do
-  checkDefinedTypeSym (sym_Id sym) (sym_pos sym)
+  checkDefinedNameTypeSym (sym_Id sym) (sym_pos sym)
   prevScope <- (sym_scope <$> findSym (sym_Id sym) (sym_pos sym))
                 `catchError` (\_ -> return (-1))
   case prevScope == (sym_scope sym) of
@@ -231,7 +231,7 @@ insertVarSym sym = do
 
 insertFunctionSym :: Sym -> ParseM ()
 insertFunctionSym sym@(FuncSym scp id pos (OKFunc prms ret) argsId instrs) = do
-  checkDefinedTypeSym (sym_Id sym) (sym_pos sym)
+  checkDefinedNameTypeSym (sym_Id sym) (sym_pos sym)
   list <- (findAllSyms id pos) `catchError` (\_ -> return [])
   symTable <- gets state_SymTable
 
@@ -244,9 +244,9 @@ insertFunctionSym sym@(FuncSym scp id pos (OKFunc prms ret) argsId instrs) = do
           let newSymTable = symTableInsert sym symTable
           modify (\s -> s{state_SymTable = newSymTable})
 
-insertTypeSym :: Sym -> ParseM ()
-insertTypeSym sym = do
-  syms <- findAllSyms (sym_Id sym) (sym_pos sym)
+insertNameTypeSym :: Sym -> ParseM ()
+insertNameTypeSym sym = do
+  syms <- findAllSyms (sym_Id sym) (sym_pos sym) `catchError` (\_ -> return [])
   symTable <- gets state_SymTable
   case null syms of
        False -> throwError $ NameTypeAlreadyUsed (sym_Id sym) (sym_pos sym)

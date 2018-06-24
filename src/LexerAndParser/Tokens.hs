@@ -1,7 +1,7 @@
 module Tokens where
 
 data Token =
-
+  TypedefTkn          { tkn_pos :: (Int, Int) }  |
   YouBeginTkn         { tkn_pos :: (Int, Int) }  |
   WhereIEndTkn        { tkn_pos :: (Int, Int) }  |
   IfTkn               { tkn_pos :: (Int, Int) }  |
