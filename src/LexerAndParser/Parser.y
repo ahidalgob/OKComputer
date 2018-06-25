@@ -358,8 +358,8 @@ declarationAction oktype l =
           checkIfArray :: (Id, Pos, Maybe AST.EXPRESSION) -> ParseM (Id, Pos, OKType)
           checkIfArray (id, pos, Nothing) = return (id, pos, oktype)
           checkIfArray (id, pos, Just exp) = do
-            okt <- checkExpectedType pos OKInt (exp_type exp)
-            return (id, pos, okt)
+            checkExpectedType pos OKInt (exp_type exp)
+            return (id, pos, OKArray 0 oktype)
 
 arrayAction :: Pos -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 arrayAction pos arrExp posExp = do
