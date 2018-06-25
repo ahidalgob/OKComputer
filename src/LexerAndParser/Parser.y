@@ -529,10 +529,12 @@ checkAndGetPointerType (line, _) t = throwNotPointerType line t
 -- 1}}}
 
 -- Errors (Horrors){{{1
+throwDifferentTypeError :: Int -> OKType -> OKType -> ParseM OKType
 throwDifferentTypeError line t1 t2 = do
     liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected same type, found " ++ show t1 ++ " and " ++ show t2 ++ "."
     return OKErrorT
 
+throwNotNumericalTypeError :: Int -> OKType -> OKType -> ParseM OKType
 throwNotNumericalTypeError line t1 t2 = do
     liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected a number types, found " ++ show t1 ++ " and " ++ show t2 ++ "."
     return OKErrorT
@@ -543,14 +545,17 @@ throwNotWhatIExpectedAndImNotSatisfied line t1 t2 = do
     liftIO $ putStrLn $ " Not What I Expected And I'm Not Satisfied."
     return OKErrorT
 
+throwNotBooleanError :: Int -> OKType -> OKType -> ParseM OKType
 throwNotBooleanError line t1 t2 = do
     liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected boolean values, found " ++ show t1 ++ " and " ++ show t2 ++ "."
     return OKErrorT
 
+throwNotIntType :: Int -> OKType -> OKType -> ParseM OKType
 throwNotIntType line t1 t2 = do
     liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected int values, found " ++ show t1 ++ " and " ++ show t2 ++ "."
     return OKErrorT
 
+throwNotPointerType :: Int -> OKType -> ParseM OKType
 throwNotPointerType line t = do
     liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected pointer value, found " ++ show t ++ "."
     return OKErrorT
