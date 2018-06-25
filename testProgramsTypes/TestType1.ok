@@ -1,0 +1,16 @@
+# Error inside if expression line 11
+
+int a = 30
+boolean b = ok
+float c = 20.0
+
+dafunk maintheme() : intothevoid 
+youbegin
+    int n = 5
+
+    if 1<ok youbegin
+        breakthru
+        exitmusic
+    whereiend
+
+whereiend

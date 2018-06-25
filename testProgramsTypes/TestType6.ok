@@ -1,0 +1,15 @@
+# Error float using mod line 9
+
+int a = 30
+float c = 20.12
+
+dafunk maintheme() : intothevoid 
+youbegin
+    int n
+    c = 30.5 mod 20.3
+
+    if 1<a youbegin
+        breakthru
+        exitmusic
+    whereiend
+whereiend

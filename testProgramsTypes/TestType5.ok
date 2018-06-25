@@ -1,0 +1,18 @@
+# Error in cantstop 1 < "voybien" line 13
+
+int a = 30
+boolean b = ok
+
+dafunk maintheme() : intothevoid 
+youbegin
+    int n
+    boolean y=ok, z=notok
+    b = not (ok and notok)
+    n = - 2 * 4 - 2*3
+
+    cantstop 5<"voy bien" youbegin
+        breakthru
+        exitmusic
+    whereiend
+
+whereiend

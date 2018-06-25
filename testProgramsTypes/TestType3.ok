@@ -1,0 +1,17 @@
+# Error in declaration bool x = 1 line 9 and in assign int and boolean linea 11
+
+int a = 30
+boolean b = ok
+
+dafunk maintheme() : intothevoid 
+youbegin
+    int n
+    boolean x=1, y=ok, z=notok
+    b = not (ok and notok)
+    x = - 2 * 2 - 2*notok
+
+    if 1<5 youbegin
+        breakthru
+        exitmusic
+    whereiend
+whereiend
