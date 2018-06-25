@@ -1,0 +1,16 @@
+# Error in 2*"yeah" line 12
+
+int a = 30
+boolean b = ok
+float c = 20.5
+
+dafunk maintheme() : intothevoid 
+youbegin
+    int n
+    n = - 2 * "yeah" - 2*notok
+
+    if 1<5 youbegin
+        breakthru
+        exitmusic
+    whereiend
+whereiend

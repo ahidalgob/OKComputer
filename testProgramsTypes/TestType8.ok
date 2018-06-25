@@ -1,0 +1,21 @@
+# Error in 2*notok
+
+int a = 3
+boolean b = ok
+float c = 20.1
+
+dafunk maintheme() : intothevoid
+youbegin
+    int n
+    boolean y=ok, z=notok
+    b = not (ok and notok)
+    
+    onemoretime int a = 1; a<"ya"; a=a+1
+    youbegin
+    whereiend
+
+    if 1<5 youbegin
+        breakthru
+        exitmusic
+    whereiend
+whereiend
