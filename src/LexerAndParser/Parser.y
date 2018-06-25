@@ -11,7 +11,7 @@ import Lexer
 import ParseMonad (ParseM, ParseMError(..))
 import qualified ParseMonad as P
 import qualified AST
-import AST (exp_type, param_type, param_id)
+import AST (exp_type)
 import SymTable
 import Scope
 import OKTypes
@@ -63,8 +63,8 @@ import Data.Maybe
   boolean                                 { BooleanTkn _ }
   ok                                      { OkTkn _ }              -- True
   notok                                   { NotOkTkn _ }           -- False
-  --'{'                                     { OpenBraceTkn _ }
-  --'}'                                     { CloseBraceTkn _ }
+  '{'                                     { OpenBraceTkn _ }
+  '}'                                     { CloseBraceTkn _ }
   '['                                     { ArrayStartTkn _ }
   ']'                                     { ArrayEndTkn _ }
   --band                                    { BandTkn _ }            -- Registers/structs
@@ -105,13 +105,13 @@ import Data.Maybe
 -- 1}}}
 
 -- TODO:
--- duets or tuples in general.
--- Array expression  {1,2,3}
--- Array type
+-- tuples in general.
 -- char
 -- braces
 -- string operations
 --
+-- Array expression  {1,2,3}
+-- Array type
 
 %right '='
 %nonassoc '!='
@@ -197,22 +197,26 @@ DECLARATION : TYPE DECLARATIONVARS {% declarationAction $1 $2 }
 
 -- TODO Arrays, lists, tuples
 -- Symbols are added in parent rule
-DECLARATIONVARS :: { [(Token, Maybe AST.EXPRESSION)] }
-DECLARATIONVARS : id '=' EXPRESSION                 { [($1, Just $3)] }
-            | DECLARATIONVARS ',' id '=' EXPRESSION { ($3, Just $5):($1) }
-            | id                                    { [($1, Nothing)] }
-            | DECLARATIONVARS ',' id                { ($3, Nothing):($1) }
+DECLARATIONVARS :: { [(Token, Maybe AST.EXPRESSION, Maybe AST.EXPRESSION)] }
+DECLARATIONVARS : id '=' EXPRESSION                                    { [($1, Just $3, Nothing)] }
+            | DECLARATIONVARS ',' id '=' EXPRESSION                    { ($3, Just $5, Nothing):($1) }
+            | id                                                       { [($1, Nothing, Nothing)] }
+            | DECLARATIONVARS ',' id                                   { ($3, Nothing, Nothing):($1) }
+
+            | id '[' EXPRESSION ']' '=' EXPRESSION                     { [($1, Just $6, Just $3)] }
+            | DECLARATIONVARS ',' id '[' EXPRESSION ']' '=' EXPRESSION { ($3, Just $8, Just $5):($1) }
+            | id '[' EXPRESSION ']'                                    { [($1, Nothing, Just $3)] }
+            | DECLARATIONVARS ',' id '[' EXPRESSION ']'                { ($3, Nothing, Just $5):($1) }
 
 
 TYPE :: { OKType }
-TYPE : TYPE '^'                             { OKPointer $1 }
-     | int                                   { OKInt }
+TYPE : TYPE '^'                                 { OKPointer $1 }
+     | int                                      { OKInt }
      | float                                    { OKFloat }
      | boolean                                  { OKBoolean }
      | char                                     { OKChar }
      | string                                   { OKString }
      | id                                       {% nameTypeAction $1 }
-
 
 
 
@@ -246,6 +250,7 @@ EXPRESSION : LVAL                       { $1 }
            | ok                         { AST.BOOLEANEXP True OKBoolean}
            | notok                      { AST.BOOLEANEXP False OKBoolean}
            | '(' EXPRESSION ')'         { $2 }
+           | '{' NONEMPTYEXPRESSIONS '}'{% arrayLiteralAction $1 $2 }
            | EXPRESSION '<' EXPRESSION  {% orderCompAction $2 $1 $3 "<" }
            | EXPRESSION '>' EXPRESSION  {% orderCompAction $2 $1 $3 ">" }
            | EXPRESSION '<=' EXPRESSION {% orderCompAction $2 $1 $3 "<=" }
@@ -265,7 +270,7 @@ EXPRESSION : LVAL                       { $1 }
            | EXPRESSION div EXPRESSION  {% intOperationAction $2 $1 $3 "div" }
            | FUNCTIONCALL               { $1 }
            | newlife '(' EXPRESSION ')' { AST.NEWLIFE $3 $ OKPointer (exp_type $3)} -- TODO FFFFFFFFFFF??????????????????????
-           | LVAL '=' EXPRESSION        {% assignAction $1 $3 }
+           | LVAL '=' EXPRESSION        {% assignAction $2 $1 $3 }
 
 EXPRESSIONS :: { [AST.EXPRESSION] }
 EXPRESSIONS :                       { [] }
@@ -278,7 +283,7 @@ NONEMPTYEXPRESSIONS : NONEMPTYEXPRESSIONS ',' EXPRESSION        { $3 : $1 }
 -- Anything with L-Value: variables, record.member, array[position]...
 LVAL :: { AST.EXPRESSION }
 LVAL :  id {% idAction $1 }
-           | EXPRESSION '[' EXPRESSION ']'                   { AST.ARRAYPOS $1 $3 (array_Type.exp_type $ $1)} -- TODO Check E1 type for array
+           | EXPRESSION '[' EXPRESSION ']'                   {% arrayAction (tkn_pos $2) $1 $3 }
            | EXPRESSION '.' id                            { AST.EXPRESSIONSTRUCT $1 (tkn_string $3) (exp_type $1)} -- TODO
            | '^' '(' EXPRESSION ')'          {% pointerAction $1 $3 }
 
@@ -292,7 +297,7 @@ NONEMPTYLVALS : NONEMPTYLVALS ',' LVAL    { $3 : $1 }
 
 
 FUNCTIONCALL : id '(' EXPRESSIONS ')'          {%  do
-                                                       sym <- P.findSym (tkn_string $1) (tkn_pos $1)
+                                                       sym <- P.findSym (tkn_string $1) (tkn_pos $1) -- TODO Check function parameters
                                                        return $ AST.FUNCTIONCALL (tkn_string $1) $3 (func_RetType.sym_type $ sym)}
 
 MAYBELINE : {- empty -}                   { }
@@ -331,18 +336,35 @@ functionParameterAction oktype id = do
        P.insertSym $ Sym scope (tkn_string id) (tkn_pos id) oktype
        return $ Parameter oktype (tkn_string id, scope)
 
-declarationAction :: OKType -> [(Token, Maybe AST.EXPRESSION)] -> ParseM ([AST.EXPRESSION])
+declarationAction :: OKType -> [(Token, Maybe AST.EXPRESSION, Maybe AST.EXPRESSION)] -> ParseM ([AST.EXPRESSION])
 declarationAction oktype l =
-      do  let decls = reverse l                                              :: [(Token, Maybe AST.EXPRESSION)]
-              assigns = filter (isJust.snd) decls                            :: [(Token, Maybe AST.EXPRESSION)]
-              vars = map (\x -> (tkn_string.fst $ x, tkn_pos.fst $ x)) decls :: [(String, Pos)]
+      do  let decls = reverse l                                                       :: [(Token, Maybe AST.EXPRESSION, Maybe AST.EXPRESSION)]
+              assigns = filter (isJust.mySnd) decls                                   :: [(Token, Maybe AST.EXPRESSION, Maybe AST.EXPRESSION)]
+              allVars = map (\x -> (tkn_string.myFst $ x, tkn_pos.myFst $ x, myThrd x)) decls   :: [(String, Pos, Maybe AST.EXPRESSION)]
+              tkn = (myFst.head) decls
+          vars <- mapM checkIfArray allVars
 
           scope <- P.topScope
-          mapM_ (\(id, pos) -> P.insertSym (Sym scope id pos oktype)) vars
+          mapM_ (\(id, pos, okt) -> P.insertSym (Sym scope id pos okt)) vars
 
-          ids <- mapM idAction (map fst assigns)
-          let exps = map (fromJust.snd) assigns
-          mapM (uncurry assignAction) (zip ids exps)
+          ids <- mapM idAction (map myFst assigns)
+          let exps = map (fromJust.mySnd) assigns
+          mapM (uncurry $ assignAction tkn) (zip ids exps)
+    where myFst (a,_,_)=a
+          mySnd (_,b,_)=b
+          myThrd (_,_,c)=c
+          checkIfArray :: (Id, Pos, Maybe AST.EXPRESSION) -> ParseM (Id, Pos, OKType)
+          checkIfArray (id, pos, Nothing) = return (id, pos, oktype)
+          checkIfArray (id, pos, Just exp) = do
+            okt <- checkExpectedType pos OKInt (exp_type exp)
+            return (id, pos, okt)
+
+arrayAction :: Pos -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
+arrayAction pos arrExp posExp = do
+      checkExpectedType pos OKInt (exp_type posExp)
+      -- check arrExp for array type
+      -- TODO Check E1 type for array
+      return $ AST.ARRAYPOS arrExp posExp (OKArray 0 (array_Type.exp_type $ arrExp)) -- TODO Real size F
 
 nameTypeAction :: Token -> ParseM OKType
 nameTypeAction tkn = do
@@ -373,6 +395,18 @@ ifYouHaveToAskAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> AST.IFEL
 ifYouHaveToAskAction tkn condition blk ifelse = do
           checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition)
           return $ AST.IFASK condition blk ifelse
+
+
+arrayLiteralAction :: Token -> [AST.EXPRESSION] -> ParseM AST.EXPRESSION
+arrayLiteralAction tkn exps = do
+    let types = map exp_type exps
+        hd = head types
+        hasError = any ((==) OKErrorT) types
+    let oktype = if hasError
+                     then OKErrorT
+                     else if all ((==) hd) types then hd
+                          else OKErrorT
+    return $ AST.ARRAYEXP exps (OKArray 0 oktype)
 
 
 orderCompAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
@@ -410,8 +444,16 @@ intOperationAction tkn exp1 exp2 op = do
           oktype <- checkIntOpType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
           return $ AST.ARIT exp1 op exp2 oktype
 
-assignAction :: AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
-assignAction lhs rhs = return $ AST.ASSIGN lhs rhs (exp_type rhs) --TODO Lookup for type
+-- TODO CAST
+assignAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
+assignAction tkn lhs rhs = do
+  oktype <- case (exp_type lhs, exp_type rhs) of
+                  (OKErrorT, _) -> return OKErrorT
+                  (_, OKErrorT) -> return OKErrorT
+                  (lhstype, rhstype) ->
+                          if lhstype == rhstype then return rhstype
+                                                else throwNotWhatIExpectedAndImNotSatisfied (fst.tkn_pos $ tkn) lhs rhs
+  return $ AST.ASSIGN lhs rhs (oktype)
 
 idAction :: Token -> ParseM AST.EXPRESSION
 idAction tkn = do
@@ -437,7 +479,7 @@ checkExpectedType pos expected found = do
     case found of
          OKErrorT -> return OKErrorT
          expected -> return expected
-         _ -> throwNotWhatIExpectedAndImNotSatisfied pos expected found
+         _ -> throwNotWhatIExpectedAndImNotSatisfied (fst pos) expected found
 
 checkSameType :: Pos -> OKType -> OKType -> ParseM (OKType)
 checkSameType (line, _) OKErrorT _ = return OKErrorT

@@ -39,6 +39,7 @@ data EXPRESSION = IDEXPRESSION {expId::SymId, exp_type::OKType}                 
                    NUMBEREXP {expVal::String, exp_type::OKType}                                           |
                    STRINGEXP {expVal::String, exp_type::OKType}                                           |
                    CHAREXP {expChar::Char, exp_type::OKType}                                              |
+                   ARRAYEXP {expVals::[EXPRESSION], exp_type::OKType}                                     |
                    BOOLEANEXP {expBooleanVal::Bool, exp_type::OKType}                                     |
                    COMPAR {expExp1::EXPRESSION, expComp::String, expExp2::EXPRESSION, exp_type::OKType} |
                    NOT {expExp::EXPRESSION, exp_type::OKType}                                            |
