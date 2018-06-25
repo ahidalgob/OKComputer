@@ -287,7 +287,7 @@ LVAL :: { AST.EXPRESSION }
 LVAL :  id {% idAction $1 }
            | EXPRESSION '[' EXPRESSION ']'                   {% arrayAction (tkn_pos $2) $1 $3 }
            | EXPRESSION '.' id                            { AST.EXPRESSIONSTRUCT $1 (tkn_string $3) (exp_type $1)} -- TODO
-           | '^' '(' EXPRESSION ')'          {% pointerAction $1 $3 }
+           | '^' EXPRESSION           {% pointerAction $1 $2 }
 
 LVALS :: { [AST.EXPRESSION] }
 LVALS :                                 { [] }
