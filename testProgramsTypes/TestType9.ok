@@ -1,6 +1,9 @@
 # Error in 2*notok
 
 int a[5] = 3
+int b[3] = {1,2,3}
+int c = {1,2,3,4}
+int d[ok] = {1,2,3}
 
 
 dafunk maintheme() : intothevoid

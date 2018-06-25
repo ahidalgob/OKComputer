@@ -252,7 +252,7 @@ EXPRESSION : LVAL                       { $1 }
            | ok                         { AST.BOOLEANEXP True OKBoolean}
            | notok                      { AST.BOOLEANEXP False OKBoolean}
            | '(' EXPRESSION ')'         { $2 }
-           | '{' NONEMPTYEXPRESSIONS '}'{% arrayLiteralAction $1 $2 }
+           | '{' NONEMPTYEXPRESSIONS '}'{% arrayLiteralAction $1 (reverse $2) }
            | EXPRESSION '<' EXPRESSION  {% orderCompAction $2 $1 $3 "<" }
            | EXPRESSION '>' EXPRESSION  {% orderCompAction $2 $1 $3 ">" }
            | EXPRESSION '<=' EXPRESSION {% orderCompAction $2 $1 $3 "<=" }
@@ -478,10 +478,10 @@ checkNumericalType pos found = do
 
 checkExpectedType :: Pos -> OKType -> OKType -> ParseM OKType
 checkExpectedType pos expected found = do
-    case found of
-         OKErrorT -> return OKErrorT
-         expected -> return expected
-         _ -> throwNotWhatIExpectedAndImNotSatisfied (fst pos) expected found
+    if found == OKErrorT
+       then return OKErrorT
+       else if found==expected then return expected
+                               else throwNotWhatIExpectedAndImNotSatisfied (fst pos) expected found
 
 checkSameType :: Pos -> OKType -> OKType -> ParseM (OKType)
 checkSameType (line, _) OKErrorT _ = return OKErrorT

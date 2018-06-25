@@ -178,6 +178,13 @@ printExpN n (ASSIGN symid exp t) = do
    putStrWithIdent n "Type:\n"
    printOKType (n+1) t
 
+printExpN n (ARRAYEXP exps oktype) = do
+   putStrLnWithIdent n $ "Array literal: "
+   printOKType (n+1) oktype
+   putStrLnWithIdent (n+1) $ "Contents:"
+   mapM_ (printExpN (n+2)) exps
+
+
 printSTARTN :: Int -> START -> IO()
 printSTARTN n (START imports outsides) = do
     putStrLnWithIdent n "Program start: "
