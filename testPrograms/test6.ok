@@ -1,0 +1,4 @@
+band nodo{
+    int x
+    nodo^ siguiente
+}

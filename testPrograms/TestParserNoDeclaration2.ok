@@ -1,0 +1,21 @@
+# Global variables not declared but assigned
+int a = 30
+bool b = error0
+int c, d=4, e= error1
+
+dafunk func1(int n, int x, bool y) : intothevoid
+youbegin
+    int z,b = 0
+    n = n+n
+    n = ok
+    breakthru
+whereiend
+
+dafunk maintheme() : intothevoid 
+youbegin
+    int b, n
+    bool x=ok, y, z=notok
+    b = not (ok and notok)
+    x = - 2 * 2 - 2*n
+whereiend
+

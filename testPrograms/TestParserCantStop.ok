@@ -1,0 +1,14 @@
+
+dafunk maintheme(int n, int x) : intothevoid
+youbegin
+    int y
+
+    cantstop y+1*2<5/(64) youbegin
+        cantstop n*n<30 youbegin
+            breakthru
+        whereiend
+        exitmusic
+    #ERROR   
+    #whereiend
+
+whereiend

@@ -1,0 +1,19 @@
+
+
+dafunk f(int y) : intothevoid
+youbegin
+    x = y
+    f(x)
+    g(y)
+whereiend
+
+
+dafunk f(bool y) : intothevoid
+youbegin
+    # todo bien
+whereiend
+
+dafunk f(bool y) : intothevoid
+youbegin
+    # todo mal
+whereiend

@@ -1,0 +1,37 @@
+
+
+aroundtheworld hola, chao
+aroundtheworld ixd
+
+band nodo{
+    int x
+    nodo^ siguiente
+}
+
+band lista{
+    nodo^ cabeza
+}
+
+int x=y
+bool z= 3<5
+
+dafunk f(int a, lista l) : lista
+youbegin
+    int x
+    readmymind(x)
+
+    if x<5 youbegin
+        #...
+    whereiend
+    ifyouhavetoask x<10 youbegin
+        #...
+    whereiend
+    otherside youbegin
+
+    whereiend
+    int y
+whereiend
+
+dafunk maintheme() : intothevoid
+youbegin
+whereiend

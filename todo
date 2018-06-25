@@ -1,0 +1,10 @@
+- Reescribir insercion a tabla de simbolos (asquito)
+
+- Mover el AST a las funciones
+- Agregar nombres de argumentos a las funciones
+
+- revisar tipos en expresiones (llamados, asigaciones)
+
+- todo es float
+
+- Arreglar que los tipos se puedan definir ahi mismo

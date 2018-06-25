@@ -1,0 +1,41 @@
+# 4 variables not declared
+int a = 30
+
+dafunk func1(int n, int x, bool y) : intothevoid
+youbegin
+    int z,b = 0
+    n = n+n
+    n = ok
+    breakthru
+whereiend
+
+dafunk maintheme() : intothevoid 
+youbegin
+    int b, n
+    bool x=ok, y, z=notok
+    b = not (ok and notok)
+    x = - 2 * 2 - 2*n
+
+    cantstop x<5
+    youbegin
+    	x = 5*5 + (3*x)
+    	goslowly(x, x, x)
+    	if x=42 youbegin
+    		go("Imprime 1")
+    		getback x
+    	whereiend
+        error1 = 0
+    whereiend
+
+    error2 = ok
+
+    go("Imprime 1", "Imprime 2", b)
+    breakthru
+    2+2
+    getback 5
+whereiend
+
+dafunk maintheme3( ) : intothevoid youbegin
+    exitmusic
+    error3 = error4
+whereiend

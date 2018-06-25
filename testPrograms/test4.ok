@@ -1,0 +1,55 @@
+int a = 30
+
+dafunk func1(int n, int x, bool y) : intothevoid
+youbegin
+    int z,b = 0
+    n = n+n
+    n = ok
+    x = y+z
+    b = ok
+    breakthru
+whereiend
+
+dafunk maintheme() : intothevoid 
+youbegin
+    int b, n
+    bool x=ok, y, z=notok
+    b = not (ok and notok)
+    x = - 2 * 2 - 2*n
+
+    if x<5 youbegin
+        breakthru
+        exitmusic
+    whereiend
+
+    ifyouhavetoask x<10 youbegin
+        cantstop y<5 youbegin
+        	breakthru
+        whereiend
+    whereiend
+
+    cantstop x<5
+    youbegin
+    	x = 5*5 + (3*x)
+    	goslowly(x, x, x)
+    	if x=42 youbegin
+    		go("me voy")
+    		getback x
+    	whereiend
+    whereiend
+
+    onemoretime int ola = 5 ; ola<10 ; ola=ola+1 youbegin
+    	exitmusic
+    whereiend
+
+    go("ola", "voy bien", b)
+    breakthru
+    2+2
+    getback 5
+whereiend
+
+dafunk maintheme3( ) : intothevoid youbegin
+    #b = not (ok and notok)
+    #x = - 2 * 2 - 2
+    exitmusic
+whereiend

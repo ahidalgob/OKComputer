@@ -1,0 +1,28 @@
+# Fibonnaci en OKComputer.
+dafunk maintheme(int n) : intothevoid
+ youbegin
+
+  int first = 0
+  int second = 1
+  int next, c
+
+  go("Introducir numero de terminos fibonacci\n")
+  readmymind(n)
+
+  go("Resultado: ")
+
+  onemoretime int c = 0 ; (c < n) ; (c=c+1)
+  youbegin
+    if (c <= 1) youbegin
+        next = c
+    whereiend
+    otherside
+      youbegin
+        next = first + second
+        first = second
+        second = next
+      whereiend
+    goslowly(next)
+  whereiend
+
+ whereiend

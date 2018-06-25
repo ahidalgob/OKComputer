@@ -1,0 +1,14 @@
+ int x=3
+
+dafunk maintheme(int x) : intothevoid
+  youbegin
+    int a = x
+    float b = y
+    b = 10
+    cantstop (b < 15)
+      youbegin
+        go("Numero actual: ")
+        go(b)
+        b = b +1
+      whereiend
+  whereiend
