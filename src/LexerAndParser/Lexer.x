@@ -84,7 +84,8 @@ tokens :-
 <0>  \'\.\'                                  {newCharTkn}
 
   -- String Tokens
-<0>         $digit+(\.[$digit]+)?                       {newStringToken NumLiteralTkn}  -- Numbers
+<0>         $digit+                                     {newStringToken IntLiteralTkn}  -- Numbers
+<0>         $digit+(\.[$digit]+)?                       {newStringToken FloatLiteralTkn}  -- Numbers
 <0>         $Alpha[a-zA-Z\_0-9]*                        {newStringToken IdTkn}          -- Id
 <0>         \"                                          {beginString}         --"
 <string>    ([^\"] | \n)                                {addCharToString}     --"

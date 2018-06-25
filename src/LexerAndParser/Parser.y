@@ -97,7 +97,8 @@ import Data.Maybe
 
   -- Otros
   id                                      { IdTkn _ _ }
-  n                                       { NumLiteralTkn _ _ }
+  f                                       { FloatLiteralTkn _ _ }
+  n                                       { IntLiteralTkn _ _ }
   newline                                 { NewLineTkn _ }
   c                                       { LiteralCharTkn _ _ } -- char
   string                                  { StringTkn _ _ }
@@ -244,7 +245,8 @@ PRINT : PRINT ',' EXPRESSION                     { (AST.PRINTSTRING $3):($1)  }
 
 EXPRESSION :: { AST.EXPRESSION }
 EXPRESSION : LVAL                       { $1 }
-           | n                          { AST.NUMBEREXP (tkn_string $1) OKFloat}
+           | n                          { AST.NUMBEREXP (tkn_string $1) OKInt}
+           | f                          { AST.NUMBEREXP (tkn_string $1) OKFloat}
            | string                     { AST.STRINGEXP (tkn_string $1) OKString}
            | c                          { AST.CHAREXP (tkn_char $1) OKChar}
            | ok                         { AST.BOOLEANEXP True OKBoolean}
@@ -452,7 +454,7 @@ assignAction tkn lhs rhs = do
                   (_, OKErrorT) -> return OKErrorT
                   (lhstype, rhstype) ->
                           if lhstype == rhstype then return rhstype
-                                                else throwNotWhatIExpectedAndImNotSatisfied (fst.tkn_pos $ tkn) lhs rhs
+                                                else throwNotWhatIExpectedAndImNotSatisfied (fst.tkn_pos $ tkn) (exp_type lhs) (exp_type rhs)
   return $ AST.ASSIGN lhs rhs (oktype)
 
 idAction :: Token -> ParseM AST.EXPRESSION
@@ -535,9 +537,10 @@ throwNotNumericalTypeError line t1 t2 = do
     liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected a number types, found " ++ show t1 ++ " and " ++ show t2 ++ "."
     return OKErrorT
 
+throwNotWhatIExpectedAndImNotSatisfied :: Int -> OKType -> OKType -> ParseM OKType
 throwNotWhatIExpectedAndImNotSatisfied line t1 t2 = do
-    liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected " ++ show t1 ++ ", found " ++ show t2 ++ "."
-    liftIO $ putStrLn $ "Not What I Expected And I'm Not Satisfied."
+    liftIO $ putStr $ "Line " ++ show line ++ ". Expected " ++ show t1 ++ ", found " ++ show t2 ++ "."
+    liftIO $ putStrLn $ " Not What I Expected And I'm Not Satisfied."
     return OKErrorT
 
 throwNotBooleanError line t1 t2 = do

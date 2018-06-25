@@ -70,18 +70,28 @@ printId n s = putStrLnWithIdent n $ "ID: " ++ s
 printExpN :: Int -> EXPRESSION -> IO()
 printExpN n (IDEXPRESSION s t) = do
     printIdSymbol n s
+    putStrWithIdent n "Type:\n"
+    printOKType (n+1) t
 
 printExpN n (NUMBEREXP s t) = do
     putStrLnWithIdent n $ "Literal number: " ++ s
+    putStrWithIdent n "Type:\n"
+    printOKType (n+1) t
 
 printExpN n (STRINGEXP s t) = do
     putStrLnWithIdent n $ "Literal string: " ++ s
+    putStrWithIdent n "Type:\n"
+    printOKType (n+1) t
 
 printExpN n (CHAREXP c t) = do
     putStrLnWithIdent n $ "Literal char: " ++ [c]
+    putStrWithIdent n "Type:\n"
+    printOKType (n+1) t
 
 printExpN n (BOOLEANEXP val t) = do
     putStrLnWithIdent n $ "Literal boolean: " ++ show val
+    putStrWithIdent n "Type:\n"
+    printOKType (n+1) t
 
 printExpN n (COMPAR exp s exp1 t) = do
     putStrLnWithIdent n "Comparison operation: "
@@ -90,10 +100,14 @@ printExpN n (COMPAR exp s exp1 t) = do
     printExpN (n+2) exp
     putStrLnWithIdent (n+1) "Right side:"
     printExpN (n+2) exp1
+    putStrWithIdent n "Type:\n"
+    printOKType (n+1) t
 
 printExpN n (NOT exp t) = do
     putStrLnWithIdent n "Boolean negation:"
     printExpN (n+2) exp
+    putStrWithIdent n "Type:\n"
+    printOKType (n+1) t
 
 printExpN n (LOGIC exp s exp1 t) = do
     putStrLnWithIdent n "Binary logic operation:"
@@ -101,11 +115,15 @@ printExpN n (LOGIC exp s exp1 t) = do
     putStrLnWithIdent (n+1) "Left side:"
     printExpN (n+2) exp
     putStrLnWithIdent (n+1) "Right side:"
+    putStrWithIdent n "Type:\n"
+    printOKType (n+1) t
     printExpN (n+2) exp1
 
 printExpN n (MINUS exp t) = do
     putStrLnWithIdent n "Unary minus:"
-    printExpN (n+1) exp
+    printExpN (n+2) exp
+    putStrWithIdent n "Type:\n"
+    printOKType (n+1) t
 
 printExpN n (ARIT exp s exp1 t) = do
     putStrLnWithIdent n "Binary arithmetic operation:"
@@ -114,30 +132,42 @@ printExpN n (ARIT exp s exp1 t) = do
     printExpN (n+2) exp
     putStrLnWithIdent (n+1) "Right side:"
     printExpN (n+2) exp1
+    putStrWithIdent n "Type:\n"
+    printOKType (n+1) t
 
 printExpN n (ARRAYPOS arrayid posnumber t) = do
     putStrLnWithIdent n "Operation with Array Position:"
     printExpN n arrayid
     printExpN n posnumber -- Agregar que imprima numeros
+    putStrWithIdent n "Type:\n"
+    printOKType (n+1) t
 
 printExpN n (EXPRESSIONSTRUCT structid instructid t) = do
     putStrLnWithIdent n "Operation with Struct Id:"
     printExpN n structid
     printId n instructid
+    putStrWithIdent n "Type:\n"
+    printOKType (n+1) t
 
 printExpN n (FUNCTIONCALL funcid listid t) = do
     putStrLnWithIdent n "Function Call:"
     printId n funcid
     putStrLnWithIdent n "With the next IDs: "
     mapM_ (printExpN (n+1)) listid
+    putStrWithIdent n "Type:\n"
+    printOKType (n+1) t
 
 printExpN n (NEWLIFE exp t) = do
    putStrLnWithIdent n "New life declaration called:"
    printExpN (n+2) exp
+   putStrWithIdent n "Type:\n"
+   printOKType (n+1) t
 
 printExpN n (POINTER pointed t) = do
    putStrLnWithIdent n $ "Pointer: "
    printExpN (n+2) pointed
+   putStrWithIdent n "Type:\n"
+   printOKType (n+1) t
 
 printExpN n (ASSIGN symid exp t) = do
    putStrLnWithIdent n $ "Assignation: "
@@ -145,6 +175,8 @@ printExpN n (ASSIGN symid exp t) = do
    printExpN (n+2) symid
    putStrLnWithIdent (n+1) $ "Right side: "
    printExpN (n+2) exp
+   putStrWithIdent n "Type:\n"
+   printOKType (n+1) t
 
 printSTARTN :: Int -> START -> IO()
 printSTARTN n (START imports outsides) = do
@@ -191,6 +223,9 @@ printOKType n (OKNameType name oktype) = do
 
 printOKType n (OKVoid) = do
   putStrLnWithIdent n "Void "
+
+printOKType n t = do
+  putStrLnWithIdent n (show t)
 
 printInstruction :: Int -> INSTRUCTION -> IO()
 printInstruction n (EXITMUSIC) = do
