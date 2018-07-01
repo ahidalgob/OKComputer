@@ -61,6 +61,7 @@ import Data.Maybe
   float                                   { FloatTkn _ }
   char                                    { CharTkn _ }
   boolean                                 { BooleanTkn _ }
+  string                                  { StringTkn _ }
   ok                                      { OkTkn _ }              -- True
   notok                                   { NotOkTkn _ }           -- False
   '{'                                     { OpenBraceTkn _ }
@@ -101,7 +102,7 @@ import Data.Maybe
   n                                       { IntLiteralTkn _ _ }
   newline                                 { NewLineTkn _ }
   c                                       { LiteralCharTkn _ _ } -- char
-  string                                  { StringTkn _ _ }
+  s                                  { LiteralStringTkn _ _ }
 
 -- 1}}}
 
@@ -196,7 +197,7 @@ DECLARATION :: { [AST.EXPRESSION] } -- All Expressions are assignments
 DECLARATION : TYPE DECLARATIONVARS {% declarationAction $1 $2 }
 
 
--- TODO Arrays, lists, tuples
+-- TODO lists, tuples
 -- Symbols are added in parent rule
 DECLARATIONVARS :: { [(Token, Maybe AST.EXPRESSION, Maybe AST.EXPRESSION)] }
 DECLARATIONVARS : id '=' EXPRESSION                                    { [($1, Just $3, Nothing)] }
@@ -231,7 +232,8 @@ INSTRUCTION : go '(' PRINT ')' newline                                          
             | if EXPRESSION BEGIN BLOCK IFELSE                                  {% ifAction $1 $2 (reverse $4) $5 }
             | cantstop EXPRESSION BEGIN BLOCK                                   {% cantStopAction $1 $2 (reverse $4) }
             | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION BLOCK {% oneMoreTimeAction $1 $5 $3 $7 (reverse $8) }
-            | getback EXPRESSION newline                                        { AST.GETBACK $2 } --TODO should we check we're inside a function with that type?
+            | getback EXPRESSION newline                                        {% getBackAction $1 (Just $2) }
+            | getback newline                                                   {% getBackAction $1 Nothing }
             | breakthru newline                                                 { AST.BREAKTHRU }
             | exitmusic newline                                                 { AST.EXITMUSIC }
             | EXPRESSION newline                                                { AST.EXPRESSIONINST $1 }
@@ -247,7 +249,7 @@ EXPRESSION :: { AST.EXPRESSION }
 EXPRESSION : LVAL                       { $1 }
            | n                          { AST.NUMBEREXP (tkn_string $1) OKInt}
            | f                          { AST.NUMBEREXP (tkn_string $1) OKFloat}
-           | string                     { AST.STRINGEXP (tkn_string $1) OKString}
+           | s                     { AST.STRINGEXP (tkn_string $1) OKString}
            | c                          { AST.CHAREXP (tkn_char $1) OKChar}
            | ok                         { AST.BOOLEANEXP True OKBoolean}
            | notok                      { AST.BOOLEANEXP False OKBoolean}
@@ -299,9 +301,11 @@ NONEMPTYLVALS : NONEMPTYLVALS ',' LVAL    { $3 : $1 }
 
 
 FUNCTIONCALL : id '(' EXPRESSIONS ')'          {%  do
-                                                       sym <- P.findSym (tkn_string $1) (tkn_pos $1) -- TODO Check function parameters
-                                                       return $ AST.FUNCTIONCALL (tkn_string $1) $3 (func_RetType.sym_type $ sym)}
-
+                                                       sym <- P.findFunction (tkn_string $1) (tkn_pos $1) (map exp_type $3)--P.findSym (tkn_string $1) (tkn_pos $1) -- TODO Check function parameters
+                                                       case sym of
+                                                            FuncSym{} ->return $ AST.FUNCTIONCALL (tkn_string $1) $3 (func_RetType.sym_type $ sym)
+                                                            _ -> return $ AST.FUNCTIONCALL (tkn_string $1) $3 OKErrorT
+                                                  }
 MAYBELINE : {- empty -}                   { }
           | newline                       { }
 
@@ -324,13 +328,14 @@ functionDefAction (tkn, params, ret) instrs = do
         P.completeFunctionDef $ FuncSym 1 (tkn_string tkn) (tkn_pos tkn) oktype (map param_id params) instrs
 
 functionSignAction :: Token -> [Parameter] -> OKType -> ParseM (Token, [Parameter], OKType)
-functionSignAction tkn params ret = do
-        let oktype = OKFunc (map param_type params) ret
+functionSignAction tkn params retType = do
+        let oktype = OKFunc (map param_type params) retType
             id = tkn_string tkn
             pos = tkn_pos tkn
             param_ids = map param_id params
         P.insertSym $ FuncSym 1 id pos oktype param_ids []
-        return (tkn, params, ret)
+        P.setReturnType retType
+        return (tkn, params, retType)
 
 functionParameterAction :: OKType -> Token -> ParseM Parameter
 functionParameterAction oktype id = do
@@ -364,9 +369,8 @@ declarationAction oktype l =
 arrayAction :: Pos -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 arrayAction pos arrExp posExp = do
       checkExpectedType pos OKInt (exp_type posExp)
-      -- check arrExp for array type
-      -- TODO Check E1 type for array
-      return $ AST.ARRAYPOS arrExp posExp (OKArray 0 (array_Type.exp_type $ arrExp)) -- TODO Real size F
+      oktype <- checkAndGetArrayType pos (exp_type arrExp)
+      return $ AST.ARRAYPOS arrExp posExp (oktype) -- TODO Real size F
 
 nameTypeAction :: Token -> ParseM OKType
 nameTypeAction tkn = do
@@ -391,6 +395,16 @@ oneMoreTimeAction :: Token -> AST.EXPRESSION -> [AST.EXPRESSION] -> AST.EXPRESSI
 oneMoreTimeAction tkn condition init step blk = do
           checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition)
           return $ AST.ONEMORETIME init condition step blk
+
+getBackAction :: Token -> Maybe (AST.EXPRESSION) -> ParseM AST.INSTRUCTION
+getBackAction tkn (Just exp) = do
+          expected <- P.getReturnType
+          checkExpectedType (tkn_pos tkn) expected (exp_type exp)
+          return $ AST.GETBACK (Just exp)
+getBackAction tkn Nothing = do
+          expected <- P.getReturnType
+          checkExpectedType (tkn_pos tkn) expected OKVoid
+          return $ AST.GETBACK Nothing
 
 
 ifYouHaveToAskAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> AST.IFELSE -> ParseM AST.IFELSE
@@ -526,6 +540,11 @@ checkAndGetPointerType (line, _) OKErrorT = return OKErrorT
 checkAndGetPointerType (line, _) (OKPointer t) = return t
 checkAndGetPointerType (line, _) t = throwNotPointerType line t
 
+checkAndGetArrayType :: Pos -> OKType -> ParseM (OKType)
+checkAndGetArrayType (line, _) OKErrorT = return OKErrorT
+checkAndGetArrayType (line, _) (OKArray _ t) = return t
+checkAndGetArrayType (line, _) t = throwNotArrayType line t
+
 -- 1}}}
 
 -- Errors (Horrors){{{1
@@ -560,6 +579,10 @@ throwNotPointerType line t = do
     liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected pointer value, found " ++ show t ++ "."
     return OKErrorT
 
+throwNotArrayType :: Int -> OKType -> ParseM OKType
+throwNotArrayType line t = do
+    liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected array value, found " ++ show t ++ "."
+    return OKErrorT
 --- 1}}}
 
 lexwrap :: (Token -> ParseM a) -> ParseM a

@@ -5,23 +5,23 @@ import Control.Monad
 
 data START = START [IMPORT] [OUTSIDE] deriving Show
 
-data IMPORT = IMPORT [Id] deriving Show -- TODO SymId
+data IMPORT = IMPORT [Id] deriving Show
 
 data OUTSIDE =
         OUTASSIGN [EXPRESSION] -- All the expressions are assigns
           deriving Show
 
-data INSTRUCTION = GOING [PRINT]                                         |
-          GOINGSLOWLY [PRINT]                                             |
-          GOINGMENTAL [PRINT]                                             |
-          READMYMIND [EXPRESSION]                                               |
-          AMNESIAC String                                                  |
-          IF EXPRESSION [INSTRUCTION] IFELSE                            |
-          CANTSTOP EXPRESSION [INSTRUCTION]                              |
+data INSTRUCTION = GOING [PRINT]                                       |
+          GOINGSLOWLY [PRINT]                                          |
+          GOINGMENTAL [PRINT]                                          |
+          READMYMIND [EXPRESSION]                                      |
+          AMNESIAC String                                              |
+          IF EXPRESSION [INSTRUCTION] IFELSE                           |
+          CANTSTOP EXPRESSION [INSTRUCTION]                            |
           ONEMORETIME [EXPRESSION] EXPRESSION EXPRESSION [INSTRUCTION] |
-          GETBACK EXPRESSION                                              |
-          BREAKTHRU                                                        |
-          EXITMUSIC                                                        |
+          GETBACK (Maybe EXPRESSION)                                   |
+          BREAKTHRU                                                    |
+          EXITMUSIC                                                    |
           EXPRESSIONINST EXPRESSION
           deriving Show
 
@@ -241,9 +241,11 @@ printInstruction n (EXITMUSIC) = do
 printInstruction n (BREAKTHRU) = do
   putStrLnWithIdent n "Break Instruction"
 
-printInstruction n (GETBACK exps) = do
+printInstruction n (GETBACK (Just exps)) = do
   putStrLnWithIdent n "GetBack instruction: "
   printExpN (n+2) exps
+printInstruction n (GETBACK Nothing) = do
+  putStrLnWithIdent n "GetBack void instruction: "
 
 printInstruction n (EXPRESSIONINST exps) = do
   putStrLnWithIdent n "Expression Instruction: "

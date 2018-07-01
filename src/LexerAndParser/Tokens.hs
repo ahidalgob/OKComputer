@@ -33,6 +33,7 @@ data Token =
   FloatTkn            { tkn_pos :: (Int, Int) }  |
   CharTkn             { tkn_pos :: (Int, Int) }  |
   BooleanTkn          { tkn_pos :: (Int, Int) }  |
+  StringTkn          { tkn_pos :: (Int, Int) }  |
   OkTkn               { tkn_pos :: (Int, Int) }  |
   NotOkTkn            { tkn_pos :: (Int, Int) }  |
   ArrayStartTkn       { tkn_pos :: (Int, Int) }  |
@@ -65,7 +66,7 @@ data Token =
   IntLiteralTkn       { tkn_pos :: (Int, Int), tkn_string :: String } |
   FloatLiteralTkn       { tkn_pos :: (Int, Int), tkn_string :: String } |
   IdTkn               { tkn_pos :: (Int, Int), tkn_string :: String } |
-  StringTkn           { tkn_pos :: (Int, Int), tkn_string :: String } |
+  LiteralStringTkn           { tkn_pos :: (Int, Int), tkn_string :: String } |
 
   NewLineTkn          { tkn_pos :: (Int, Int) } |
   EOFTkn

@@ -51,6 +51,7 @@ tokens :-
 <0>  float                                   {newToken FloatTkn}
 <0>  char                                    {newToken CharTkn}
 <0>  boolean                                 {newToken BooleanTkn}
+<0>  string                                  {newToken StringTkn}
 <0>  ok                                      {newToken OkTkn}              -- True
 <0>  notok                                   {newToken NotOkTkn}           -- False
 <0>  \[                                      {newToken ArrayStartTkn}
@@ -192,7 +193,7 @@ endString = \_ _ -> do
   pos <- getStrPos
   setAlexStartCode 0
   setLastNewLine False
-  return $ StringTkn pos s
+  return $ LiteralStringTkn pos s
 
 invalidCharacter :: AlexAction Token
 invalidCharacter = \alexIn _ -> do

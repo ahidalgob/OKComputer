@@ -40,7 +40,9 @@ data ParseState = ParseState {
         state_ScopeStack :: ScopeStack,
         state_ScopeSet :: ScopeSet,
         state_NextScope :: Int,
-        state_SymTable :: SymTable
+        state_SymTable :: SymTable,
+
+        state_returnType :: OKType
 } deriving Show
 
 
@@ -55,7 +57,9 @@ initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
                               state_ScopeStack = emptyScopeStack,
                               state_ScopeSet = emptyScopeSet,
                               state_NextScope = 2,  -- TODO we need to insert every predefined function on 0
-                              state_SymTable = emptySymTable}
+                              state_SymTable = emptySymTable,
+
+                              state_returnType = OKVoid}
 
 --------------------------------------------------------
 ----------------- Error --------------------------------
@@ -67,7 +71,9 @@ data ParseMError = IdNotFound Id Pos |
                    ParseError String |
                    VarWithFunctionName Sym |
                    NameIsUsedForType Id Pos |
-                   NameTypeAlreadyUsed Id Pos
+                   NameTypeAlreadyUsed Id Pos |
+                   FunctionNotDefined |
+                   VariableInScopeIsNotFunction
                  deriving Show
 
 --------------------------------------------------------
@@ -166,6 +172,7 @@ deleteScope sc = do
 
 --}}}
 
+-- TODO catch all errors
 beginScope :: ParseM ()
 beginScope = do
   nextScope <- gets state_NextScope
@@ -238,7 +245,7 @@ insertFunctionSym sym@(FuncSym scp id pos (OKFunc prms ret) argsId instrs) = do
   let filterList = filter (\sym -> (sym_scope sym == 1) && isVarSym sym) list
   when (not (null filterList)) $ throwError (VarWithFunctionName sym)
 
-  case find (sameParams sym) list of
+  case find (sameParams (func_ParamTypes.sym_type $ sym)) list of
        Just x -> throwError (AlreadyDefinedInScope sym)
        Nothing -> do
           let newSymTable = symTableInsert sym symTable
@@ -254,9 +261,26 @@ insertNameTypeSym sym = do
           let newSymTable = symTableInsert sym symTable
           modify (\s -> s{state_SymTable = newSymTable})
 
-sameParams :: Sym -> Sym -> Bool
-sameParams (FuncSym _ _ _ (OKFunc prms1 _) _ _) (FuncSym _ _ _ (OKFunc prms2 _) _ _) = prms1==prms2
+sameParams :: [OKType] -> Sym -> Bool
+sameParams prms1 (FuncSym{sym_type = OKFunc prms2 _ }) = prms1==prms2
 sameParams _ _ = False
+
+findFunction :: Id -> Pos -> [OKType] -> ParseM Sym
+findFunction id pos paramTypes = do
+  syms <- findAllSyms id pos `catchError` (\_ -> return [])
+  case null syms of
+   True -> throwError FunctionNotDefined -- TODO more information
+   False -> do
+      current <- findSym id pos
+      case current of
+        FuncSym{} -> do
+          case findMatchingFunction paramTypes syms of
+               Nothing -> throwError FunctionNotDefined
+               Just sym -> return sym
+        _ -> throwError VariableInScopeIsNotFunction -- TODO more information
+  where
+    findMatchingFunction :: [OKType] -> [Sym] -> Maybe Sym
+    findMatchingFunction params syms = find (sameParams params) syms
 
 
 completeFunctionDef :: Sym -> ParseM ()
@@ -268,7 +292,14 @@ completeFunctionDef sym = do
   where
         updateSym :: Sym -> [Sym] -> [Sym]
         updateSym _ [] = []
-        updateSym s (s' : ss) = let ns = if sameParams s s' then s else s'
+        updateSym s (s' : ss) = let ns = if sameParams ( func_ParamTypes.sym_type $ s) s' then s else s'
                                 in ns : updateSym s ss
 
 --}}}
+
+
+setReturnType :: OKType -> ParseM ()
+setReturnType oktype = modify (\s -> s{state_returnType = oktype})
+
+getReturnType :: ParseM OKType
+getReturnType = gets state_returnType

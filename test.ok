@@ -1,0 +1,21 @@
+int a[5] = {1,2,3,4,5}
+
+int x = a[2]
+
+dafunk f(int x) : int
+youbegin
+    getback 420
+    int f = 3
+whereiend
+
+dafunk f(string s) : string
+youbegin
+    getback "chao"
+    int f = 3
+whereiend
+
+dafunk g() : intothevoid
+youbegin
+    string x = f(3)
+    string s = f("hola")
+whereiend
