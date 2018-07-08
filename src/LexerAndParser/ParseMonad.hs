@@ -73,6 +73,7 @@ data ParseMError = IdNotFound Id Pos |
                    NameIsUsedForType Id Pos |
                    NameTypeAlreadyUsed Id Pos |
                    FunctionNotDefined |
+                   IsNotType String Int |
                    VariableInScopeIsNotFunction
                  deriving Show
 
@@ -173,13 +174,14 @@ deleteScope sc = do
 --}}}
 
 -- TODO catch all errors
-beginScope :: ParseM ()
+beginScope :: ParseM Scope
 beginScope = do
   nextScope <- gets state_NextScope
   --liftIO $ putStrLn $ "Enter Scope: " ++ show nextScope
   pushScope nextScope
   insertScope nextScope
   modify (\s -> s{state_NextScope = nextScope+1})
+  return nextScope
 
 endScope :: ParseM ()
 endScope = do
@@ -208,6 +210,12 @@ findSym id pos = do
   where
     scopeIsIn :: ScopeSet -> Sym -> Bool
     scopeIsIn ss sym = scopeSetMember (sym_scope sym) ss
+
+findSymInScope :: Scope -> Token -> ParseM Sym
+findSymInScope scope idTkn = do
+  l <- filter (\s -> sym_scope s == scope) <$> findAllSyms (tkn_string idTkn) (tkn_pos idTkn)
+  if null l then error "NO ME USES MAL! TE ODIO" -- TODO
+            else return $ head l
 
 
 insertSym :: Sym -> ParseM ()

@@ -13,7 +13,7 @@ data OKType = OKPointer {pointer_Type::OKType}
             | OKArray {array_Size::Int, array_Type::OKType}
             | OKTuple [OKType]
             | OKList OKType
-
+            | OKRecord Int
             | OKErrorT deriving (Show, Eq)
 
 isNumericalType :: OKType -> Bool

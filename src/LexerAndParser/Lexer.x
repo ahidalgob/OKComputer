@@ -56,8 +56,7 @@ tokens :-
 <0>  notok                                   {newToken NotOkTkn}           -- False
 <0>  \[                                      {newToken ArrayStartTkn}
 <0>  \]                                      {newToken ArrayEndTkn}
-<0>  band                                    {newToken BandTkn}            -- Registers/structs
-<0>  union                                   {newToken UnionTkn}
+<0> record                                   {newToken RecordTkn}
 <0>  \^                                      {newToken PointerTkn}         -- Pointers
 
   -- Operations Tokens

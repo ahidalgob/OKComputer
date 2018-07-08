@@ -19,3 +19,11 @@ youbegin
     string x = f(3)
     string s = f("hola")
 whereiend
+
+dafunk f() : intothevoid
+youbegin
+    record {
+        int x
+    } rec
+    rec.x + 2.0
+whereiend

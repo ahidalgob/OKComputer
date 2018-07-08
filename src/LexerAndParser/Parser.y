@@ -68,8 +68,7 @@ import Data.Maybe
   '}'                                     { CloseBraceTkn _ }
   '['                                     { ArrayStartTkn _ }
   ']'                                     { ArrayEndTkn _ }
-  --band                                    { BandTkn _ }            -- Registers/structs
-  --union                                   { UnionTkn _ }
+  record                                  { RecordTkn _ }            -- Registers/structs
   '.'										                  { DotTkn _ }
   '^'									                    { PointerTkn _ }
 
@@ -180,11 +179,11 @@ FUNCTIONPARAMETER :: { Parameter }
 FUNCTIONPARAMETER : TYPE id         {% functionParameterAction $1 $2}
 
 BLOCK :: { [AST.INSTRUCTION] }
-BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION END                    { reverse $4 }
+BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION whereiend END                    { reverse $4 }
 
 BEGIN : {- empty -}                                                       {% P.beginScope }
 
-END : whereiend                                                           {% P.endScope }
+END : {- empty -}                                                           {% P.endScope }
 
 INSIDEFUNCTION :: { [AST.INSTRUCTION] }
 INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                             { $2:$1 }
@@ -218,9 +217,12 @@ TYPE : TYPE '^'                                 { OKPointer $1 }
      | boolean                                  { OKBoolean }
      | char                                     { OKChar }
      | string                                   { OKString }
+     | record BEGIN '{' newline INSIDERECORD '}' END                                 { OKRecord $2 } -- TODO : Assigns to record?
      | id                                       {% nameTypeAction $1 }
 
-
+INSIDERECORD :: { [AST.INSTRUCTION] }
+INSIDERECORD : INSIDERECORD DECLARATION newline                 { (map AST.EXPRESSIONINST $ reverse $2)++$1 }
+              | DECLARATION newline                             { map AST.EXPRESSIONINST $ reverse $1 }
 
 
 INSTRUCTION :: { AST.INSTRUCTION }
@@ -272,7 +274,7 @@ EXPRESSION : LVAL                       { $1 }
            | EXPRESSION '%' EXPRESSION  {% numOperationAction $2 $1 $3 "%" }
            | EXPRESSION mod EXPRESSION  {% intOperationAction $2 $1 $3 "mod" }
            | EXPRESSION div EXPRESSION  {% intOperationAction $2 $1 $3 "div" }
-           | FUNCTIONCALL               { $1 }
+           | id '(' EXPRESSIONS ')'     {% functionCallAction $1 $3 }
            | newlife '(' EXPRESSION ')' { AST.NEWLIFE $3 $ OKPointer (exp_type $3)} -- TODO FFFFFFFFFFF??????????????????????
            | LVAL '=' EXPRESSION        {% assignAction $2 $1 $3 }
 
@@ -287,8 +289,8 @@ NONEMPTYEXPRESSIONS : NONEMPTYEXPRESSIONS ',' EXPRESSION        { $3 : $1 }
 -- Anything with L-Value: variables, record.member, array[position]...
 LVAL :: { AST.EXPRESSION }
 LVAL :  id {% idAction $1 }
-           | EXPRESSION '[' EXPRESSION ']'                   {% arrayAction (tkn_pos $2) $1 $3 }
-           | EXPRESSION '.' id                            { AST.EXPRESSIONSTRUCT $1 (tkn_string $3) (exp_type $1)} -- TODO
+           | EXPRESSION '[' EXPRESSION ']'                {% arrayAction (tkn_pos $2) $1 $3 }
+           | EXPRESSION '.' id                            {% recordMemberAction $1 $3 }
            | '^' EXPRESSION           {% pointerAction $1 $2 }
 
 LVALS :: { [AST.EXPRESSION] }
@@ -299,13 +301,6 @@ NONEMPTYLVALS :: { [AST.EXPRESSION] }
 NONEMPTYLVALS : NONEMPTYLVALS ',' LVAL    { $3 : $1 }
               | LVAL                      { [$1] }
 
-
-FUNCTIONCALL : id '(' EXPRESSIONS ')'          {%  do
-                                                       sym <- P.findFunction (tkn_string $1) (tkn_pos $1) (map exp_type $3)--P.findSym (tkn_string $1) (tkn_pos $1) -- TODO Check function parameters
-                                                       case sym of
-                                                            FuncSym{} ->return $ AST.FUNCTIONCALL (tkn_string $1) $3 (func_RetType.sym_type $ sym)
-                                                            _ -> return $ AST.FUNCTIONCALL (tkn_string $1) $3 OKErrorT
-                                                  }
 MAYBELINE : {- empty -}                   { }
           | newline                       { }
 
@@ -372,12 +367,21 @@ arrayAction pos arrExp posExp = do
       oktype <- checkAndGetArrayType pos (exp_type arrExp)
       return $ AST.ARRAYPOS arrExp posExp (oktype) -- TODO Real size F
 
+recordMemberAction :: AST.EXPRESSION -> Token -> ParseM AST.EXPRESSION
+recordMemberAction exp tkn = do
+    case exp_type exp of
+         OKRecord scope -> do sym <- P.findSymInScope scope tkn
+                              return $ AST.EXPRESSIONSTRUCT exp (tkn_string tkn) (sym_type sym)
+         OKErrorT -> return $ AST.EXPRESSIONSTRUCT exp (tkn_string tkn) OKErrorT
+         _ -> do return $ AST.EXPRESSIONSTRUCT exp (tkn_string tkn) OKErrorT
+
+
 nameTypeAction :: Token -> ParseM OKType
 nameTypeAction tkn = do
   sym <- P.findSym (tkn_string tkn) (tkn_pos tkn)
   case sym of
       NameTypeSym _ _ _ _ -> return $ sym_type sym
-      _ -> do -- throwError $ IsNotType (tkn_string tkn) (tkn_pos tkn) --TODO Check
+      _ -> do throwError $ P.IsNotType (tkn_string tkn) (fst $ tkn_pos tkn)
               return OKErrorT
 
 ifAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> AST.IFELSE -> ParseM AST.INSTRUCTION
@@ -481,6 +485,12 @@ pointerAction tkn exp = do
           oktype <- checkAndGetPointerType (tkn_pos tkn) (exp_type exp)
           return $ AST.POINTER exp oktype
 
+functionCallAction :: Token -> [AST.EXPRESSION] -> ParseM AST.EXPRESSION
+functionCallAction tkn exp = do
+         sym <- P.findFunction (tkn_string tkn) (tkn_pos tkn) (map exp_type exp)
+         case sym of
+              FuncSym{} -> return $ AST.FUNCTIONCALL (tkn_string tkn) exp (func_RetType.sym_type $ sym)
+              _ -> return $ AST.FUNCTIONCALL (tkn_string tkn) exp OKErrorT
 --- 1}}}
 
 -- Type Checking{{{1
