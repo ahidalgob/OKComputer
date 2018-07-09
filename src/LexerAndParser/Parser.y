@@ -118,7 +118,7 @@ import Data.Maybe
 %left '*' '/' '%' mod div
 %right not
 %right '^'
-%left '['
+%left '[' '<<'
 %nonassoc '.'
 
 -- Grammar{{{1
@@ -242,8 +242,8 @@ IFELSE : ifyouhavetoask EXPRESSION BEGIN BLOCK IFELSE                           
 
 EXPRESSION :: { AST.EXPRESSION }
 EXPRESSION : LVAL                               { $1 }
-           | n                                  { AST.NUMBEREXP (tkn_string $1) OKInt}
-           | f                                  { AST.NUMBEREXP (tkn_string $1) OKFloat}
+           | n                                  { AST.INTEXP (read $ tkn_string $1) OKInt}
+           | f                                  { AST.FLOATEXP (read $ tkn_string $1) OKFloat}
            | s                                  { AST.STRINGEXP (tkn_string $1) OKString}
            | c                                  { AST.CHAREXP (tkn_char $1) OKChar}
            | ok                                 { AST.BOOLEANEXP True OKBoolean}
@@ -251,6 +251,7 @@ EXPRESSION : LVAL                               { $1 }
            | '(' EXPRESSION ')'                 { $2 }
            | '{' NONEMPTYEXPRESSIONS '}'        {% arrayLiteralAction $1 (reverse $2) }
            | '<<' NONEMPTYEXPRESSIONS '>>'      { tupleLiteralAction $1 (reverse $2) }
+           | EXPRESSION '.' n                   {% tupleAccessAction $2 $1 (read $ tkn_string $3) }
            | EXPRESSION '<' EXPRESSION          {% orderCompAction $2 $1 $3 "<" }
            | EXPRESSION '>' EXPRESSION          {% orderCompAction $2 $1 $3 ">" }
            | EXPRESSION '<=' EXPRESSION         {% orderCompAction $2 $1 $3 "<=" }
@@ -425,6 +426,15 @@ arrayLiteralAction tkn exps = do
 
 tupleLiteralAction :: Token -> [AST.EXPRESSION] -> AST.EXPRESSION
 tupleLiteralAction tkn exps = AST.TUPLEEXP exps (OKTuple $ map exp_type exps)
+
+tupleAccessAction :: Token -> AST.EXPRESSION -> Int -> ParseM AST.EXPRESSION
+tupleAccessAction tkn exp n =
+    case exp_type exp of
+         OKErrorT -> return exp
+         OKTuple types -> do
+            if n >= length types then error "te saliste de tanto que te odio"
+                                 else return (AST.TUPLEACCESS exp n (types !! n))
+         _ -> error "te odioooooooooo"
 
 orderCompAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
 orderCompAction tkn exp1 exp2 op = do

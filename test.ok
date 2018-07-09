@@ -1,7 +1,12 @@
 
 string s = "hola"
 
-tuple(string, int) t = <<"hola", 5, 5>>
+tuple(string, int) t = <<"hola", 5>>
+
+dafunk f() : intothevoid
+youbegin
+    s = s.2
+whereiend
 
 # int a[5] = {1,2,3,4,5}
 #

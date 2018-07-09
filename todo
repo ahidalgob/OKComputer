@@ -3,6 +3,8 @@ Tuplas
 List
 
 Errores
+    Show error when array has different types
+    Look for errors in Parser.y
 
 Strings and Chars
 
