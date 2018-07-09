@@ -26,9 +26,12 @@ tokens :-
 <0>  cantstop                                {newToken CantStopTkn}        -- While Iteration
 <0>  breakthru                               {newToken BreakthruTkn}       -- Break
 <0>  onemoretime                             {newToken OneMoreTimeTkn}     -- For Iteration
-<0>  \.                                     {newToken DotTkn}       -- For Iteration
-<0>  \{                                     {newToken OpenBraceTkn}       -- For Iteration
-<0>  \}                                     {newToken CloseBraceTkn}       -- For Iteration
+<0>  \.                                      {newToken DotTkn}             -- For Iteration
+<0>  \{                                      {newToken OpenBraceTkn}       -- For Iteration
+<0>  \}                                      {newToken CloseBraceTkn}      -- For Iteration
+<0>  tuple                                   {newToken TupleTypeTkn}
+<0>  \<\<                                    {newToken OpenTupleTkn}
+<0>  \>\>                                    {newToken CloseTupleTkn}
 <0>  \;                                      {newToken SemiColonTkn}       -- For Iteration
 <0>  readmymind                              {newToken ReadMyMindTkn}      -- Data entry/read
 <0>  go                                      {newToken GoTkn}              -- Data exit/write

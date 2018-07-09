@@ -66,6 +66,9 @@ import Data.Maybe
   notok                                   { NotOkTkn _ }           -- False
   '{'                                     { OpenBraceTkn _ }
   '}'                                     { CloseBraceTkn _ }
+  tuple                                   { TupleTypeTkn _ }
+  '<<'                                    { OpenTupleTkn _ }
+  '>>'                                    { CloseTupleTkn _ }
   '['                                     { ArrayStartTkn _ }
   ']'                                     { ArrayEndTkn _ }
   record                                  { RecordTkn _ }            -- Registers/structs
@@ -206,7 +209,12 @@ TYPE : TYPE '^'                                                                 
      | char                                                                          { OKChar }
      | string                                                                        { OKString }
      | record BEGIN '{' MAYBELINE INSIDERECORD '}' END                               { OKRecord $2 }
+     | tuple '(' TYPES ')'                                                           { OKTuple (reverse $3) }
      | id                                                                            {% nameTypeAction $1 }
+
+TYPES :: { [OKType] }
+TYPES : TYPE                                              { [$1] }
+      | TYPES ',' TYPE                                    { $3 : $1 }
 
 INSIDERECORD :: { [AST.INSTRUCTION] }
 INSIDERECORD : INSIDERECORD DECLARATION newline                 { (map AST.EXPRESSIONINST $ reverse $2)++$1 }
@@ -233,35 +241,36 @@ IFELSE : ifyouhavetoask EXPRESSION BEGIN BLOCK IFELSE                           
        | {- empty -}                                                            { AST.IFELSEVOID }
 
 EXPRESSION :: { AST.EXPRESSION }
-EXPRESSION : LVAL                       { $1 }
-           | n                          { AST.NUMBEREXP (tkn_string $1) OKInt}
-           | f                          { AST.NUMBEREXP (tkn_string $1) OKFloat}
-           | s                          { AST.STRINGEXP (tkn_string $1) OKString}
-           | c                          { AST.CHAREXP (tkn_char $1) OKChar}
-           | ok                         { AST.BOOLEANEXP True OKBoolean}
-           | notok                      { AST.BOOLEANEXP False OKBoolean}
-           | '(' EXPRESSION ')'         { $2 }
-           | '{' NONEMPTYEXPRESSIONS '}'{% arrayLiteralAction $1 (reverse $2) }
-           | EXPRESSION '<' EXPRESSION  {% orderCompAction $2 $1 $3 "<" }
-           | EXPRESSION '>' EXPRESSION  {% orderCompAction $2 $1 $3 ">" }
-           | EXPRESSION '<=' EXPRESSION {% orderCompAction $2 $1 $3 "<=" }
-           | EXPRESSION '>=' EXPRESSION {% orderCompAction $2 $1 $3 ">=" }
-           | EXPRESSION '==' EXPRESSION {% equalityComparAction $2 $1 $3 "==" }
-           | EXPRESSION '!=' EXPRESSION {% equalityComparAction $2 $1 $3 "!=" }
-           | not EXPRESSION             {% notAction $1 $2 }
-           | EXPRESSION and EXPRESSION  {% booleanOperationAction $2 $1 $3 "and" }
-           | EXPRESSION or EXPRESSION   {% booleanOperationAction $2 $1 $3 "or" }
-           | '-' EXPRESSION             {% minusAction $1 $2 }
-           | EXPRESSION '+' EXPRESSION  {% numOperationAction $2 $1 $3 "+" }
-           | EXPRESSION '-' EXPRESSION  {% numOperationAction $2 $1 $3 "-" }
-           | EXPRESSION '*' EXPRESSION  {% numOperationAction $2 $1 $3 "*" }
-           | EXPRESSION '/' EXPRESSION  {% numOperationAction $2 $1 $3 "/" }
-           | EXPRESSION '%' EXPRESSION  {% numOperationAction $2 $1 $3 "%" }
-           | EXPRESSION mod EXPRESSION  {% intOperationAction $2 $1 $3 "mod" }
-           | EXPRESSION div EXPRESSION  {% intOperationAction $2 $1 $3 "div" }
-           | id '(' EXPRESSIONS ')'     {% functionCallAction $1 $3 }
-           | newlife '(' EXPRESSION ')' { AST.NEWLIFE $3 $ OKPointer (exp_type $3)}
-           | LVAL '=' EXPRESSION        {% assignAction $2 $1 $3 }
+EXPRESSION : LVAL                               { $1 }
+           | n                                  { AST.NUMBEREXP (tkn_string $1) OKInt}
+           | f                                  { AST.NUMBEREXP (tkn_string $1) OKFloat}
+           | s                                  { AST.STRINGEXP (tkn_string $1) OKString}
+           | c                                  { AST.CHAREXP (tkn_char $1) OKChar}
+           | ok                                 { AST.BOOLEANEXP True OKBoolean}
+           | notok                              { AST.BOOLEANEXP False OKBoolean}
+           | '(' EXPRESSION ')'                 { $2 }
+           | '{' NONEMPTYEXPRESSIONS '}'        {% arrayLiteralAction $1 (reverse $2) }
+           | '<<' NONEMPTYEXPRESSIONS '>>'      { tupleLiteralAction $1 (reverse $2) }
+           | EXPRESSION '<' EXPRESSION          {% orderCompAction $2 $1 $3 "<" }
+           | EXPRESSION '>' EXPRESSION          {% orderCompAction $2 $1 $3 ">" }
+           | EXPRESSION '<=' EXPRESSION         {% orderCompAction $2 $1 $3 "<=" }
+           | EXPRESSION '>=' EXPRESSION         {% orderCompAction $2 $1 $3 ">=" }
+           | EXPRESSION '==' EXPRESSION         {% equalityComparAction $2 $1 $3 "==" }
+           | EXPRESSION '!=' EXPRESSION         {% equalityComparAction $2 $1 $3 "!=" }
+           | not EXPRESSION                     {% notAction $1 $2 }
+           | EXPRESSION and EXPRESSION          {% booleanOperationAction $2 $1 $3 "and" }
+           | EXPRESSION or EXPRESSION           {% booleanOperationAction $2 $1 $3 "or" }
+           | '-' EXPRESSION                     {% minusAction $1 $2 }
+           | EXPRESSION '+' EXPRESSION          {% numOperationAction $2 $1 $3 "+" }
+           | EXPRESSION '-' EXPRESSION          {% numOperationAction $2 $1 $3 "-" }
+           | EXPRESSION '*' EXPRESSION          {% numOperationAction $2 $1 $3 "*" }
+           | EXPRESSION '/' EXPRESSION          {% numOperationAction $2 $1 $3 "/" }
+           | EXPRESSION '%' EXPRESSION          {% numOperationAction $2 $1 $3 "%" }
+           | EXPRESSION mod EXPRESSION          {% intOperationAction $2 $1 $3 "mod" }
+           | EXPRESSION div EXPRESSION          {% intOperationAction $2 $1 $3 "div" }
+           | id '(' EXPRESSIONS ')'             {% functionCallAction $1 $3 }
+           | newlife '(' EXPRESSION ')'         { AST.NEWLIFE $3 $ OKPointer (exp_type $3)}
+           | LVAL '=' EXPRESSION                {% assignAction $2 $1 $3 }
 
 EXPRESSIONS :: { [AST.EXPRESSION] }
 EXPRESSIONS :                       { [] }
@@ -276,7 +285,7 @@ LVAL :: { AST.EXPRESSION }
 LVAL :  id {% idAction $1 }
            | EXPRESSION '[' EXPRESSION ']'                {% arrayAction (tkn_pos $2) $1 $3 }
            | EXPRESSION '.' id                            {% recordMemberAction $1 $3 }
-           | '^' EXPRESSION           {% pointerAction $1 $2 }
+           | '^'  EXPRESSION            {% pointerAction $1 $2 }
 
 LVALS :: { [AST.EXPRESSION] }
 LVALS :                                 { [] }
@@ -402,6 +411,7 @@ ifYouHaveToAskAction tkn condition blk ifelse = do
           return $ AST.IFASK condition blk ifelse
 
 
+-- checks if all types are the same
 arrayLiteralAction :: Token -> [AST.EXPRESSION] -> ParseM AST.EXPRESSION
 arrayLiteralAction tkn exps = do
     let types = map exp_type exps
@@ -413,6 +423,8 @@ arrayLiteralAction tkn exps = do
                           else OKErrorT
     return $ AST.ARRAYEXP exps (OKArray 0 oktype)
 
+tupleLiteralAction :: Token -> [AST.EXPRESSION] -> AST.EXPRESSION
+tupleLiteralAction tkn exps = AST.TUPLEEXP exps (OKTuple $ map exp_type exps)
 
 orderCompAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
 orderCompAction tkn exp1 exp2 op = do
