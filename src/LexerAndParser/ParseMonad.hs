@@ -56,7 +56,7 @@ initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
 
                               state_ScopeStack = emptyScopeStack,
                               state_ScopeSet = emptyScopeSet,
-                              state_NextScope = 2,  -- TODO we need to insert every predefined function on 0
+                              state_NextScope = 2,
                               state_SymTable = emptySymTable,
 
                               state_returnType = OKVoid}
@@ -219,7 +219,7 @@ findSymInScope scope idTkn = do
 
 
 insertSym :: Sym -> ParseM ()
-insertSym sym@(Sym _ _ _ _) = insertVarSym sym
+insertSym sym@(VarSym _ _ _ _) = insertVarSym sym
 insertSym sym@(FuncSym _ _ _ _ _ _) = insertFunctionSym sym
 insertSym sym@(NameTypeSym _ _ _ _) = insertNameTypeSym sym
 insertSym sym@(ErrorSym _ _ _ _) = liftIO $ putStrLn "Trying to add an ErrorSym to SymTable. What ya trying?"

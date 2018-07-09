@@ -9,7 +9,7 @@ import qualified Data.HashMap.Strict as H
 ----------------------------------
 -------------Symbols--------------
 ----------------------------------
-data Sym = Sym{ sym_scope :: Scope,
+data Sym = VarSym{ sym_scope :: Scope,
                 sym_Id :: Id,
                 sym_pos :: Pos, -- declaration position
                 sym_type :: OKType
@@ -29,11 +29,11 @@ data Sym = Sym{ sym_scope :: Scope,
           | ErrorSym {
                 sym_scope :: Scope,
                 sym_Id :: Id,
-                sym_pos :: Pos, -- declaration position
+                sym_pos :: Pos,
                 sym_type :: OKType
             } deriving Show
 
-isVarSym (Sym _ _ _ _) = True
+isVarSym (VarSym _ _ _ _) = True
 isVarSym _ = False
 
 isNameTypeSym (NameTypeSym _ _ _ _) = True

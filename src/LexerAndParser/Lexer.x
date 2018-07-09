@@ -81,7 +81,7 @@ tokens :-
 <0>  \<                                      {newToken LessTkn}
 <0>  \-\>                                    {newToken TypeTkn}
 <0>  \=                                      {newToken AssignTkn}
-<0>  \'\.\'                                  {newCharTkn}
+<0>  \'.\'                                   {newCharTkn}
 
   -- String Tokens
 <0>         $digit+                                     {newStringToken IntLiteralTkn}  -- Numbers

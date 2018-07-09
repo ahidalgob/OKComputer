@@ -105,14 +105,6 @@ import Data.Maybe
 
 -- 1}}}
 
--- TODO:
--- tuples in general.
--- char
--- braces
--- string operations
---
--- Array expression  {1,2,3}
--- Array type
 
 %right '='
 %nonassoc '!='
@@ -126,16 +118,13 @@ import Data.Maybe
 %left '['
 %nonassoc '.'
 
--- TODO
--- unary minus sign
-
 -- Grammar{{{1
 %%
 START :: { AST.START }
 START : IMPORTS OUTSIDE_FUNCTION         { AST.START (reverse $1) $2 }
 
 
-IMPORTS :: { [AST.IMPORT] }
+IMPORTS :: { [AST.IMPORT] } --{{{
 IMPORTS : IMPORTS newline IMPORT        { (AST.IMPORT $3):$1 }
         | {- empty -}                   { [] }
 
@@ -145,7 +134,7 @@ IMPORT : aroundtheworld IDS             { reverse $2 }
 IDS :: { [Id] }
 IDS : IDS ',' id                             { (tkn_string $3):$1 }
   | id                                       { [tkn_string $1] }
-
+-- }}}
 
 OUTSIDE_FUNCTION :: { [AST.OUTSIDE] }
 OUTSIDE_FUNCTION : FUNCTION_DEF OUTSIDE_FUNCTION           { $2 }
@@ -196,7 +185,6 @@ DECLARATION :: { [AST.EXPRESSION] } -- All Expressions are assignments
 DECLARATION : TYPE DECLARATIONVARS {% declarationAction $1 $2 }
 
 
--- TODO lists, tuples
 -- Symbols are added in parent rule
 DECLARATIONVARS :: { [(Token, Maybe AST.EXPRESSION, Maybe AST.EXPRESSION)] }
 DECLARATIONVARS : id '=' EXPRESSION                                    { [($1, Just $3, Nothing)] }
@@ -211,26 +199,26 @@ DECLARATIONVARS : id '=' EXPRESSION                                    { [($1, J
 
 
 TYPE :: { OKType }
-TYPE : TYPE '^'                                 { OKPointer $1 }
-     | int                                      { OKInt }
-     | float                                    { OKFloat }
-     | boolean                                  { OKBoolean }
-     | char                                     { OKChar }
-     | string                                   { OKString }
-     | record BEGIN '{' newline INSIDERECORD '}' END                                 { OKRecord $2 } -- TODO : Assigns to record?
-     | id                                       {% nameTypeAction $1 }
+TYPE : TYPE '^'                                                                      { OKPointer $1 }
+     | int                                                                           { OKInt }
+     | float                                                                         { OKFloat }
+     | boolean                                                                       { OKBoolean }
+     | char                                                                          { OKChar }
+     | string                                                                        { OKString }
+     | record BEGIN '{' MAYBELINE INSIDERECORD '}' END                               { OKRecord $2 }
+     | id                                                                            {% nameTypeAction $1 }
 
 INSIDERECORD :: { [AST.INSTRUCTION] }
 INSIDERECORD : INSIDERECORD DECLARATION newline                 { (map AST.EXPRESSIONINST $ reverse $2)++$1 }
-              | DECLARATION newline                             { map AST.EXPRESSIONINST $ reverse $1 }
+              | DECLARATION MAYBELINE                           { map AST.EXPRESSIONINST $ reverse $1 }
 
 
 INSTRUCTION :: { AST.INSTRUCTION }
-INSTRUCTION : go '(' PRINT ')' newline                                          { AST.GOING $ reverse $3 }
-            | goslowly '(' PRINT ')' newline                                    { AST.GOINGSLOWLY $ reverse $3 }
-            | gomental '(' PRINT ')' newline                                    { AST.GOINGMENTAL $ reverse $3 }
+INSTRUCTION : go '(' NONEMPTYEXPRESSIONS ')' newline                            { AST.GOING $ reverse $3 }
+            | goslowly '(' NONEMPTYEXPRESSIONS ')' newline                      { AST.GOINGSLOWLY $ reverse $3 }
+            | gomental '(' NONEMPTYEXPRESSIONS ')' newline                      { AST.GOINGMENTAL $ reverse $3 }
             | readmymind '(' LVALS ')' newline                                  { AST.READMYMIND $3 }
-            | amnesiac '(' id ')' newline                                       { AST.AMNESIAC $ tkn_string $3 }
+            | amnesiac '(' EXPRESSION ')' newline                               { AST.AMNESIAC $ $3 }
             | if EXPRESSION BEGIN BLOCK IFELSE                                  {% ifAction $1 $2 (reverse $4) $5 }
             | cantstop EXPRESSION BEGIN BLOCK                                   {% cantStopAction $1 $2 (reverse $4) }
             | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION BLOCK {% oneMoreTimeAction $1 $5 $3 $7 (reverse $8) }
@@ -244,14 +232,11 @@ IFELSE : ifyouhavetoask EXPRESSION BEGIN BLOCK IFELSE                           
        | otherside BEGIN BLOCK                                                  { AST.OTHERSIDE $3 }
        | {- empty -}                                                            { AST.IFELSEVOID }
 
-PRINT : PRINT ',' EXPRESSION                     { (AST.PRINTSTRING $3):($1)  }
-      | EXPRESSION                               { [AST.PRINTSTRING $ $1] }
-
 EXPRESSION :: { AST.EXPRESSION }
 EXPRESSION : LVAL                       { $1 }
            | n                          { AST.NUMBEREXP (tkn_string $1) OKInt}
            | f                          { AST.NUMBEREXP (tkn_string $1) OKFloat}
-           | s                     { AST.STRINGEXP (tkn_string $1) OKString}
+           | s                          { AST.STRINGEXP (tkn_string $1) OKString}
            | c                          { AST.CHAREXP (tkn_char $1) OKChar}
            | ok                         { AST.BOOLEANEXP True OKBoolean}
            | notok                      { AST.BOOLEANEXP False OKBoolean}
@@ -275,7 +260,7 @@ EXPRESSION : LVAL                       { $1 }
            | EXPRESSION mod EXPRESSION  {% intOperationAction $2 $1 $3 "mod" }
            | EXPRESSION div EXPRESSION  {% intOperationAction $2 $1 $3 "div" }
            | id '(' EXPRESSIONS ')'     {% functionCallAction $1 $3 }
-           | newlife '(' EXPRESSION ')' { AST.NEWLIFE $3 $ OKPointer (exp_type $3)} -- TODO FFFFFFFFFFF??????????????????????
+           | newlife '(' EXPRESSION ')' { AST.NEWLIFE $3 $ OKPointer (exp_type $3)}
            | LVAL '=' EXPRESSION        {% assignAction $2 $1 $3 }
 
 EXPRESSIONS :: { [AST.EXPRESSION] }
@@ -312,9 +297,9 @@ data Parameter = Parameter{param_type :: OKType, param_id :: SymId} deriving Sho
 
 -- Actions{{{1
 
+-- Adds the name to the symtable
 typedefAction :: Token -> OKType -> ParseM ()
 typedefAction tkn oktype = do
-  liftIO $ putStrLn ("agregando un nombre de TIPO " ++ tkn_string tkn)
   P.insertSym $ NameTypeSym 0 (tkn_string tkn) (tkn_pos tkn) (OKNameType (tkn_string tkn) oktype)
 
 functionDefAction :: (Token, [Parameter], OKType) -> [AST.INSTRUCTION] -> ParseM ()
@@ -335,7 +320,7 @@ functionSignAction tkn params retType = do
 functionParameterAction :: OKType -> Token -> ParseM Parameter
 functionParameterAction oktype id = do
        scope <- P.topScope
-       P.insertSym $ Sym scope (tkn_string id) (tkn_pos id) oktype
+       P.insertSym $ VarSym scope (tkn_string id) (tkn_pos id) oktype
        return $ Parameter oktype (tkn_string id, scope)
 
 declarationAction :: OKType -> [(Token, Maybe AST.EXPRESSION, Maybe AST.EXPRESSION)] -> ParseM ([AST.EXPRESSION])
@@ -347,7 +332,7 @@ declarationAction oktype l =
           vars <- mapM checkIfArray allVars
 
           scope <- P.topScope
-          mapM_ (\(id, pos, okt) -> P.insertSym (Sym scope id pos okt)) vars
+          mapM_ (\(id, pos, okt) -> P.insertSym (VarSym scope id pos okt)) vars
 
           ids <- mapM idAction (map myFst assigns)
           let exps = map (fromJust.mySnd) assigns
@@ -365,15 +350,15 @@ arrayAction :: Pos -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 arrayAction pos arrExp posExp = do
       checkExpectedType pos OKInt (exp_type posExp)
       oktype <- checkAndGetArrayType pos (exp_type arrExp)
-      return $ AST.ARRAYPOS arrExp posExp (oktype) -- TODO Real size F
+      return $ AST.ARRAYACCESS arrExp posExp (oktype)
 
 recordMemberAction :: AST.EXPRESSION -> Token -> ParseM AST.EXPRESSION
 recordMemberAction exp tkn = do
     case exp_type exp of
          OKRecord scope -> do sym <- P.findSymInScope scope tkn
-                              return $ AST.EXPRESSIONSTRUCT exp (tkn_string tkn) (sym_type sym)
-         OKErrorT -> return $ AST.EXPRESSIONSTRUCT exp (tkn_string tkn) OKErrorT
-         _ -> do return $ AST.EXPRESSIONSTRUCT exp (tkn_string tkn) OKErrorT
+                              return $ AST.RECORDACCESS exp (tkn_string tkn) (sym_type sym)
+         OKErrorT -> return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
+         _ -> do return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
 
 
 nameTypeAction :: Token -> ParseM OKType
@@ -394,7 +379,7 @@ cantStopAction tkn condition blk = do
           checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition)
           return $ AST.CANTSTOP condition blk
 
--- TODO The step should be an instruccion?
+
 oneMoreTimeAction :: Token -> AST.EXPRESSION -> [AST.EXPRESSION] -> AST.EXPRESSION -> [AST.INSTRUCTION] -> ParseM AST.INSTRUCTION
 oneMoreTimeAction tkn condition init step blk = do
           checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition)
@@ -464,7 +449,6 @@ intOperationAction tkn exp1 exp2 op = do
           oktype <- checkIntOpType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
           return $ AST.ARIT exp1 op exp2 oktype
 
--- TODO CAST
 assignAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 assignAction tkn lhs rhs = do
   oktype <- case (exp_type lhs, exp_type rhs) of

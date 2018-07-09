@@ -7,15 +7,14 @@ data START = START [IMPORT] [OUTSIDE] deriving Show
 
 data IMPORT = IMPORT [Id] deriving Show
 
-data OUTSIDE =
-        OUTASSIGN [EXPRESSION] -- All the expressions are assigns
+data OUTSIDE = OUTASSIGN [EXPRESSION] -- All the expressions are assigns
           deriving Show
 
-data INSTRUCTION = GOING [PRINT]                                       |
-          GOINGSLOWLY [PRINT]                                          |
-          GOINGMENTAL [PRINT]                                          |
+data INSTRUCTION = GOING [EXPRESSION]                                  |
+          GOINGSLOWLY [EXPRESSION]                                     |
+          GOINGMENTAL [EXPRESSION]                                     |
           READMYMIND [EXPRESSION]                                      |
-          AMNESIAC String                                              |
+          AMNESIAC EXPRESSION                                          |
           IF EXPRESSION [INSTRUCTION] IFELSE                           |
           CANTSTOP EXPRESSION [INSTRUCTION]                            |
           ONEMORETIME [EXPRESSION] EXPRESSION EXPRESSION [INSTRUCTION] |
@@ -26,32 +25,28 @@ data INSTRUCTION = GOING [PRINT]                                       |
           deriving Show
 
 data IFELSE = IFELSEVOID                              |
-         IFASK EXPRESSION [INSTRUCTION] IFELSE     |
+         IFASK EXPRESSION [INSTRUCTION] IFELSE        |
          OTHERSIDE [INSTRUCTION]
          deriving Show
 
 
-data PRINT =   PRINTSTRING EXPRESSION
-        deriving Show
-
-
-data EXPRESSION = IDEXPRESSION {expId::SymId, exp_type::OKType}                                           |
-                   NUMBEREXP {expVal::String, exp_type::OKType}                                           |
-                   STRINGEXP {expVal::String, exp_type::OKType}                                           |
-                   CHAREXP {expChar::Char, exp_type::OKType}                                              |
-                   ARRAYEXP {expVals::[EXPRESSION], exp_type::OKType}                                     |
-                   BOOLEANEXP {expBooleanVal::Bool, exp_type::OKType}                                     |
-                   COMPAR {expExp1::EXPRESSION, expComp::String, expExp2::EXPRESSION, exp_type::OKType} |
-                   NOT {expExp::EXPRESSION, exp_type::OKType}                                            |
-                   LOGIC {expExp1::EXPRESSION, expOp::String, expExp2::EXPRESSION, exp_type::OKType}    |
-                   MINUS {expExp::EXPRESSION, exp_type::OKType}                                          |
-                   ARIT {expExp1::EXPRESSION, expOp::String, expExp2::EXPRESSION, exp_type::OKType}     |
-                   ARRAYPOS {expExp::EXPRESSION, expExpIn::EXPRESSION, exp_type::OKType}                |
-                   EXPRESSIONSTRUCT {expExp::EXPRESSION, expName::String, exp_type::OKType}              |
-                   FUNCTIONCALL {expFuncName::String, expArgs::[EXPRESSION], exp_type::OKType}           |
-                   NEWLIFE {expExp::EXPRESSION, exp_type::OKType}                                        |
-                   POINTER {expExp::EXPRESSION, exp_type::OKType}                                        |
-                   ASSIGN {expLHS::EXPRESSION, expExp::EXPRESSION, exp_type::OKType}
+data EXPRESSION = IDEXPRESSION {expId::SymId, exp_type::OKType}                                        |
+                  NUMBEREXP {expVal::String, exp_type::OKType}                                         |
+                  STRINGEXP {expVal::String, exp_type::OKType}                                         |
+                  CHAREXP {expChar::Char, exp_type::OKType}                                            |
+                  ARRAYEXP {expVals::[EXPRESSION], exp_type::OKType}                                   |
+                  BOOLEANEXP {expBooleanVal::Bool, exp_type::OKType}                                   |
+                  COMPAR {expExp1::EXPRESSION, expComp::String, expExp2::EXPRESSION, exp_type::OKType} |
+                  NOT {expExp::EXPRESSION, exp_type::OKType}                                           |
+                  LOGIC {expExp1::EXPRESSION, expOp::String, expExp2::EXPRESSION, exp_type::OKType}    |
+                  MINUS {expExp::EXPRESSION, exp_type::OKType}                                         |
+                  ARIT {expExp1::EXPRESSION, expOp::String, expExp2::EXPRESSION, exp_type::OKType}     |
+                  ARRAYACCESS {expExp::EXPRESSION, expExpIn::EXPRESSION, exp_type::OKType}             |
+                  RECORDACCESS {expExp::EXPRESSION, expName::String, exp_type::OKType}                 |
+                  FUNCTIONCALL {expFuncName::String, expArgs::[EXPRESSION], exp_type::OKType}          |
+                  NEWLIFE {expExp::EXPRESSION, exp_type::OKType}                                       |
+                  POINTER {expExp::EXPRESSION, exp_type::OKType}                                       |
+                  ASSIGN {expLHS::EXPRESSION, expExp::EXPRESSION, exp_type::OKType}
                    deriving Show
 
 
@@ -135,14 +130,14 @@ printExpN n (ARIT exp s exp1 t) = do
     putStrWithIdent n "Type:\n"
     printOKType (n+1) t
 
-printExpN n (ARRAYPOS arrayid posnumber t) = do
+printExpN n (ARRAYACCESS arrayid posnumber t) = do
     putStrLnWithIdent n "Operation with Array Position:"
     printExpN n arrayid
     printExpN n posnumber -- Agregar que imprima numeros
     putStrWithIdent n "Type:\n"
     printOKType (n+1) t
 
-printExpN n (EXPRESSIONSTRUCT structid instructid t) = do
+printExpN n (RECORDACCESS structid instructid t) = do
     putStrLnWithIdent n "Operation with Struct Id:"
     printExpN n structid
     printId n instructid
@@ -253,7 +248,7 @@ printInstruction n (EXPRESSIONINST exps) = do
 
 printInstruction n (AMNESIAC free) = do
   putStrLnWithIdent n "Amnesiac Instruction: "
-  printId (n+2) free
+  printExpN (n+2) free
 
 printInstruction n (READMYMIND simbs) = do
   putStrLnWithIdent n "ReadMyMind Instruction: "
@@ -261,15 +256,15 @@ printInstruction n (READMYMIND simbs) = do
 
 printInstruction n (GOING prints) = do
   putStrLnWithIdent n "Go Instruction: "
-  mapM_ (printPrints (n+2)) prints
+  mapM_ (printExpN (n+2)) prints
 
 printInstruction n (GOINGSLOWLY prints) = do
   putStrLnWithIdent n "GoSlowly Instruction: "
-  mapM_ (printPrints (n+2)) prints
+  mapM_ (printExpN (n+2)) prints
 
 printInstruction n (GOINGMENTAL prints) = do
   putStrLnWithIdent n "GoMental Instruction: "
-  mapM_ (printPrints (n+2)) prints
+  mapM_ (printExpN (n+2)) prints
 
 printInstruction n (IF exps instrs elses) = do
   putStrLnWithIdent n "If Instruction: "
@@ -318,9 +313,5 @@ printIfelse n (OTHERSIDE instrs) = do
   putStrLnWithIdent n "Instructions list: "
   mapM_ (printInstruction (n+2)) instrs
 
-printPrints :: Int -> PRINT -> IO()
-printPrints n (PRINTSTRING printable) = do
-  putStrLnWithIdent n "Printable: "
-  printExpN (n+2) printable
 
 --- 1}}}
