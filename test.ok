@@ -2,9 +2,18 @@
 list(int) a[4] = {[], [3.0], [2]}
 list(int) l = [1,2,3,"hola",3.0, <<3,2>>]
 
+typedef tiporecord record{
+    int x, y
+}
+
 dafunk funcion(int x, int y, string s) : tuple(int, int)
 youbegin
     list(int) l = [1,2,3] ++ "hola"
+
+    tiporecord r
+    yy.xx
+    y.xx
+    r.xx
 
     int loco
 
