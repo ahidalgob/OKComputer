@@ -1,9 +1,21 @@
 
-int a[4] = {1,2,3,4.0}
+list(int) a[4] = {[], [3.0], [2]}
 list(int) l = [1,2,3,"hola",3.0, <<3,2>>]
 
 dafunk funcion(int x, int y, string s) : tuple(int, int)
 youbegin
+    list(int) l = [1,2,3] ++ "hola"
+
+    int loco
+
+
+
+    loco()
+    if x youbegin
+
+    whereiend ifyouhavetoask y youbegin
+
+    whereiend
 
 whereiend
 

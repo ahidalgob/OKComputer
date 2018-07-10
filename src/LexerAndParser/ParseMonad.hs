@@ -73,7 +73,7 @@ data ParseMError = IdNotFound Id Pos |
                    NameIsUsedForType Id Pos |
                    FunctionNotDefined |
                    IsNotType String Int |
-                   VariableInScopeIsNotFunction
+                   VariableInScopeIsNotFunction Int OKType
                  deriving Show
 
 --------------------------------------------------------
@@ -287,7 +287,7 @@ findFunction :: Id -> Pos -> [OKType] -> ParseM Sym
 findFunction id pos paramTypes = do
   syms <- findAllSyms id pos `catchError` (\_ -> return [])
   case null syms of
-   True -> throwError FunctionNotDefined -- TODO more information
+   True -> throwError FunctionNotDefined
    False -> do
       current <- findSym id pos
       case current of
@@ -295,7 +295,7 @@ findFunction id pos paramTypes = do
           case findMatchingFunction paramTypes syms of
                Nothing -> throwError FunctionNotDefined
                Just sym -> return sym
-        _ -> throwError VariableInScopeIsNotFunction -- TODO more information
+        sym -> throwError $ VariableInScopeIsNotFunction (fst.sym_pos $ sym) (sym_type sym)
   where
     findMatchingFunction :: [OKType] -> [Sym] -> Maybe Sym
     findMatchingFunction params syms = find (sameParams params) syms

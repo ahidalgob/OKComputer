@@ -436,9 +436,11 @@ arrayLiteralAction tkn exps = do
         hasError = any ((==) OKErrorT) types
     oktype <- if hasError
                      then return OKErrorT
-                     else if all ((==) hd) types then return $ OKArray 0 hd
-                          else do showFoundDifferentTypesInArray (fst $ tkn_pos tkn) types
-                                  return OKErrorT
+                     else do  let merged = foldl1 mergeVoidType types
+                              if merged == OKErrorT
+                                  then do showFoundDifferentTypesInArray (fst $ tkn_pos tkn) types
+                                          return OKErrorT
+                                  else return (OKArray 0 merged)
     return $ AST.ARRAYEXP exps oktype
 
 tupleLiteralAction :: Token -> [AST.EXPRESSION] -> AST.EXPRESSION
@@ -465,7 +467,7 @@ listConcatAction tkn exp1 exp2 =
          (_, OKErrorT) -> return $ AST.CONCAT exp1 exp2 (exp_type exp1)
          (t1, t2) ->
             if not (isListType t1) || not (isListType t2)
-               then do  error "No es una lista" -- TODO
+               then do  showConcatExpectedTwoLists (fst.tkn_pos $ tkn) t1 t2
                         return $ AST.CONCAT exp1 exp2 OKErrorT
                else case (elems_type t1, elems_type t2) of
                          (OKVoid, _) -> return exp2
@@ -524,10 +526,9 @@ assignAction tkn lhs rhs = do
   oktype <- case (exp_type lhs, exp_type rhs) of
                   (OKErrorT, _) -> return OKErrorT
                   (_, OKErrorT) -> return OKErrorT
-                  (OKList t, OKList OKVoid) -> return $ OKList t
                   (lhstype, rhstype) ->
-                          if lhstype == rhstype then return rhstype
-                                                else throwNotWhatIExpectedAndImNotSatisfied (fst.tkn_pos $ tkn) (exp_type lhs) (exp_type rhs) "" --TODO Check why
+                          if listComp lhstype rhstype then return lhstype
+                                                      else throwNotWhatIExpectedAndImNotSatisfied (fst.tkn_pos $ tkn) (exp_type lhs) (exp_type rhs) "" --TODO Check why
   return $ AST.ASSIGN lhs rhs (oktype)
 
 idAction :: Token -> ParseM AST.EXPRESSION
@@ -542,10 +543,15 @@ pointerAction tkn exp = do
 
 functionCallAction :: Token -> [AST.EXPRESSION] -> ParseM AST.EXPRESSION
 functionCallAction tkn exp = do
-         sym <- P.findFunction (tkn_string tkn) (tkn_pos tkn) (map exp_type exp)
+         sym <- P.findFunction (tkn_string tkn) (tkn_pos tkn) (map exp_type exp) `catchError` catcher
          case sym of
               FuncSym{} -> return $ AST.FUNCTIONCALL (tkn_string tkn) exp (func_RetType.sym_type $ sym)
               _ -> return $ AST.FUNCTIONCALL (tkn_string tkn) exp OKErrorT
+  where
+    catcher :: P.ParseMError -> ParseM Sym
+    catcher FunctionNotDefined = do showFunctionNotDefined (fst.tkn_pos $ tkn) (tkn_string tkn)
+                                    return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT
+    catcher (VariableInScopeIsNotFunction ln oktype) = error $ "maldito maduro: " ++ show ln ++ " " ++ show oktype --TODO
 --- 1}}}
 
 
@@ -683,6 +689,16 @@ showFoundDifferentTypesInList ln types = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
     liftIO $ putStrLn $ "Lists must have a unique type. Found different types:"
     liftIO $ putStrLn $ show types ++ "\n"
+
+showConcatExpectedTwoLists :: Int -> OKType -> OKType -> ParseM ()
+showConcatExpectedTwoLists ln t1 t2 = do
+    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "Concat operator expects two lists, found " ++ show t1 ++ " ++ " ++ show t2 ++ ".\n"
+
+showFunctionNotDefined :: Int -> Id -> ParseM ()
+showFunctionNotDefined ln id = do
+    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "Function " ++ id ++ " not defined.\n"
 
 --- 1}}}
 
