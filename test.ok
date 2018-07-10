@@ -9,18 +9,19 @@ typedef tiporecord record{
 dafunk funcion(int x, int y, string s) : tuple(int, int)
 youbegin
 	tuple(int,int) cuck = <<1,2>>
-	int prueba = cuck.1
+	int prueba = cuck.2
     list(int) l = [1,2,3] ++ "hola"
 
+    #int cuckeado = cuck.2
     list(string) comp1 = ["yeah"]
     list(int) comp2 = [3]
 
     comp1 ++ comp2
 
     tiporecord r
-    #yy.xx
-    #y.xx
-    #r.xx
+    yy.xx
+    y.xx
+    r.xx
 
     int loco
 
