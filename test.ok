@@ -1,22 +1,35 @@
 
-typedef rec record{
-    int i
-}
+int a[4] = {1,2,3,4.0}
+list(int) l = [1,2,3,"hola",3.0, <<3,2>>]
 
-dafunk hola(int x) : int
+dafunk funcion(int x, int y, string s) : tuple(int, int)
 youbegin
-    x.hola = 3
-
-    record {int x} y
-    y.hola = 4
-
-    rec r
-    r.i = 6
-    r.hola = "nani?"
 
 whereiend
 
-string s = "hola"
+int x
+
+y hola
+x hola
+
+
+# typedef rec record{
+#     int i
+# }
+#
+# dafunk hola(int x) : int
+# youbegin
+#     x.hola = 3
+#
+#     record {int x} y
+#     y.x = 4
+#
+#     rec r
+#     r.i = 6
+#     r.hola = "nani?"
+#
+# whereiend
+
 
 tuple(string, int) t = <<"hola", 5>>
 # int a[5] = {1,2,3,4,5}

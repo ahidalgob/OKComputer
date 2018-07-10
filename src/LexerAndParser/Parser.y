@@ -18,6 +18,7 @@ import OKTypes
 
 import Control.Monad.Except
 import Data.Maybe
+import Data.List
 -- }}}
 
 }
@@ -385,55 +386,59 @@ recordMemberAction exp tkn = do
 
 nameTypeAction :: Token -> ParseM OKType
 nameTypeAction tkn = do
-  sym <- P.findSym (tkn_string tkn) (tkn_pos tkn)
+  sym <- P.findSym (tkn_string tkn) (tkn_pos tkn) `catchError`
+                      (\_ -> return $ ErrorSym (-1) "" (tkn_pos tkn) OKErrorT)
   case sym of
-      NameTypeSym _ _ _ _ -> return $ sym_type sym
-      _ -> do throwError $ P.IsNotType (tkn_string tkn) (fst $ tkn_pos tkn)
+      NameTypeSym{} -> return $ sym_type sym
+      ErrorSym{} -> do showNameTypeNotDefined (tkn_string tkn) (fst.tkn_pos $ tkn)
+                       return OKErrorT
+      _ -> do showNameIsNotNameType (tkn_string tkn) (fst.tkn_pos $ tkn) (fst.sym_pos $ sym)
               return OKErrorT
 
 ifAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> AST.IFELSE -> ParseM AST.INSTRUCTION
 ifAction tkn condition blk ifelse = do
-          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) ""
+          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) " for if condition"
           return $ AST.IF condition blk ifelse
 
 cantStopAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> ParseM AST.INSTRUCTION
 cantStopAction tkn condition blk = do
-          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) ""
+          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) " for cantstop condition"
           return $ AST.CANTSTOP condition blk
 
 
 oneMoreTimeAction :: Token -> AST.EXPRESSION -> [AST.EXPRESSION] -> AST.EXPRESSION -> [AST.INSTRUCTION] -> ParseM AST.INSTRUCTION
 oneMoreTimeAction tkn condition init step blk = do
-          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) ""
+          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) " for onemoretime condition"
           return $ AST.ONEMORETIME init condition step blk
 
 getBackAction :: Token -> Maybe (AST.EXPRESSION) -> ParseM AST.INSTRUCTION
 getBackAction tkn (Just exp) = do
           expected <- P.getReturnType
-          checkExpectedType (tkn_pos tkn) expected (exp_type exp) ""
+          checkExpectedType (tkn_pos tkn) expected (exp_type exp) " in getback instruction"
           return $ AST.GETBACK (Just exp)
 getBackAction tkn Nothing = do
           expected <- P.getReturnType
-          checkExpectedType (tkn_pos tkn) expected OKVoid ""
+          checkExpectedType (tkn_pos tkn) expected OKVoid " in getback instruction"
           return $ AST.GETBACK Nothing
 
 
 ifYouHaveToAskAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> AST.IFELSE -> ParseM AST.IFELSE
 ifYouHaveToAskAction tkn condition blk ifelse = do
-          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) ""
+          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) " for ifyouhavetoask condition"
           return $ AST.IFASK condition blk ifelse
 
 
 -- checks if all types are the same
 arrayLiteralAction :: Token -> [AST.EXPRESSION] -> ParseM AST.EXPRESSION
 arrayLiteralAction tkn exps = do
-    let types = map exp_type exps
+    let types = nub $ map exp_type exps
         hd = head types
         hasError = any ((==) OKErrorT) types
-    let oktype = if hasError
-                     then OKErrorT
-                     else if all ((==) hd) types then OKArray 0 hd
-                          else error "diferentes tipos!!" -- OKErrorT -- TODO
+    oktype <- if hasError
+                     then return OKErrorT
+                     else if all ((==) hd) types then return $ OKArray 0 hd
+                          else do showFoundDifferentTypesInArray (fst $ tkn_pos tkn) types
+                                  return OKErrorT
     return $ AST.ARRAYEXP exps oktype
 
 tupleLiteralAction :: Token -> [AST.EXPRESSION] -> AST.EXPRESSION
@@ -443,13 +448,14 @@ tupleLiteralAction tkn exps = AST.TUPLEEXP exps (OKTuple $ map exp_type exps)
 -- checks if all types are the same
 listLiteralAction :: Token -> [AST.EXPRESSION] -> ParseM AST.EXPRESSION
 listLiteralAction tkn exps = do
-    let types = map exp_type exps
+    let types = nub $ map exp_type exps
         hd = head types
         hasError = any ((==) OKErrorT) types
-    let oktype = if hasError
-                     then OKErrorT
-                     else if all ((==) hd) types then OKList hd
-                          else error "diferentes tipos!!" -- OKErrorT -- TODO
+    oktype <- if hasError
+                     then return OKErrorT
+                     else if all ((==) hd) types then return $ OKList hd
+                          else do showFoundDifferentTypesInList (fst $ tkn_pos tkn) types
+                                  return OKErrorT
     return $ AST.LISTEXP exps oktype
 
 listConcatAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
@@ -465,7 +471,7 @@ listConcatAction tkn exp1 exp2 =
                          (OKVoid, _) -> return exp2
                          (_, OKVoid) -> return exp1
                          (a, b) -> if a==b then return $ AST.CONCAT exp1 exp2 t1
-                                           else do error "No son del mismo tipooooo odiooo"
+                                           else do error "No son del mismo tipooooo odiooo" --TODO
                                                    return $ AST.CONCAT exp1 exp2 OKErrorT
 
 
@@ -490,7 +496,7 @@ equalityComparAction tkn exp1 exp2 op = do
 
 notAction :: Token -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 notAction tkn exp = do
-          oktype <- checkExpectedType (tkn_pos tkn) OKBoolean (exp_type exp) ""
+          oktype <- checkExpectedType (tkn_pos tkn) OKBoolean (exp_type exp) " in not expression"
           return $ AST.NOT exp oktype
 
 booleanOperationAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
@@ -526,7 +532,7 @@ assignAction tkn lhs rhs = do
 
 idAction :: Token -> ParseM AST.EXPRESSION
 idAction tkn = do
-          sym <- P.findSym (tkn_string tkn) (tkn_pos tkn)
+          sym <- P.findSym (tkn_string tkn) (tkn_pos tkn) `catchError` (\_ -> return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT) --TODO
           return $ AST.IDEXPRESSION (tkn_string tkn, sym_scope sym) (sym_type sym)
 
 pointerAction :: Token -> AST.EXPRESSION -> ParseM AST.EXPRESSION
@@ -655,6 +661,29 @@ throwNotArrayType :: Int -> OKType -> ParseM OKType
 throwNotArrayType line t = do
     liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected array value, found " ++ show t ++ "."
     return OKErrorT
+
+showNameTypeNotDefined :: Id -> Int -> ParseM ()
+showNameTypeNotDefined id ln = do
+    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "Type " ++ id ++ " is not defined.\n"
+
+showNameIsNotNameType :: Id -> Int -> Int -> ParseM ()
+showNameIsNotNameType id ln ln2 = do
+    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ id ++ " defined in line " ++ show ln2 ++ " does not refer to a type.\n"
+
+showFoundDifferentTypesInArray :: Int -> [OKType] -> ParseM ()
+showFoundDifferentTypesInArray ln types = do
+    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "Arrays must have a unique type. Found different types:"
+    liftIO $ putStrLn $ show types ++ "\n"
+
+showFoundDifferentTypesInList :: Int -> [OKType] -> ParseM ()
+showFoundDifferentTypesInList ln types = do
+    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "Lists must have a unique type. Found different types:"
+    liftIO $ putStrLn $ show types ++ "\n"
+
 --- 1}}}
 
 lexwrap :: (Token -> ParseM a) -> ParseM a

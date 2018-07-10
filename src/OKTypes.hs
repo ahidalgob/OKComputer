@@ -14,7 +14,24 @@ data OKType = OKPointer {pointer_Type::OKType}
             | OKTuple [OKType]
             | OKList {elems_type::OKType}
             | OKRecord Int
-            | OKErrorT deriving (Show, Eq)
+            | OKErrorT deriving (Eq)
+
+instance Show OKType where
+  show (OKPointer t) = "pointer("++ show t ++")"
+  show OKVoid = "void"
+  show (OKFunc params ret) = "func(" ++ show params ++ "->" ++ show ret ++ ")"
+  show OKBoolean = "boolean"
+  show OKInt = "int"
+  show OKFloat = "float"
+  show OKChar = "char"
+  show OKString = "string"
+  show (OKNameType id t) = "name("++ id ++ "," ++ show t ++")"
+  show (OKArray sz t) = "array("++ show t ++")"
+  show (OKTuple ts) = "tuple(" ++ show ts ++ ")"
+  show (OKList t) = "list("++ show t ++")"
+  show (OKRecord scp) = "record(scope="++ show scp ++")"
+
+
 
 isNumericalType :: OKType -> Bool
 isNumericalType OKFloat = True

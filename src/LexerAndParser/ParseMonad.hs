@@ -218,7 +218,6 @@ findSymInScope scope idTkn oktype = do
                     return $ ErrorSym (-1) (tkn_string idTkn) (tkn_pos idTkn) OKErrorT
             else return $ head l
 
-
 insertSym :: Sym -> ParseM ()
 insertSym sym@(VarSym _ _ _ _) = insertVarSym sym `catchError` (\_ -> return ())
 insertSym sym@(FuncSym _ _ _ _ _ _) = insertFunctionSym sym `catchError` (\_ -> return ())
@@ -361,7 +360,7 @@ showRedeclarationOfFunction id ln sym = do
 showVariableRedeclaredInScope :: Id -> Int -> Sym -> ParseM ()
 showVariableRedeclaredInScope id ln sym = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Variable name " ++ id ++ " is already defined in same scope in line " ++ show (fst.sym_pos $ sym) ++ ".\n"
+    liftIO $ putStrLn $ "Variable " ++ id ++ " is already defined in same scope in line " ++ show (fst.sym_pos $ sym) ++ ".\n"
 
 showMemberNotFound :: Id -> Int -> String -> ParseM ()
 showMemberNotFound id ln msg = do
