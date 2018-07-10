@@ -318,11 +318,14 @@ typedefAction :: Token -> OKType -> ParseM ()
 typedefAction tkn oktype = do
   P.insertSym $ NameTypeSym 0 (tkn_string tkn) (tkn_pos tkn) (OKNameType (tkn_string tkn) oktype)
 
+
+-- Adds the body of the function to the sym table
 functionDefAction :: (Token, [Parameter], OKType) -> [AST.INSTRUCTION] -> ParseM ()
 functionDefAction (tkn, params, ret) instrs = do
         let oktype = OKFunc (map param_type params) ret
         P.completeFunctionDef $ FuncSym 1 (tkn_string tkn) (tkn_pos tkn) oktype (map param_id params) instrs
 
+-- Adds the function, without body, to the sym table
 functionSignAction :: Token -> [Parameter] -> OKType -> ParseM (Token, [Parameter], OKType)
 functionSignAction tkn params retType = do
         let oktype = OKFunc (map param_type params) retType
@@ -359,23 +362,25 @@ declarationAction oktype l =
           checkIfArray :: (Id, Pos, Maybe AST.EXPRESSION) -> ParseM (Id, Pos, OKType)
           checkIfArray (id, pos, Nothing) = return (id, pos, oktype)
           checkIfArray (id, pos, Just exp) = do
-            checkExpectedType pos OKInt (exp_type exp)
+            checkExpectedType pos OKInt (exp_type exp) " for array size"
             return (id, pos, OKArray 0 oktype)
 
 accessAction :: Pos -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 accessAction pos exp posExp = do
-      checkExpectedType pos OKInt (exp_type posExp)
+      checkExpectedType pos OKInt (exp_type posExp) " for index"
       oktype <- checkAndGetArrayOrListType pos (exp_type exp)
       if isListType (exp_type exp) then return $ AST.LISTACCESS exp posExp oktype
                                    else return $ AST.ARRAYACCESS exp posExp oktype
 
 recordMemberAction :: AST.EXPRESSION -> Token -> ParseM AST.EXPRESSION
 recordMemberAction exp tkn = do
-    case exp_type exp of
-         OKRecord scope -> do sym <- P.findSymInScope scope tkn
+    let oktype = solveNameTypes (exp_type exp)
+    case oktype of
+         OKRecord scope -> do sym <- P.findSymInScope scope tkn (exp_type exp)
                               return $ AST.RECORDACCESS exp (tkn_string tkn) (sym_type sym)
          OKErrorT -> return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
-         _ -> do return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
+         _ -> do  showExpectedRecord (fst.tkn_pos $ tkn) (exp_type exp)
+                  return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
 
 
 nameTypeAction :: Token -> ParseM OKType
@@ -388,34 +393,34 @@ nameTypeAction tkn = do
 
 ifAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> AST.IFELSE -> ParseM AST.INSTRUCTION
 ifAction tkn condition blk ifelse = do
-          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition)
+          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) ""
           return $ AST.IF condition blk ifelse
 
 cantStopAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> ParseM AST.INSTRUCTION
 cantStopAction tkn condition blk = do
-          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition)
+          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) ""
           return $ AST.CANTSTOP condition blk
 
 
 oneMoreTimeAction :: Token -> AST.EXPRESSION -> [AST.EXPRESSION] -> AST.EXPRESSION -> [AST.INSTRUCTION] -> ParseM AST.INSTRUCTION
 oneMoreTimeAction tkn condition init step blk = do
-          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition)
+          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) ""
           return $ AST.ONEMORETIME init condition step blk
 
 getBackAction :: Token -> Maybe (AST.EXPRESSION) -> ParseM AST.INSTRUCTION
 getBackAction tkn (Just exp) = do
           expected <- P.getReturnType
-          checkExpectedType (tkn_pos tkn) expected (exp_type exp)
+          checkExpectedType (tkn_pos tkn) expected (exp_type exp) ""
           return $ AST.GETBACK (Just exp)
 getBackAction tkn Nothing = do
           expected <- P.getReturnType
-          checkExpectedType (tkn_pos tkn) expected OKVoid
+          checkExpectedType (tkn_pos tkn) expected OKVoid ""
           return $ AST.GETBACK Nothing
 
 
 ifYouHaveToAskAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> AST.IFELSE -> ParseM AST.IFELSE
 ifYouHaveToAskAction tkn condition blk ifelse = do
-          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition)
+          checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) ""
           return $ AST.IFASK condition blk ifelse
 
 
@@ -485,7 +490,7 @@ equalityComparAction tkn exp1 exp2 op = do
 
 notAction :: Token -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 notAction tkn exp = do
-          oktype <- checkExpectedType (tkn_pos tkn) OKBoolean (exp_type exp)
+          oktype <- checkExpectedType (tkn_pos tkn) OKBoolean (exp_type exp) ""
           return $ AST.NOT exp oktype
 
 booleanOperationAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
@@ -516,7 +521,7 @@ assignAction tkn lhs rhs = do
                   (OKList t, OKList OKVoid) -> return $ OKList t
                   (lhstype, rhstype) ->
                           if lhstype == rhstype then return rhstype
-                                                else throwNotWhatIExpectedAndImNotSatisfied (fst.tkn_pos $ tkn) (exp_type lhs) (exp_type rhs)
+                                                else throwNotWhatIExpectedAndImNotSatisfied (fst.tkn_pos $ tkn) (exp_type lhs) (exp_type rhs) "" --TODO Check why
   return $ AST.ASSIGN lhs rhs (oktype)
 
 idAction :: Token -> ParseM AST.EXPRESSION
@@ -537,6 +542,11 @@ functionCallAction tkn exp = do
               _ -> return $ AST.FUNCTIONCALL (tkn_string tkn) exp OKErrorT
 --- 1}}}
 
+
+
+
+
+
 -- Type Checking{{{1
 
 checkNumericalType :: Pos -> OKType -> ParseM OKType
@@ -544,12 +554,12 @@ checkNumericalType pos found = do
     if isNumericalType found then return found
                              else return OKErrorT
 
-checkExpectedType :: Pos -> OKType -> OKType -> ParseM OKType
-checkExpectedType pos expected found = do
+checkExpectedType :: Pos -> OKType -> OKType -> String -> ParseM OKType
+checkExpectedType pos expected found msg = do
     if found == OKErrorT
        then return OKErrorT
        else if found==expected then return expected
-                               else throwNotWhatIExpectedAndImNotSatisfied (fst pos) expected found
+                               else throwNotWhatIExpectedAndImNotSatisfied (fst pos) expected found msg
 
 checkSameType :: Pos -> OKType -> OKType -> ParseM (OKType)
 checkSameType (line, _) OKErrorT _ = return OKErrorT
@@ -602,6 +612,13 @@ checkAndGetArrayOrListType (line, _) t = throwNotArrayType line t
 -- 1}}}
 
 -- Errors (Horrors){{{1
+
+showExpectedRecord :: Int -> OKType -> ParseM ()
+showExpectedRecord ln t = do
+    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "Expected a record, found " ++ show t ++ "."
+    liftIO $ putStrLn $ "Not What I Expected And I'm Not Satisfied.\n"
+
 throwDifferentTypeError :: Int -> OKType -> OKType -> ParseM OKType
 throwDifferentTypeError line t1 t2 = do
     liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected same type, found " ++ show t1 ++ " and " ++ show t2 ++ "."
@@ -612,10 +629,11 @@ throwNotNumericalTypeError line t1 t2 = do
     liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected a number types, found " ++ show t1 ++ " and " ++ show t2 ++ "."
     return OKErrorT
 
-throwNotWhatIExpectedAndImNotSatisfied :: Int -> OKType -> OKType -> ParseM OKType
-throwNotWhatIExpectedAndImNotSatisfied line t1 t2 = do
-    liftIO $ putStr $ "Line " ++ show line ++ ". Expected " ++ show t1 ++ ", found " ++ show t2 ++ "."
-    liftIO $ putStrLn $ " Not What I Expected And I'm Not Satisfied."
+throwNotWhatIExpectedAndImNotSatisfied :: Int -> OKType -> OKType -> String -> ParseM OKType
+throwNotWhatIExpectedAndImNotSatisfied ln t1 t2 msg = do
+    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "Expected " ++ show t1 ++ msg ++ ", found " ++ show t2 ++ "."
+    liftIO $ putStrLn $ "Not What I Expected And I'm Not Satisfied.\n"
     return OKErrorT
 
 throwNotBooleanError :: Int -> OKType -> OKType -> ParseM OKType

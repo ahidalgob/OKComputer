@@ -1,10 +1,20 @@
 
-dafunk f() : intothevoid
-youbegin
-    list(int) l = [] ++ [] ++ [2] ++ [5]
-    char x = l[1]
-whereiend
+typedef rec record{
+    int i
+}
 
+dafunk hola(int x) : int
+youbegin
+    x.hola = 3
+
+    record {int x} y
+    y.hola = 4
+
+    rec r
+    r.i = 6
+    r.hola = "nani?"
+
+whereiend
 
 string s = "hola"
 

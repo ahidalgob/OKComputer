@@ -9,7 +9,7 @@ data OKType = OKPointer {pointer_Type::OKType}
             | OKFloat
             | OKChar
             | OKString
-            | OKNameType Id OKType
+            | OKNameType {type_Name::Id, type_Type::OKType}
             | OKArray {array_Size::Int, array_Type::OKType}
             | OKTuple [OKType]
             | OKList {elems_type::OKType}
@@ -26,3 +26,9 @@ isListType _ = False
 
 isErrorType OKErrorT = True
 isErrorType _ = False
+
+isNameType (OKNameType _ _) = True
+isNameType _ = False
+
+solveNameTypes (OKNameType _ oktype) = solveNameTypes oktype
+solveNameTypes t = t
