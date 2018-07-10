@@ -1,13 +1,14 @@
 
+dafunk f() : intothevoid
+youbegin
+    list(int) l = [] ++ [] ++ [2] ++ [5]
+    char x = l[1]
+whereiend
+
+
 string s = "hola"
 
 tuple(string, int) t = <<"hola", 5>>
-
-dafunk f() : intothevoid
-youbegin
-    s = s.2
-whereiend
-
 # int a[5] = {1,2,3,4,5}
 #
 # int x = a[2]

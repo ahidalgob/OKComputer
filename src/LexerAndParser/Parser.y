@@ -66,6 +66,8 @@ import Data.Maybe
   notok                                   { NotOkTkn _ }           -- False
   '{'                                     { OpenBraceTkn _ }
   '}'                                     { CloseBraceTkn _ }
+  list                                    { ListTypeTkn _ }
+  '++'                                    { ConcatTkn _ }
   tuple                                   { TupleTypeTkn _ }
   '<<'                                    { OpenTupleTkn _ }
   '>>'                                    { CloseTupleTkn _ }
@@ -114,7 +116,7 @@ import Data.Maybe
 %left or
 %left and
 %nonassoc '>' '<' '==' '!=' '>=' '<='
-%left '+' '-'
+%left '+' '-' '++'
 %left '*' '/' '%' mod div
 %right not
 %right '^'
@@ -210,6 +212,7 @@ TYPE : TYPE '^'                                                                 
      | string                                                                        { OKString }
      | record BEGIN '{' MAYBELINE INSIDERECORD '}' END                               { OKRecord $2 }
      | tuple '(' TYPES ')'                                                           { OKTuple (reverse $3) }
+     | list '(' TYPE ')'                                                             { OKList $3 }
      | id                                                                            {% nameTypeAction $1 }
 
 TYPES :: { [OKType] }
@@ -251,6 +254,9 @@ EXPRESSION : LVAL                               { $1 }
            | '(' EXPRESSION ')'                 { $2 }
            | '{' NONEMPTYEXPRESSIONS '}'        {% arrayLiteralAction $1 (reverse $2) }
            | '<<' NONEMPTYEXPRESSIONS '>>'      { tupleLiteralAction $1 (reverse $2) }
+           | '[' ']'                            { AST.LISTEXP [] (OKList OKVoid) }
+           | '[' NONEMPTYEXPRESSIONS ']'        {% listLiteralAction $1 (reverse $2) }
+           | EXPRESSION '++' EXPRESSION         {% listConcatAction $2 $1 $3 }
            | EXPRESSION '.' n                   {% tupleAccessAction $2 $1 (read $ tkn_string $3) }
            | EXPRESSION '<' EXPRESSION          {% orderCompAction $2 $1 $3 "<" }
            | EXPRESSION '>' EXPRESSION          {% orderCompAction $2 $1 $3 ">" }
@@ -284,7 +290,7 @@ NONEMPTYEXPRESSIONS : NONEMPTYEXPRESSIONS ',' EXPRESSION        { $3 : $1 }
 -- Anything with L-Value: variables, record.member, array[position]...
 LVAL :: { AST.EXPRESSION }
 LVAL :  id {% idAction $1 }
-           | EXPRESSION '[' EXPRESSION ']'                {% arrayAction (tkn_pos $2) $1 $3 }
+           | EXPRESSION '[' EXPRESSION ']'                {% accessAction (tkn_pos $2) $1 $3 }
            | EXPRESSION '.' id                            {% recordMemberAction $1 $3 }
            | '^'  EXPRESSION            {% pointerAction $1 $2 }
 
@@ -356,11 +362,12 @@ declarationAction oktype l =
             checkExpectedType pos OKInt (exp_type exp)
             return (id, pos, OKArray 0 oktype)
 
-arrayAction :: Pos -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
-arrayAction pos arrExp posExp = do
+accessAction :: Pos -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
+accessAction pos exp posExp = do
       checkExpectedType pos OKInt (exp_type posExp)
-      oktype <- checkAndGetArrayType pos (exp_type arrExp)
-      return $ AST.ARRAYACCESS arrExp posExp (oktype)
+      oktype <- checkAndGetArrayOrListType pos (exp_type exp)
+      if isListType (exp_type exp) then return $ AST.LISTACCESS exp posExp oktype
+                                   else return $ AST.ARRAYACCESS exp posExp oktype
 
 recordMemberAction :: AST.EXPRESSION -> Token -> ParseM AST.EXPRESSION
 recordMemberAction exp tkn = do
@@ -420,12 +427,42 @@ arrayLiteralAction tkn exps = do
         hasError = any ((==) OKErrorT) types
     let oktype = if hasError
                      then OKErrorT
-                     else if all ((==) hd) types then hd
-                          else OKErrorT
-    return $ AST.ARRAYEXP exps (OKArray 0 oktype)
+                     else if all ((==) hd) types then OKArray 0 hd
+                          else error "diferentes tipos!!" -- OKErrorT -- TODO
+    return $ AST.ARRAYEXP exps oktype
 
 tupleLiteralAction :: Token -> [AST.EXPRESSION] -> AST.EXPRESSION
 tupleLiteralAction tkn exps = AST.TUPLEEXP exps (OKTuple $ map exp_type exps)
+
+
+-- checks if all types are the same
+listLiteralAction :: Token -> [AST.EXPRESSION] -> ParseM AST.EXPRESSION
+listLiteralAction tkn exps = do
+    let types = map exp_type exps
+        hd = head types
+        hasError = any ((==) OKErrorT) types
+    let oktype = if hasError
+                     then OKErrorT
+                     else if all ((==) hd) types then OKList hd
+                          else error "diferentes tipos!!" -- OKErrorT -- TODO
+    return $ AST.LISTEXP exps oktype
+
+listConcatAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
+listConcatAction tkn exp1 exp2 =
+    case (exp_type exp1, exp_type exp2) of
+         (OKErrorT, _) -> return $ AST.CONCAT exp1 exp2 (exp_type exp2)
+         (_, OKErrorT) -> return $ AST.CONCAT exp1 exp2 (exp_type exp1)
+         (t1, t2) ->
+            if not (isListType t1) || not (isListType t2)
+               then do  error "No es una lista" -- TODO
+                        return $ AST.CONCAT exp1 exp2 OKErrorT
+               else case (elems_type t1, elems_type t2) of
+                         (OKVoid, _) -> return exp2
+                         (_, OKVoid) -> return exp1
+                         (a, b) -> if a==b then return $ AST.CONCAT exp1 exp2 t1
+                                           else do error "No son del mismo tipooooo odiooo"
+                                                   return $ AST.CONCAT exp1 exp2 OKErrorT
+
 
 tupleAccessAction :: Token -> AST.EXPRESSION -> Int -> ParseM AST.EXPRESSION
 tupleAccessAction tkn exp n =
@@ -476,6 +513,7 @@ assignAction tkn lhs rhs = do
   oktype <- case (exp_type lhs, exp_type rhs) of
                   (OKErrorT, _) -> return OKErrorT
                   (_, OKErrorT) -> return OKErrorT
+                  (OKList t, OKList OKVoid) -> return $ OKList t
                   (lhstype, rhstype) ->
                           if lhstype == rhstype then return rhstype
                                                 else throwNotWhatIExpectedAndImNotSatisfied (fst.tkn_pos $ tkn) (exp_type lhs) (exp_type rhs)
@@ -544,7 +582,6 @@ checkNumOpType (line, _) _ OKErrorT = return OKErrorT
 checkNumOpType (line, _) t1 t2 = if t1 == t2 && isNumericalType t1 then return t1
                                                                    else throwNotNumericalTypeError line t1 t2
 
-
 checkIntOpType :: Pos -> OKType -> OKType -> ParseM (OKType)
 checkIntOpType (line, _) OKErrorT _ = return OKErrorT
 checkIntOpType (line, _) _ OKErrorT = return OKErrorT
@@ -556,10 +593,11 @@ checkAndGetPointerType (line, _) OKErrorT = return OKErrorT
 checkAndGetPointerType (line, _) (OKPointer t) = return t
 checkAndGetPointerType (line, _) t = throwNotPointerType line t
 
-checkAndGetArrayType :: Pos -> OKType -> ParseM (OKType)
-checkAndGetArrayType (line, _) OKErrorT = return OKErrorT
-checkAndGetArrayType (line, _) (OKArray _ t) = return t
-checkAndGetArrayType (line, _) t = throwNotArrayType line t
+checkAndGetArrayOrListType :: Pos -> OKType -> ParseM (OKType)
+checkAndGetArrayOrListType (line, _) OKErrorT = return OKErrorT
+checkAndGetArrayOrListType (line, _) (OKArray _ t) = return t
+checkAndGetArrayOrListType (line, _) (OKList t) = return t
+checkAndGetArrayOrListType (line, _) t = throwNotArrayType line t
 
 -- 1}}}
 

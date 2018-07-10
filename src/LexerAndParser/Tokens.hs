@@ -38,6 +38,8 @@ data Token =
   NotOkTkn            { tkn_pos :: (Int, Int) }  |
   ArrayStartTkn       { tkn_pos :: (Int, Int) }  |
   ArrayEndTkn         { tkn_pos :: (Int, Int) }  |
+  ListTypeTkn         { tkn_pos :: (Int, Int) }  |
+  ConcatTkn           { tkn_pos :: (Int, Int) }  |
   TupleTypeTkn        { tkn_pos :: (Int, Int) }  |
   OpenTupleTkn        { tkn_pos :: (Int, Int) }  |
   CloseTupleTkn       { tkn_pos :: (Int, Int) }  |

@@ -1,18 +1,14 @@
-Tuplas
-
-List
-
 Errores
     Show error when array has different types
     Look for errors in Parser.y
 
-Strings and Chars
-
 better format for symbols
 
 
-We need to save record internal assigns AST somewhere
 
+Strings and Chars
+
+We need to save record internal assigns AST somewhere
 
 The step should be an instruccion?
 Union

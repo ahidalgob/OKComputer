@@ -37,6 +37,8 @@ data EXPRESSION = IDEXPRESSION {expId::SymId, exp_type::OKType}                 
                   CHAREXP {expChar::Char, exp_type::OKType}                                            |
                   ARRAYEXP {expVals::[EXPRESSION], exp_type::OKType}                                   |
                   TUPLEEXP {expVals::[EXPRESSION], exp_type::OKType}                                   |
+                  LISTEXP {expVals::[EXPRESSION], exp_type::OKType}                                    |
+                  CONCAT {expExp1::EXPRESSION, expExp2::EXPRESSION, exp_type::OKType}                  |
                   BOOLEANEXP {expBooleanVal::Bool, exp_type::OKType}                                   |
                   COMPAR {expExp1::EXPRESSION, expComp::String, expExp2::EXPRESSION, exp_type::OKType} |
                   NOT {expExp::EXPRESSION, exp_type::OKType}                                           |
@@ -44,6 +46,7 @@ data EXPRESSION = IDEXPRESSION {expId::SymId, exp_type::OKType}                 
                   MINUS {expExp::EXPRESSION, exp_type::OKType}                                         |
                   ARIT {expExp1::EXPRESSION, expOp::String, expExp2::EXPRESSION, exp_type::OKType}     |
                   ARRAYACCESS {expExp::EXPRESSION, expExpIn::EXPRESSION, exp_type::OKType}             |
+                  LISTACCESS {expExp::EXPRESSION, expExpIn::EXPRESSION, exp_type::OKType}              |
                   RECORDACCESS {expExp::EXPRESSION, expName::String, exp_type::OKType}                 |
                   TUPLEACCESS {expExp::EXPRESSION, expPos::Int, exp_type::OKType}                      |
                   FUNCTIONCALL {expFuncName::String, expArgs::[EXPRESSION], exp_type::OKType}          |

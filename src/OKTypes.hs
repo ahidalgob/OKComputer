@@ -12,7 +12,7 @@ data OKType = OKPointer {pointer_Type::OKType}
             | OKNameType Id OKType
             | OKArray {array_Size::Int, array_Type::OKType}
             | OKTuple [OKType]
-            | OKList OKType
+            | OKList {elems_type::OKType}
             | OKRecord Int
             | OKErrorT deriving (Show, Eq)
 
@@ -21,3 +21,8 @@ isNumericalType OKFloat = True
 isNumericalType OKInt = True
 isNumericalType _ = False
 
+isListType (OKList _) = True
+isListType _ = False
+
+isErrorType OKErrorT = True
+isErrorType _ = False
