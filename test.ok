@@ -12,12 +12,17 @@ youbegin
 	int prueba = cuck.1
     list(int) l = [1,2,3] ++ "hola"
 
+    list(string) comp1 = ["yeah"]
+    list(int) comp2 = [3]
+
+    comp1 ++ comp2
+
     tiporecord r
     #yy.xx
     #y.xx
     #r.xx
 
-    #int loco
+    int loco
 
 
 

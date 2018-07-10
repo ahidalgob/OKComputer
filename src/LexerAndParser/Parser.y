@@ -366,6 +366,7 @@ declarationAction oktype l =
             checkExpectedType pos OKInt (exp_type exp) " for array size"
             return (id, pos, OKArray 0 oktype)
 
+-- REVISAR RECORDS AQUI
 accessAction :: Pos -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 accessAction pos exp posExp = do
       checkExpectedType pos OKInt (exp_type posExp) " for index"
@@ -473,7 +474,7 @@ listConcatAction tkn exp1 exp2 =
                          (OKVoid, _) -> return exp2
                          (_, OKVoid) -> return exp1
                          (a, b) -> if a==b then return $ AST.CONCAT exp1 exp2 t1
-                                           else do error "No son del mismo tipooooo odiooo" --TODO
+                                           else do showConcatExpectedSameType (fst.tkn_pos $ tkn) t1 t2 --TODO
                                                    return $ AST.CONCAT exp1 exp2 OKErrorT
 
 
@@ -551,7 +552,9 @@ functionCallAction tkn exp = do
     catcher :: P.ParseMError -> ParseM Sym
     catcher FunctionNotDefined = do showFunctionNotDefined (fst.tkn_pos $ tkn) (tkn_string tkn)
                                     return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT
-    catcher (VariableInScopeIsNotFunction ln oktype) = error $ "maldito maduro: " ++ show ln ++ " " ++ show oktype --TODO
+    catcher (VariableInScopeIsNotFunction ln oktype) = do showFunctionVariableAlreadyDefined (fst.tkn_pos $ tkn) (tkn_string tkn) ln oktype 
+                                                          return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT
+   
 --- 1}}}
 
 
@@ -695,10 +698,20 @@ showConcatExpectedTwoLists ln t1 t2 = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
     liftIO $ putStrLn $ "Concat operator expects two lists, found " ++ show t1 ++ " ++ " ++ show t2 ++ ".\n"
 
+showConcatExpectedSameType :: Int -> OKType -> OKType -> ParseM ()
+showConcatExpectedSameType ln t1 t2 = do
+    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "Concat operator expects two lists of same type, found " ++ show t1 ++ " ++ " ++ show t2 ++ ".\n"
+
 showFunctionNotDefined :: Int -> Id -> ParseM ()
 showFunctionNotDefined ln id = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
     liftIO $ putStrLn $ "Function " ++ id ++ " not defined.\n"
+
+showFunctionVariableAlreadyDefined :: Int -> Id -> Int -> OKType -> ParseM ()
+showFunctionVariableAlreadyDefined ln id ln2 oktype = do
+    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "Function " ++ show id ++ " is already defined in line " ++ show ln2 ++ " with type " ++ show oktype ++ ".\n"
 
 --- 1}}}
 
