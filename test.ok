@@ -8,14 +8,16 @@ typedef tiporecord record{
 
 dafunk funcion(int x, int y, string s) : tuple(int, int)
 youbegin
+	tuple(int,int) cuck = <<1,2>>
+	int prueba = cuck.1
     list(int) l = [1,2,3] ++ "hola"
 
     tiporecord r
-    yy.xx
-    y.xx
-    r.xx
+    #yy.xx
+    #y.xx
+    #r.xx
 
-    int loco
+    #int loco
 
 
 

@@ -155,6 +155,20 @@ printExpN n (RECORDACCESS structid instructid t) = do
     putStrWithIdent n "Type:\n"
     printOKType (n+1) t
 
+printExpN n (LISTACCESS arrayid posnumber t) = do
+    putStrLnWithIdent n "Operation with List Element:"
+    printExpN n arrayid
+    printExpN n posnumber -- Agregar que imprima numeros
+    putStrWithIdent n "Type:\n"
+    printOKType (n+1) t
+
+printExpN n (TUPLEACCESS arrayid posnumber t) = do
+    putStrLnWithIdent n "Operation with Tuple Element:"
+    printExpN n arrayid
+    putStrLnWithIdent n $ "Tuple position: " ++ show posnumber
+    putStrWithIdent n "Type:\n"
+    printOKType (n+1) t
+
 printExpN n (FUNCTIONCALL funcid listid t) = do
     putStrLnWithIdent n "Function Call:"
     printId n funcid
@@ -190,6 +204,17 @@ printExpN n (ARRAYEXP exps oktype) = do
    putStrLnWithIdent (n+1) $ "Contents:"
    mapM_ (printExpN (n+2)) exps
 
+printExpN n (LISTEXP exps oktype) = do
+   putStrLnWithIdent n $ "List literal: "
+   printOKType (n+1) oktype
+   putStrLnWithIdent (n+1) $ "Contents:"
+   mapM_ (printExpN (n+2)) exps
+
+printExpN n (TUPLEEXP exps oktype) = do
+   putStrLnWithIdent n $ "Tuple literal: "
+   printOKType (n+1) oktype
+   putStrLnWithIdent (n+1) $ "Contents:"
+   mapM_ (printExpN (n+2)) exps
 
 printSTARTN :: Int -> START -> IO()
 printSTARTN n (START imports outsides) = do
