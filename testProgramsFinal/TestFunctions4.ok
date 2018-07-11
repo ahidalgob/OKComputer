@@ -1,0 +1,18 @@
+int funcion1
+int nametype1
+
+# Error
+typedef nametype1 float
+
+# Error
+dafunk funcion1(int x, int y, string s) : intothevoid
+youbegin
+
+whereiend
+
+dafunk funcion2(int x, int y, string a) : int 
+youbegin
+
+	int c
+	
+whereiend
