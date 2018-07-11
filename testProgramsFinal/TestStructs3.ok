@@ -1,0 +1,32 @@
+typedef tiporecord record{
+    int x, y
+}
+
+dafunk funcion(int x, int y, string s) : intothevoid
+youbegin
+     record {
+         record {
+         	int rec
+         } rec
+     } rec, rec2
+
+     rec.rec.rec = 4
+
+     # Error con typedef
+     tiporecord.x = 3.0
+
+     tiporecord.y = 10
+
+
+whereiend
+
+# Funciones polimorficas!!!
+dafunk funcion(int x, int y, int a) :intothevoid
+youbegin
+
+	# Error
+	rec.rec.rec = 3
+
+	tiporecord.y = 20
+
+whereiend

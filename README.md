@@ -26,8 +26,10 @@
  7) Retornos vaciós o de tipos simples
  8) Recursión
  9) EXTRAS:
-  9.1) POSIBLE: Tuplas como tipo de datos
-  9.2) POSIBLE: Modulos (import) o Templates
+  9.1) Tuplas como tipo de datos
+  9.2) Modulos (import)
+  9.3) Lists como tipo de datos
+  9.4) Funciones polimorficas
   
   
 ## Estructura de un programa en OKComputer:
@@ -70,7 +72,7 @@ Todos los programas en OKComputer deben tener un procedimiento maintheme() que p
 # Registros
   Estructuras que pueden contener elementos adentro, inclusive otros registros. Los elementos dentro deben ser declarados
   
-  Notacion: band
+  Notacion: record
 # Union
   Estructuras formadas por varios elementos declarados, pero que en ejecución solo contiene uno de ellos.
   
@@ -79,13 +81,14 @@ Todos los programas en OKComputer deben tener un procedimiento maintheme() que p
   Apuntadores al heap para pasaje por referencia. Deben comenzar con &
 
 # Tuplas
-  Tuplas de dos elementos. Deben estar entre parentesis (1,2) y pueden contener cualquier tipo
+  Tuplas de dos o mas elementos de distintos tipos. Deben estar entre parentesis (1,2,...) y contienen cualquier tipo
   
-  Notacion: duets
+  Notacion: tuples
   
-  Notacion para elemento izquierdo: left
-  
-  Notacion para elemento derecho: right
+  Notacion para acceso a elementos: tuple.n donde n es un entero
+
+# Listas
+  Listas que pueden ser vacias o contener elementos del mismo tipo
 
 ## Instrucciones:
 Todas las instrucciones vienen seguidas de bloques de instruccion:
@@ -174,10 +177,6 @@ Notacion: "onemoretime" es euivalente al "for" en otros lenguajes
 
 # Crear variables
 newlife() equivalente al "calloc" en C
-
-saveme() equivalente al "malloc" en C
-
-keepyourselfalive() equivalente al "realloc" en C
 
 amnesiac() equivalente al "free" en C
 

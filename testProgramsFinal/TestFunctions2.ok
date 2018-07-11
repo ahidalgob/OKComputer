@@ -1,0 +1,26 @@
+
+dafunk funcion1(int x, int y, string s) : intothevoid
+youbegin
+
+whereiend
+
+# Error Funciones polimorficas!!!
+dafunk funcion2(int x, int y, string a) :intothevoid
+youbegin
+
+	funcion1(3,4,"yes")
+
+	# Error
+	funcion1(2.0,4,"yes")
+
+	funcion3("haha")
+
+	# Error
+	funcion3('no')
+
+whereiend
+
+dafunk funcion3(string x) : tuple(list(list(int)),string)
+youbegin
+
+whereiend
