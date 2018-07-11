@@ -16,6 +16,10 @@ youbegin
     list(string) comp1 = ["yeah"]
     list(int) comp2 = [3]
 
+    getback(prueba)
+
+    getback(cuck)
+
     comp1 ++ comp2
 
     egg = 3

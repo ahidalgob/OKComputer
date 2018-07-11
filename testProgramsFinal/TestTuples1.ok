@@ -1,0 +1,18 @@
+tuple(int, list(int), float) tubien = <<3, [2,3], 2.0>>
+
+#Error 
+tuple(int, list(int), float) tubienmal = <<3.9, [2,"ya"], 'E'>>
+
+tuple(int, list(int), float) tubienbien = <<3, [], 4.5>>
+
+typedef nuevotipo int
+
+dafunk funcion(int x, int y, string s) : list(nuevotipo)
+youbegin
+
+    list(int) l = []
+
+    tuple(list(int),list(string)) pruebazo = <<[]++[1],[]>>
+
+whereiend
+

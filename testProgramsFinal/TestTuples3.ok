@@ -1,0 +1,27 @@
+tuple(int, list(int), float) tubien = <<3, [2,3], 2.0>>
+
+tuple(int, list(int), float) tubienbien = <<3, [], 4.5>>
+
+typedef nuevotipo int
+
+dafunk funcion(int x, int y, string s) : list(nuevotipo)
+youbegin
+
+    list(int) l = []
+
+    list(int) newlist = tubien.1
+
+    #Error with type access
+    float f = tubien.1 
+
+    #Error with range access
+    float f2 = tubien.4
+
+    #Error with accessing non tuple
+    float f3 = f.1
+
+    # Error array
+    tubien = {3,5,6}
+
+whereiend
+

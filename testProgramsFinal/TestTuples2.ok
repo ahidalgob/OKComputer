@@ -1,0 +1,19 @@
+tuple(int, list(int), float) tubien = <<3, [2,3], 2.0>>
+
+tuple(int, list(int), float) tubienbien = <<3, [], 4.5>>
+
+typedef nuevotipo int
+
+dafunk funcion(int x, int y, string s) : list(nuevotipo)
+youbegin
+
+    list(int) l = []
+
+    # Error already defined
+    tuple(list(int),list(string)) l
+
+    # Error array
+    tubien = {3,5,6}
+
+whereiend
+

@@ -1,0 +1,13 @@
+list(int) agood[4] = {[], [3], [2,5,6]}
+
+list(int) a[4] = {[], [3.0], [2]}
+
+list(int) lgood = [1,2,3,4,5,6]
+
+list(int) l = [1,2,3,"hola",3.0, <<3,2>>]
+
+dafunk funcion(int x, int y, string s) : list(int)
+youbegin
+
+whereiend
+

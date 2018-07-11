@@ -1,0 +1,19 @@
+list(int) agood[4] = {[], [3], [2,5,6]}
+
+list(int) lgood = [1,2,3,4,5,6]
+
+typedef nuevotipo int
+
+dafunk funcion(int x, int y, string s) : list(nuevotipo)
+youbegin
+
+    list(int) l = []
+
+    tuple(list(int),list(string)) pruebazo = <<[]++[1],[]>>
+
+    list(int) l2 = l
+
+    list(list(int)) ints = [[4],[3]]
+
+whereiend
+

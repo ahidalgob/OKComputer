@@ -1,0 +1,30 @@
+list(int) agood[4] = {[], [3], [2,5,6]}
+
+list(int) lgood = [1,2,3,4,5,6]
+
+typedef nuevotipo int
+
+dafunk funcion(int x, int y, string s) : list(nuevotipo)
+youbegin
+
+	list(nuevotipo) d
+
+	#Error tipo no definido
+	list(errortipo) c
+
+	#Error tipos diferentes al concatenar
+    list(int) l = [1,2,3] ++ "hola"
+
+    list(string) comp1 = ["yeah"]
+
+    list(int) comp2 = [3]
+
+    list(int) l2 = [1,2,3] ++ comp2
+
+    list(int) pruebabien = comp2 ++ lgood
+
+    #Error tipos diferentes al declarado
+    list(string) prueba = comp2 ++ lgood
+
+whereiend
+
