@@ -339,33 +339,38 @@ getReturnType = gets state_returnType
 showNameTypeAlreadyUsed :: Id -> Int -> Sym -> ParseM ()
 showNameTypeAlreadyUsed id ln sym = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Name for typedef " ++ id ++ " is already used in line " ++ show (fst.sym_pos $ sym) ++ ".\n"
+    liftIO $ putStrLn $ "Name for typedef " ++ id ++ " is already used in line " ++ show (fst.sym_pos $ sym) ++ "."
+    liftIO $ putStrLn $ "You're not to blame for bittersweet distractors \n"
 
 showNameAlreadyUsedAsType :: Id -> Int -> Sym -> ParseM ()
 showNameAlreadyUsedAsType id ln sym = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Name " ++ id ++ " is already used in a typedef in line " ++ show (fst.sym_pos $ sym) ++ ".\n"
+    liftIO $ putStrLn $ "Name " ++ id ++ " is already used in a typedef in line " ++ show (fst.sym_pos $ sym) ++ "."
+    liftIO $ putStrLn $ "You're not to blame for bittersweet distractors \n"
 
 showFunctionNameUsedAsGlobalVariable :: Id -> Int -> Sym -> ParseM ()
 showFunctionNameUsedAsGlobalVariable id ln sym = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Name for function " ++ id ++ " is already used as a global variable in line " ++ show (fst.sym_pos $ sym) ++ ".\n"
-
+    liftIO $ putStrLn $ "Name for function " ++ id ++ " is already used as a global variable in line " ++ show (fst.sym_pos $ sym) ++ "."
+    liftIO $ putStrLn $ "You're not to blame for bittersweet distractors \n"
 
 showRedeclarationOfFunction :: Id -> Int -> Sym -> ParseM ()
 showRedeclarationOfFunction id ln sym = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Function " ++ id ++ " with same signature (arguments type) already defined in line " ++ show (fst.sym_pos $ sym) ++ ".\n"
+    liftIO $ putStrLn $ "Function " ++ id ++ " with same signature (arguments type) already defined in line " ++ show (fst.sym_pos $ sym) ++ "."
+    liftIO $ putStrLn $ "For a minute there I lost myself \n"
 
 showVariableRedeclaredInScope :: Id -> Int -> Sym -> ParseM ()
 showVariableRedeclaredInScope id ln sym = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Variable " ++ id ++ " is already defined in same scope in line " ++ show (fst.sym_pos $ sym) ++ ".\n"
+    liftIO $ putStrLn $ "Variable " ++ id ++ " is already defined in same scope in line " ++ show (fst.sym_pos $ sym) ++ "."
+    liftIO $ putStrLn $ "For a minute there I lost myself \n"
 
 showMemberNotFound :: Id -> Int -> String -> ParseM ()
 showMemberNotFound id ln msg = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ id ++ " is not a member of the record" ++ msg ++ ".\n"
+    liftIO $ putStrLn $ id ++ " is not a member of the record" ++ msg ++ "."
+    liftIO $ putStrLn $ "For a minute there I lost myself \n"
 
 
 --}}

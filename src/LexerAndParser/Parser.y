@@ -381,7 +381,7 @@ recordMemberAction exp tkn = do
     case oktype of
          OKRecord scope -> do sym <- P.findSymInScope scope tkn (exp_type exp) `catchError` (\_ -> return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT)
                               case sym of
-                                ErrorSym{} -> do showRecordMemberNotDefined (fst.tkn_pos $ tkn) (tkn_string tkn) oktype 
+                                ErrorSym{} -> do -- showRecordMemberNotDefined (fst.tkn_pos $ tkn) (tkn_string tkn) oktype 
                                                  return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT -- return $ AST.FUNCTIONCALL (tkn_string tkn) exp OKErrorT
                                 _ -> return $ AST.RECORDACCESS exp (tkn_string tkn) (sym_type sym)
          OKErrorT -> return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
@@ -645,12 +645,16 @@ showExpectedRecord ln t = do
 
 throwDifferentTypeError :: Int -> OKType -> OKType -> ParseM OKType
 throwDifferentTypeError line t1 t2 = do
-    liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected same type, found " ++ show t1 ++ " and " ++ show t2 ++ "."
+    liftIO $ putStrLn $ "Error in line " ++ show line ++ ":" 
+    liftIO $ putStrLn $ "Expected same type, found " ++ show t1 ++ " and " ++ show t2 ++ "."
+    liftIO $ putStrLn $ "Where do we go from here? The words are coming out all weird \n"
     return OKErrorT
 
 throwNotNumericalTypeError :: Int -> OKType -> OKType -> ParseM OKType
 throwNotNumericalTypeError line t1 t2 = do
-    liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected a number types, found " ++ show t1 ++ " and " ++ show t2 ++ "."
+    liftIO $ putStrLn $ "Error in line " ++ show line ++ ":"
+    liftIO $ putStrLn $ "Expected a number types, found " ++ show t1 ++ " and " ++ show t2 ++ "."
+    liftIO $ putStrLn $ "The numbers dont decide. Your system is a lie\n"
     return OKErrorT
 
 throwNotWhatIExpectedAndImNotSatisfied :: Int -> OKType -> OKType -> String -> ParseM OKType
@@ -662,85 +666,106 @@ throwNotWhatIExpectedAndImNotSatisfied ln t1 t2 msg = do
 
 throwNotBooleanError :: Int -> OKType -> OKType -> ParseM OKType
 throwNotBooleanError line t1 t2 = do
-    liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected boolean values, found " ++ show t1 ++ " and " ++ show t2 ++ "."
+    liftIO $ putStrLn $ "Error in line " ++ show line ++ ":"
+    liftIO $ putStrLn $ "Expected boolean values, found " ++ show t1 ++ " and " ++ show t2 ++ "."
+    liftIO $ putStrLn $ "Where do we go from here? The words are coming out all weird \n"
     return OKErrorT
 
 throwNotIntType :: Int -> OKType -> OKType -> ParseM OKType
 throwNotIntType line t1 t2 = do
-    liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected int values, found " ++ show t1 ++ " and " ++ show t2 ++ "."
+    liftIO $ putStrLn $ "Error in line " ++ show line ++ ":"
+    liftIO $ putStrLn $ "Expected int values, found " ++ show t1 ++ " and " ++ show t2 ++ "."
+    liftIO $ putStrLn $ "The numbers dont decide. Your system is a lie\n"
     return OKErrorT
 
 throwNotPointerType :: Int -> OKType -> ParseM OKType
 throwNotPointerType line t = do
-    liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected pointer value, found " ++ show t ++ "."
+    liftIO $ putStrLn $ "Error in line " ++ show line ++ ":"
+    liftIO $ putStrLn $ "Expected pointer value, found " ++ show t ++ "."
+    liftIO $ putStrLn $ "The numbers dont decide. Your system is a lie\n"
     return OKErrorT
 
 throwNotArrayType :: Int -> OKType -> ParseM OKType
 throwNotArrayType line t = do
-    liftIO $ putStrLn $ "Line " ++ show line ++ ". Expected array value, found " ++ show t ++ "."
+    liftIO $ putStrLn $ "Error in line " ++ show line ++ ":"
+    liftIO $ putStrLn $ "Expected array value, found " ++ show t ++ "."
+    liftIO $ putStrLn $ "Where do we go from here? The words are coming out all weird \n"
     return OKErrorT
 
 showNameTypeNotDefined :: Id -> Int -> ParseM ()
 showNameTypeNotDefined id ln = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Type " ++ id ++ " is not defined.\n"
+    liftIO $ putStrLn $ "Type " ++ id ++ " is not defined."
+    liftIO $ putStrLn $ "You dont remember. Why dont you remember my name? \n"
 
 showNameIsNotNameType :: Id -> Int -> Int -> ParseM ()
 showNameIsNotNameType id ln ln2 = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ id ++ " defined in line " ++ show ln2 ++ " does not refer to a type.\n"
+    liftIO $ putStrLn $ id ++ " defined in line " ++ show ln2 ++ " does not refer to a type."
+    liftIO $ putStrLn $ "You dont remember. Why dont you remember my name? \n"
+
 
 showFoundDifferentTypesInArray :: Int -> [OKType] -> ParseM ()
 showFoundDifferentTypesInArray ln types = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
     liftIO $ putStrLn $ "Arrays must have a unique type. Found different types:"
-    liftIO $ putStrLn $ show types ++ "\n"
+    liftIO $ putStrLn $ show types ++ "."
+    liftIO $ putStrLn $ "Im amazed that I survived. An airbag saved my life. \n"
 
 showFoundDifferentTypesInList :: Int -> [OKType] -> ParseM ()
 showFoundDifferentTypesInList ln types = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
     liftIO $ putStrLn $ "Lists must have a unique type. Found different types:"
-    liftIO $ putStrLn $ show types ++ "\n"
+    liftIO $ putStrLn $ show types ++ "."
+    liftIO $ putStrLn $ "Im amazed that I survived. An airbag saved my life. \n"
 
 showConcatExpectedTwoLists :: Int -> OKType -> OKType -> ParseM ()
 showConcatExpectedTwoLists ln t1 t2 = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Concat operator expects two lists, found " ++ show t1 ++ " ++ " ++ show t2 ++ ".\n"
+    liftIO $ putStrLn $ "Concat operator expects two lists, found " ++ show t1 ++ " ++ " ++ show t2 ++ "."
+    liftIO $ putStrLn $ "Im amazed that I survived. An airbag saved my life. \n"
 
 showConcatExpectedSameType :: Int -> OKType -> OKType -> ParseM ()
 showConcatExpectedSameType ln t1 t2 = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Concat operator expects two lists of same type, found " ++ show t1 ++ " ++ " ++ show t2 ++ ".\n"
+    liftIO $ putStrLn $ "Concat operator expects two lists of same type, found " ++ show t1 ++ " ++ " ++ show t2 ++ "."
+    liftIO $ putStrLn $ "Let down and hanging around. Crushed like a bug in the ground. \n"
 
 showTupleOutOfRange :: Int -> Int -> Int -> ParseM ()
 showTupleOutOfRange ln range2 range = do
    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-   liftIO $ putStrLn $ "The tuple has a range of " ++ show range2 ++ " and cant access position " ++ show range ++ ".\n"
+   liftIO $ putStrLn $ "Tuple position out of range. The tuple has only " ++ show range ++ " positions (0-indexed) and tried to access position number " ++ show range ++ "."
+   liftIO $ putStrLn $ "Let down and hanging around. Crushed like a bug in the ground. \n"
 
 showNotATuple:: Int -> OKType -> ParseM ()
 showNotATuple ln oktype = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Variable is not a tuple, instead its a " ++ show oktype ++ ".\n"
+    liftIO $ putStrLn $ "Expected a tuple, found a " ++ show oktype ++ "."
+    liftIO $ putStrLn $ "Let down and hanging around. Crushed like a bug in the ground. \n"
 
 showFunctionNotDefined :: Int -> Id -> ParseM ()
 showFunctionNotDefined ln id = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Function " ++ id ++ " not defined.\n"
+    liftIO $ putStrLn $ "Function " ++ id ++ " not defined."
+    liftIO $ putStrLn $ "You dont remember. Why dont you remember my name?\n"
 
 showFunctionVariableAlreadyDefined :: Int -> Id -> Int -> OKType -> ParseM ()
 showFunctionVariableAlreadyDefined ln id ln2 oktype = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Function " ++ show id ++ " is already defined in line " ++ show ln2 ++ " with type " ++ show oktype ++ ".\n"
+    liftIO $ putStrLn $ "Function " ++ show id ++ " is already defined in line " ++ show ln2 ++ " with type " ++ show oktype ++ "."
+    liftIO $ putStrLn $ "Picked over by the worms and weird fishes. \n"
 
 showRecordMemberNotDefined :: Int -> Id -> OKType -> ParseM ()
 showRecordMemberNotDefined ln id oktype = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Struct has no inside variable " ++ id ++ ".\n"
+    liftIO $ putStrLn $ "Struct has no inside variable " ++ id ++ "."
+    liftIO $ putStrLn $ "Picked over by the worms and weird fishes. \n"
 
 showIDActionNotFound :: Id -> Int -> ParseM ()
 showIDActionNotFound id ln = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "ID " ++ id ++ " on left sign of assign not found .\n"
+    liftIO $ putStrLn $ "ID " ++ id ++ " on left side of assign not found."
+    liftIO $ putStrLn $ "Picked over by the worms and weird fishes. \n"
 --- 1}}}
 
 lexwrap :: (Token -> ParseM a) -> ParseM a

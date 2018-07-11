@@ -1,0 +1,15 @@
+typedef tiporecord record{
+    int x, y
+}
+
+dafunk funcion(int x, int y, string s) : intothevoid
+youbegin
+     record {
+         int x
+     } rec
+     rec.x = "yeah"
+
+     int prueba = rec.x + 2.0
+     
+whereiend
+

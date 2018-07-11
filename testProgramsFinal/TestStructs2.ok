@@ -1,0 +1,24 @@
+typedef tiporecord record{
+    int x, y
+}
+
+dafunk funcion(int x, int y, string s) : intothevoid
+youbegin
+     record {
+         record {
+         	int rec
+         } rec
+     } rec, rec2
+
+     rec.rec.rec = 4
+
+     # Error not member
+     rec.rec.x = 5
+
+     # Error not string
+     rec2.rec.rec = "Error"
+
+     5 < "ya" + 3
+
+whereiend
+
