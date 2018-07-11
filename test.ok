@@ -12,11 +12,13 @@ youbegin
 	int prueba = cuck.2
     list(int) l = [1,2,3] ++ "hola"
 
-    #int cuckeado = cuck.2
+    int cuckeado = tiporecord.2
     list(string) comp1 = ["yeah"]
     list(int) comp2 = [3]
 
     comp1 ++ comp2
+
+    egg = 3
 
     tiporecord r
     yy.xx

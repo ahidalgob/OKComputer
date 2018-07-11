@@ -75,8 +75,8 @@ import Data.List
   '['                                     { ArrayStartTkn _ }
   ']'                                     { ArrayEndTkn _ }
   record                                  { RecordTkn _ }            -- Registers/structs
-  '.'										                  { DotTkn _ }
-  '^'									                    { PointerTkn _ }
+  '.'                                     { DotTkn _ }
+  '^'                                     { PointerTkn _ }
 
   -- Operations Tokens
   mod                                     { ModTkn _ }
@@ -381,9 +381,9 @@ recordMemberAction exp tkn = do
     case oktype of
          OKRecord scope -> do sym <- P.findSymInScope scope tkn (exp_type exp) `catchError` (\_ -> return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT)
                               case sym of
-                              	ErrorSym{} -> do -- showRecordMemberNotDefined (fst.tkn_pos $ tkn) (tkn_string tkn) 
-                              			         return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT -- return $ AST.FUNCTIONCALL (tkn_string tkn) exp OKErrorT
-                              	_ -> return $ AST.RECORDACCESS exp (tkn_string tkn) (sym_type sym)
+                                ErrorSym{} -> do showRecordMemberNotDefined (fst.tkn_pos $ tkn) (tkn_string tkn) oktype 
+                                                 return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT -- return $ AST.FUNCTIONCALL (tkn_string tkn) exp OKErrorT
+                                _ -> return $ AST.RECORDACCESS exp (tkn_string tkn) (sym_type sym)
          OKErrorT -> return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
          _ -> do  showExpectedRecord (fst.tkn_pos $ tkn) (exp_type exp)
                   return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
@@ -487,11 +487,11 @@ tupleAccessAction tkn exp n =
     case exp_type exp of
          OKErrorT -> return exp
          OKTuple types -> do
-            if n >= length types then do -- showTupleOutOfRange (fst.tkn_pos $ tkn)
-            					         return $ AST.TUPLEACCESS exp n OKErrorT
+            if n >= length types then do     showTupleOutOfRange (fst.tkn_pos $ tkn) n (length types)
+                                             return $ AST.TUPLEACCESS exp n OKErrorT
                                  else return (AST.TUPLEACCESS exp n (types !! n))
-         _ -> do -- showNotATuple (fst.tkn_pos $ tkn) (tkn_string tkn)
-         	  return $ AST.TUPLEACCESS exp n OKErrorT
+         _ -> do  showNotATuple (fst.tkn_pos $ tkn) (exp_type exp)
+                  return $ AST.TUPLEACCESS exp n OKErrorT
 
 orderCompAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
 orderCompAction tkn exp1 exp2 op = do
@@ -540,8 +540,11 @@ assignAction tkn lhs rhs = do
 
 idAction :: Token -> ParseM AST.EXPRESSION
 idAction tkn = do
-          sym <- P.findSym (tkn_string tkn) (tkn_pos tkn) `catchError` (\_ -> return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT) --TODO
-          return $ AST.IDEXPRESSION (tkn_string tkn, sym_scope sym) (sym_type sym)
+          sym <- P.findSym (tkn_string tkn) (tkn_pos tkn) `catchError` (\_ -> return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT)
+          case sym of
+            ErrorSym{} -> do showIDActionNotFound (tkn_string tkn) (fst.tkn_pos $ tkn) 
+                             return $ AST.IDEXPRESSION (tkn_string tkn, sym_scope sym) OKErrorT
+            _ -> return $ AST.IDEXPRESSION (tkn_string tkn, sym_scope sym) (sym_type sym)
 
 pointerAction :: Token -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 pointerAction tkn exp = do
@@ -709,14 +712,15 @@ showConcatExpectedSameType ln t1 t2 = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
     liftIO $ putStrLn $ "Concat operator expects two lists of same type, found " ++ show t1 ++ " ++ " ++ show t2 ++ ".\n"
 
-showTupleOutOfRange :: Int -> ParseM ()
-showTupleOutOfRange ln = do
-	liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-   -- liftIO $ putStrLn $ "The tuple " ++ show tuple ++ " has a range of " ++ show range2 ++ " and cant access an out of rangeposition .\n"
+showTupleOutOfRange :: Int -> Int -> Int -> ParseM ()
+showTupleOutOfRange ln range2 range = do
+   liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+   liftIO $ putStrLn $ "The tuple has a range of " ++ show range2 ++ " and cant access position " ++ show range ++ ".\n"
 
-showNotATuple:: Int -> Id -> ParseM ()
-showNotATuple ln id = do
+showNotATuple:: Int -> OKType -> ParseM ()
+showNotATuple ln oktype = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "Variable is not a tuple, instead its a " ++ show oktype ++ ".\n"
 
 showFunctionNotDefined :: Int -> Id -> ParseM ()
 showFunctionNotDefined ln id = do
@@ -728,10 +732,15 @@ showFunctionVariableAlreadyDefined ln id ln2 oktype = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
     liftIO $ putStrLn $ "Function " ++ show id ++ " is already defined in line " ++ show ln2 ++ " with type " ++ show oktype ++ ".\n"
 
-showRecordMemberNotDefined :: Int -> Id -> ParseM ()
-showRecordMemberNotDefined ln id = do
+showRecordMemberNotDefined :: Int -> Id -> OKType -> ParseM ()
+showRecordMemberNotDefined ln id oktype = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "Struct has no inside variable " ++ id ++ ".\n"
 
+showIDActionNotFound :: Id -> Int -> ParseM ()
+showIDActionNotFound id ln = do
+    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "ID " ++ id ++ " on left sign of assign not found .\n"
 --- 1}}}
 
 lexwrap :: (Token -> ParseM a) -> ParseM a
