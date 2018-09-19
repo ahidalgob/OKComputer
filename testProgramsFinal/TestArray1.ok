@@ -3,6 +3,7 @@ int a[5] = 3
 
 int b[3] = {1,2,3}
 
+# Error
 int c = {1,2,3,4}
 
 dafunk funcion1(int x, int y, string s) : intothevoid
@@ -10,6 +11,7 @@ youbegin
 
 	int x1 = b[0]
 
+	# Error
 	float x2 = b[0]
 
 whereiend

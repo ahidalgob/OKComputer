@@ -15,7 +15,7 @@ youbegin
     float f = tubien.1 
 
     #Error with range access
-    float f2 = tubien.4
+    float f2 = tubien.4.6
 
     #Error with accessing non tuple
     float f3 = f.1
