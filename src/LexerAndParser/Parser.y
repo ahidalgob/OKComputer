@@ -123,7 +123,7 @@ import Data.List
 %right not
 %right '^'
 %left '[' '<<'
-%nonassoc '.'
+%nonassoc '.' '._'
 
 -- Grammar{{{1
 %%
@@ -293,7 +293,7 @@ LVAL :: { AST.EXPRESSION }
 LVAL :  id {% idAction $1 }
            | EXPRESSION '[' EXPRESSION ']'                {% arrayOrListAccessAction (tkn_pos $2) $1 $3 }
            | EXPRESSION '.' id                            {% recordMemberAction $1 $3 }
-           | '^'  EXPRESSION                              {% pointerAction $1 $2 }
+           | '^' EXPRESSION                               {% pointerAction $1 $2 }
            | EXPRESSION '._' n                            {% tupleAccessAction $2 $1 (read $ tkn_string $3) }
 
 
