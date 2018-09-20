@@ -26,9 +26,10 @@ tokens :-
 <0>  cantstop                                {newToken CantStopTkn}        -- While Iteration
 <0>  breakthru                               {newToken BreakthruTkn}       -- Break
 <0>  onemoretime                             {newToken OneMoreTimeTkn}     -- For Iteration
-<0>  \.                                      {newToken DotTkn}             -- For Iteration
-<0>  \{                                      {newToken OpenBraceTkn}       -- For Iteration
-<0>  \}                                      {newToken CloseBraceTkn}      -- For Iteration
+<0>  \.                                      {newToken DotTkn}
+<0>  \.\_                                    {newToken TupleAccessTkn}
+<0>  \{                                      {newToken OpenBraceTkn}
+<0>  \}                                      {newToken CloseBraceTkn}
 <0>  list                                    {newToken ListTypeTkn}
 <0>  \+\+                                    {newToken ConcatTkn}
 <0>  tuple                                   {newToken TupleTypeTkn}

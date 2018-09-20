@@ -33,10 +33,10 @@ data Sym = VarSym{ sym_scope :: Scope,
                 sym_type :: OKType
             } deriving Show
 
-isVarSym (VarSym _ _ _ _) = True
+isVarSym VarSym{} = True
 isVarSym _ = False
 
-isNameTypeSym (NameTypeSym _ _ _ _) = True
+isNameTypeSym NameTypeSym{} = True
 isNameTypeSym _ = False
 
 ----------------------------------
@@ -49,10 +49,10 @@ type SymTable = H.HashMap Id [Sym]
 emptySymTable = H.empty
 
 symTableInsert :: Sym -> SymTable -> SymTable
-symTableInsert s st = H.insertWith (++) (sym_Id s) [s] st
+symTableInsert s = H.insertWith (++) (sym_Id s) [s]
 
 symTableModify :: Id -> [Sym] -> SymTable -> SymTable
-symTableModify id s st = H.insert id s st
+symTableModify = H.insert
 
 symTableLookUp :: Id -> SymTable -> Maybe [Sym]
 symTableLookUp = H.lookup

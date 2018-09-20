@@ -15,7 +15,7 @@ emptyScopeStack = [1,0]
 type ScopeSet = S.Set Scope
 
 emptyScopeSet :: ScopeSet
-emptyScopeSet = (S.insert 1).(S.insert 0) $ S.empty
+emptyScopeSet = S.insert 1 . S.insert 0 $ S.empty
 
 scopeSetMember :: Scope -> ScopeSet -> Bool
 scopeSetMember = S.member

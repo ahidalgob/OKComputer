@@ -13,6 +13,7 @@ data Token =
   OpenBraceTkn        { tkn_pos :: (Int, Int) }  |
   CloseBraceTkn       { tkn_pos :: (Int, Int) }  |
   DotTkn              { tkn_pos :: (Int, Int) }  |
+  TupleAccessTkn      { tkn_pos :: (Int, Int) }  |
   SemiColonTkn        { tkn_pos :: (Int, Int) }  |
   ReadMyMindTkn       { tkn_pos :: (Int, Int) }  |
   GoTkn               { tkn_pos :: (Int, Int) }  |

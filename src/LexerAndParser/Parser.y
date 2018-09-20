@@ -76,6 +76,7 @@ import Data.List
   ']'                                     { ArrayEndTkn _ }
   record                                  { RecordTkn _ }            -- Registers/structs
   '.'                                     { DotTkn _ }
+  '._'                                    { TupleAccessTkn _ }
   '^'                                     { PointerTkn _ }
 
   -- Operations Tokens
@@ -258,7 +259,6 @@ EXPRESSION : LVAL                               { $1 }
            | '[' ']'                            { AST.LISTEXP [] (OKList OKVoid) }
            | '[' NONEMPTYEXPRESSIONS ']'        {% listLiteralAction $1 (reverse $2) }
            | EXPRESSION '++' EXPRESSION         {% listConcatAction $2 $1 $3 }
-           | EXPRESSION '.' n                   {% tupleAccessAction $2 $1 (read $ tkn_string $3) }
            | EXPRESSION '<' EXPRESSION          {% orderCompAction $2 $1 $3 "<" }
            | EXPRESSION '>' EXPRESSION          {% orderCompAction $2 $1 $3 ">" }
            | EXPRESSION '<=' EXPRESSION         {% orderCompAction $2 $1 $3 "<=" }
@@ -291,9 +291,11 @@ NONEMPTYEXPRESSIONS : NONEMPTYEXPRESSIONS ',' EXPRESSION        { $3 : $1 }
 -- Anything with L-Value: variables, record.member, array[position]...
 LVAL :: { AST.EXPRESSION }
 LVAL :  id {% idAction $1 }
-           | EXPRESSION '[' EXPRESSION ']'                {% accessAction (tkn_pos $2) $1 $3 }
+           | EXPRESSION '[' EXPRESSION ']'                {% arrayOrListAccessAction (tkn_pos $2) $1 $3 }
            | EXPRESSION '.' id                            {% recordMemberAction $1 $3 }
-           | '^'  EXPRESSION            {% pointerAction $1 $2 }
+           | '^'  EXPRESSION                              {% pointerAction $1 $2 }
+           | EXPRESSION '._' n                            {% tupleAccessAction $2 $1 (read $ tkn_string $3) }
+
 
 LVALS :: { [AST.EXPRESSION] }
 LVALS :                                 { [] }
@@ -314,10 +316,10 @@ data Parameter = Parameter{param_type :: OKType, param_id :: SymId} deriving Sho
 
 -- Actions{{{1
 
--- Adds the name to the symtable
+-- Adds the name to the symtable as a type alias
 typedefAction :: Token -> OKType -> ParseM ()
-typedefAction tkn oktype = do
-  P.insertSym $ NameTypeSym 0 (tkn_string tkn) (tkn_pos tkn) (OKNameType (tkn_string tkn) oktype)
+typedefAction tkn_id oktype = do
+  P.insertSym $ NameTypeSym 0 (tkn_string tkn_id) (tkn_pos tkn_id) (OKNameType (tkn_string tkn_id) oktype)
 
 
 -- Adds the body of the function to the sym table
@@ -333,16 +335,19 @@ functionSignAction tkn params retType = do
             id = tkn_string tkn
             pos = tkn_pos tkn
             param_ids = map param_id params
-        P.insertSym $ FuncSym 1 id pos oktype param_ids []
+        P.insertSym $ FuncSym 1 id pos oktype param_ids [] -- no body
         P.setReturnType retType
         return (tkn, params, retType)
 
+-- Adds parameter to the symtable
 functionParameterAction :: OKType -> Token -> ParseM Parameter
 functionParameterAction oktype id = do
        scope <- P.topScope
        P.insertSym $ VarSym scope (tkn_string id) (tkn_pos id) oktype
        return $ Parameter oktype (tkn_string id, scope)
 
+
+--                               (name, Maybe value         , Maybe array size    )
 declarationAction :: OKType -> [(Token, Maybe AST.EXPRESSION, Maybe AST.EXPRESSION)] -> ParseM ([AST.EXPRESSION])
 declarationAction oktype l =
       do  let decls = reverse l                                                       :: [(Token, Maybe AST.EXPRESSION, Maybe AST.EXPRESSION)]
@@ -356,33 +361,31 @@ declarationAction oktype l =
 
           ids <- mapM idAction (map myFst assigns)
           let exps = map (fromJust.mySnd) assigns
-          mapM (uncurry $ assignAction tkn) (zip ids exps)
+          zipWithM (assignAction tkn) ids exps
     where myFst (a,_,_)=a
           mySnd (_,b,_)=b
           myThrd (_,_,c)=c
+          -- If it's an array, the size should be an integer
           checkIfArray :: (Id, Pos, Maybe AST.EXPRESSION) -> ParseM (Id, Pos, OKType)
           checkIfArray (id, pos, Nothing) = return (id, pos, oktype)
           checkIfArray (id, pos, Just exp) = do
             checkExpectedType pos OKInt (exp_type exp) " for array size"
             return (id, pos, OKArray 0 oktype)
 
--- REVISAR RECORDS AQUI
-accessAction :: Pos -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
-accessAction pos exp posExp = do
+arrayOrListAccessAction :: Pos -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
+arrayOrListAccessAction pos exp posExp = do
       checkExpectedType pos OKInt (exp_type posExp) " for index"
       oktype <- checkAndGetArrayOrListType pos (exp_type exp)
       if isListType (exp_type exp) then return $ AST.LISTACCESS exp posExp oktype
                                    else return $ AST.ARRAYACCESS exp posExp oktype
 
--- REVISAR AQUI
 recordMemberAction :: AST.EXPRESSION -> Token -> ParseM AST.EXPRESSION
 recordMemberAction exp tkn = do
     let oktype = solveNameTypes (exp_type exp)
     case oktype of
          OKRecord scope -> do sym <- P.findSymInScope scope tkn (exp_type exp) `catchError` (\_ -> return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT)
                               case sym of
-                                ErrorSym{} -> do -- showRecordMemberNotDefined (fst.tkn_pos $ tkn) (tkn_string tkn) oktype 
-                                                 return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT -- return $ AST.FUNCTIONCALL (tkn_string tkn) exp OKErrorT
+                                ErrorSym{} -> do return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
                                 _ -> return $ AST.RECORDACCESS exp (tkn_string tkn) (sym_type sym)
          OKErrorT -> return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
          _ -> do  showExpectedRecord (fst.tkn_pos $ tkn) (exp_type exp)
@@ -542,7 +545,7 @@ idAction :: Token -> ParseM AST.EXPRESSION
 idAction tkn = do
           sym <- P.findSym (tkn_string tkn) (tkn_pos tkn) `catchError` (\_ -> return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT)
           case sym of
-            ErrorSym{} -> do showIDActionNotFound (tkn_string tkn) (fst.tkn_pos $ tkn) 
+            ErrorSym{} -> do showIDActionNotFound (tkn_string tkn) (fst.tkn_pos $ tkn)
                              return $ AST.IDEXPRESSION (tkn_string tkn, sym_scope sym) OKErrorT
             _ -> return $ AST.IDEXPRESSION (tkn_string tkn, sym_scope sym) (sym_type sym)
 
@@ -561,9 +564,9 @@ functionCallAction tkn exp = do
     catcher :: P.ParseMError -> ParseM Sym
     catcher FunctionNotDefined = do showFunctionNotDefined (fst.tkn_pos $ tkn) (tkn_string tkn)
                                     return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT
-    catcher (VariableInScopeIsNotFunction ln oktype) = do showFunctionVariableAlreadyDefined (fst.tkn_pos $ tkn) (tkn_string tkn) ln oktype 
+    catcher (VariableInScopeIsNotFunction ln oktype) = do showFunctionVariableAlreadyDefined (fst.tkn_pos $ tkn) (tkn_string tkn) ln oktype
                                                           return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT
-   
+
 --- 1}}}
 
 
@@ -631,7 +634,7 @@ checkAndGetArrayOrListType :: Pos -> OKType -> ParseM (OKType)
 checkAndGetArrayOrListType (line, _) OKErrorT = return OKErrorT
 checkAndGetArrayOrListType (line, _) (OKArray _ t) = return t
 checkAndGetArrayOrListType (line, _) (OKList t) = return t
-checkAndGetArrayOrListType (line, _) t = throwNotArrayType line t
+checkAndGetArrayOrListType (line, _) t = throwNotArrayType line t --TODO Or list
 
 -- 1}}}
 
@@ -645,7 +648,7 @@ showExpectedRecord ln t = do
 
 throwDifferentTypeError :: Int -> OKType -> OKType -> ParseM OKType
 throwDifferentTypeError line t1 t2 = do
-    liftIO $ putStrLn $ "Error in line " ++ show line ++ ":" 
+    liftIO $ putStrLn $ "Error in line " ++ show line ++ ":"
     liftIO $ putStrLn $ "Expected same type, found " ++ show t1 ++ " and " ++ show t2 ++ "."
     liftIO $ putStrLn $ "Where do we go from here? The words are coming out all weird \n"
     return OKErrorT
