@@ -1,3 +1,7 @@
+typedef ola record {int x}
+
+typedef chao record {list (ola) l}
+
 # Error
 int a[5] = 3
 
@@ -6,10 +10,26 @@ int b[3] = {1,2,3}
 # Error
 int c = {1,2,3,4}
 
-dafunk funcion1(int x[1], int y, string s) : intothevoid
+dafunk funcion1(int x, int y, string s) : intothevoid
 youbegin
 
+	list (ola) l
+
+	list (chao) l2
+
+	l[1].x
+
+	l2[4].l[1].x
+
+	#Error
+	l2[4].l[1].y
+
 	#int x1[1][2]
+
+	record {
+         int x
+     } rec
+     rec.x = "yeah"
 
 	# Error
 	float x2 = b[0]
