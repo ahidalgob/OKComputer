@@ -6,10 +6,10 @@ int b[3] = {1,2,3}
 # Error
 int c = {1,2,3,4}
 
-dafunk funcion1(int x, int y, string s) : intothevoid
+dafunk funcion1(int x[1], int y, string s) : intothevoid
 youbegin
 
-	int x1 = b[0]
+	#int x1[1][2]
 
 	# Error
 	float x2 = b[0]

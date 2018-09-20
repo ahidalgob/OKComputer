@@ -317,7 +317,6 @@ printInstruction n (CANTSTOP exps instrs) = do
   putStrLnWithIdent n "Instructions list: "
   mapM_ (printInstruction (n+2)) instrs
 
---printInstruction n (ONEMORETIME declars exp2 exp3 instrs) = do
 printInstruction n (ONEMORETIME decls exp2 exp3 instrs) = do
   putStrLnWithIdent n "OneMoreTime Instruction: "
   putStrLnWithIdent n "Initialization: "
