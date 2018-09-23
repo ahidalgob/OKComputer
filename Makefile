@@ -1,7 +1,7 @@
 
 
 OKC: Lexer Parser
-	ghc -i./src:./src/LexerAndParser --make OKC
+	ghc -i./src:./src/LexerAndParser --make -dynamic OKC
 
 Lexer: src/LexerAndParser/Lexer.x
 	alex src/LexerAndParser/Lexer.x
