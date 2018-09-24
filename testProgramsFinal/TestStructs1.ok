@@ -1,5 +1,5 @@
 typedef tiporecord record{
-    int x, y
+    int test1, test2
 }
 
 dafunk funcion(int x, int y, string s) : intothevoid
@@ -7,9 +7,37 @@ youbegin
      record {
          int x
      } rec
-     rec.x = "yeah"
+     rec.x = 10
 
-     int prueba = rec.x + 2.0
+     record {
+         int x
+         int y
+     } rec
+
+     record {
+     	  string w
+     } rec
+
+     rec.pene = 5 + rec.vagina
+
+     rec2 = rec
+
+     tiporecord a
+
+     # FALLA BIEN PERO ES FEITO
+     a = 2
+     a = 3.0
+
+     # DEBERIA FALLAR NO FALLA
+     a.testfallo = a.pene
+
+     # SI FALLA ESTA BIEN LA VERGA
+     a.test1 = "buenas"
+
+     # ESTE NO DEBERIA FALLAR
+     a.test1 = 6
+
+     int prueba = rec.x + 2
      
 whereiend
 

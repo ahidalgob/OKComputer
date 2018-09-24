@@ -7,18 +7,23 @@ typedef nuevotipo int
 dafunk funcion(int x, int y, string s) : list(nuevotipo)
 youbegin
 
+     record {
+         int x
+     } rec
+     rec.x = "yeah"
+
     list(int) l = []
 
-    list(int) newlist = tubien.1
+    list(int) newlist = tubien._1
 
     #Error with type access
-    float f = tubien.1 
+    float f = tubien._1 
 
     #Error with range access
-    float f2 = tubien.4
+    float f2 = tubien._4
 
     #Error with accessing non tuple
-    float f3 = f.1
+    float f3 = f._1
 
     # Error array
     tubien = {3,5,6}
