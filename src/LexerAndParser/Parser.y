@@ -242,7 +242,7 @@ INSTRUCTION : go '(' NONEMPTYEXPRESSIONS ')' newline                            
 
 IFELSE : ifyouhavetoask EXPRESSION BEGIN BLOCK IFELSE                           {% ifYouHaveToAskAction $1 $2 (reverse $4) $5 }
        | otherside BEGIN BLOCK                                                  { AST.OTHERSIDE $3 }
-       | {-λ-}                                                            { AST.IFELSEVOID }
+       | {-λ-}                                                                  { AST.IFELSEVOID }
 
 EXPRESSION :: { AST.EXPRESSION }
 EXPRESSION : LVAL                               { $1 }
@@ -373,8 +373,7 @@ arrayOrListAccessAction pos exp posExp = do
 
 recordMemberAction :: AST.EXPRESSION -> Token -> ParseM AST.EXPRESSION
 recordMemberAction exp tkn = do
-    let oktype = solveNameTypes (exp_type exp)
-    case oktype of
+    case solveNameTypes (exp_type exp) of
          OKRecord scope -> do sym <- P.findSymInScope scope tkn (exp_type exp) `catchError` (\_ -> return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT)
                               case sym of
                                 ErrorSym{} -> do return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT

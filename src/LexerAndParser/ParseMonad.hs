@@ -103,11 +103,6 @@ getAlexStartCode = gets alex_scd
 setAlexStartCode:: Int -> ParseM ()
 setAlexStartCode sc = modify (\s -> s{alex_scd=sc})
 
--- {{{2
---
---
--- 22}}}
-
 pushStrC :: Char -> ParseM ()
 pushStrC c = modify (\s -> s{alex_str = c:alex_str s})
 
