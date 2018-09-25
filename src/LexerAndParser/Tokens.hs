@@ -70,7 +70,8 @@ data Token =
   LiteralCharTkn      { tkn_pos :: (Int, Int), tkn_char :: Char } |
   IntLiteralTkn       { tkn_pos :: (Int, Int), tkn_string :: String } |
   FloatLiteralTkn     { tkn_pos :: (Int, Int), tkn_string :: String } |
-  IdTkn               { tkn_pos :: (Int, Int), tkn_string :: String } |
+  VarIdTkn            { tkn_pos :: (Int, Int), tkn_string :: String } |
+  TypeIdTkn           { tkn_pos :: (Int, Int), tkn_string :: String } |
   LiteralStringTkn    { tkn_pos :: (Int, Int), tkn_string :: String } |
 
   NewLineTkn          { tkn_pos :: (Int, Int) } |

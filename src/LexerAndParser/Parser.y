@@ -103,7 +103,8 @@ import Data.List
   '='                                     { AssignTkn _ }
 
   -- Otros
-  id                                      { IdTkn _ _ }
+  varId                                      { VarIdTkn _ _ }
+  typeId                                      { TypeIdTkn _ _ }
   f                                       { FloatLiteralTkn _ _ }
   n                                       { IntLiteralTkn _ _ }
   newline                                 { NewLineTkn _ }
@@ -123,7 +124,9 @@ import Data.List
 %right not
 %right '^'
 %left '[' '<<'
-%nonassoc '.' '._'
+%nonassoc '.' '._' ','
+
+%left '(' '{'
 
 -- Grammar{{{1
 %%
@@ -133,30 +136,30 @@ START : IMPORTS OUTSIDE_FUNCTION         { AST.START (reverse $1) $2 }
 
 IMPORTS :: { [AST.IMPORT] } --{{{
 IMPORTS : IMPORTS newline IMPORT        { (AST.IMPORT $3):$1 }
-        | {- empty -}                   { [] }
+        | {-λ-}                         { [] }
 
 IMPORT :: { [Id] }
 IMPORT : aroundtheworld IDS             { reverse $2 }
 
 IDS :: { [Id] }
-IDS : IDS ',' id                             { (tkn_string $3):$1 }
-  | id                                       { [tkn_string $1] }
+IDS : IDS ',' varId                             { (tkn_string $3):$1 }
+  | varId                                       { [tkn_string $1] }
 -- }}}
 
 OUTSIDE_FUNCTION :: { [AST.OUTSIDE] }
 OUTSIDE_FUNCTION : FUNCTION_DEF OUTSIDE_FUNCTION           { $2 }
                 | DECLARATION newline OUTSIDE_FUNCTION     { (AST.OUTASSIGN $1):$3 }
                 | TYPEDEF OUTSIDE_FUNCTION                 { $2 }
-                | {- empty -}                              { [] }
+                | {-λ-}                              { [] }
 
 TYPEDEF :: { () }
-TYPEDEF : typedef id TYPE newline                          {% typedefAction $2 $3 }
+TYPEDEF : typedef typeId TYPE newline                          {% typedefAction $2 $3 }
 
 FUNCTION_DEF :: { () }
 FUNCTION_DEF : FUNCTION_SIGN BLOCK {% functionDefAction $1 $2}
 
 FUNCTION_SIGN :: { (Token, [Parameter], OKType) }
-FUNCTION_SIGN : dafunk BEGIN id '(' LPARAMETERSFUNC ')' ':' RETURNTYPE     {% functionSignAction $3 $5 $8 }
+FUNCTION_SIGN : dafunk BEGIN varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE     {% functionSignAction $3 $5 $8 }
 -- Creates the function symbol and inserts it to the sym table
 
 RETURNTYPE :: { OKType }
@@ -164,7 +167,7 @@ RETURNTYPE: intothevoid                                                 { OKVoid
           | TYPE                                                        { $1 }
 
 LPARAMETERSFUNC :: { [Parameter] }
-LPARAMETERSFUNC : {- empty -}                                           { [] }
+LPARAMETERSFUNC : {-λ-}                                           { [] }
                 | NONEMPTYLPARAMETERSFUNC                               { reverse $1 }
 
 NONEMPTYLPARAMETERSFUNC :: { [Parameter] }
@@ -172,41 +175,37 @@ NONEMPTYLPARAMETERSFUNC : NONEMPTYLPARAMETERSFUNC ',' FUNCTIONPARAMETER { $3:($1
                         | FUNCTIONPARAMETER                             { [$1] }
 
 FUNCTIONPARAMETER :: { Parameter }
-FUNCTIONPARAMETER : TYPE id         {% functionParameterAction $1 $2}
+FUNCTIONPARAMETER : TYPE varId         {% functionParameterAction $1 $2}
 
 BLOCK :: { [AST.INSTRUCTION] }
 BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION whereiend END                    { reverse $4 }
 
-BEGIN : {- empty -}                                                       {% P.beginScope }
+BEGIN : {-λ-}                                                       {% P.beginScope }
 
-END : {- empty -}                                                           {% P.endScope }
+END : {-λ-}                                                           {% P.endScope }
 
 INSIDEFUNCTION :: { [AST.INSTRUCTION] }
 INSIDEFUNCTION : INSIDEFUNCTION INSTRUCTION                             { $2:$1 }
               | INSIDEFUNCTION DECLARATION newline                      { (map AST.EXPRESSIONINST $ reverse $2)++$1 }
-              | {- empty -}                                             { [] }
+              | {-λ-}                                             { [] }
 
 
 -- Get all the assignments and then do the declarations
 DECLARATION :: { [AST.EXPRESSION] } -- All Expressions are assignments
-DECLARATION : TYPE DECLARATIONVARS {% declarationAction $1 $2 }
+DECLARATION : TYPE DECLARATIONVARS {% declarationAction $1 (reverse $2) }
 
 
 -- Symbols are added in parent rule
-DECLARATIONVARS :: { [(Token, Maybe AST.EXPRESSION, Maybe AST.EXPRESSION)] }
-DECLARATIONVARS : id '=' EXPRESSION                                    { [($1, Just $3, Nothing)] }
-            | DECLARATIONVARS ',' id '=' EXPRESSION                    { ($3, Just $5, Nothing):($1) }
-            | id                                                       { [($1, Nothing, Nothing)] }
-            | DECLARATIONVARS ',' id                                   { ($3, Nothing, Nothing):($1) }
-
-            | id '[' EXPRESSION ']' '=' EXPRESSION                     { [($1, Just $6, Just $3)] }
-            | DECLARATIONVARS ',' id '[' EXPRESSION ']' '=' EXPRESSION { ($3, Just $8, Just $5):($1) }
-            | id '[' EXPRESSION ']'                                    { [($1, Nothing, Just $3)] }
-            | DECLARATIONVARS ',' id '[' EXPRESSION ']'                { ($3, Nothing, Just $5):($1) }
+DECLARATIONVARS :: { [(Token, Maybe AST.EXPRESSION)] }
+DECLARATIONVARS : varId '=' EXPRESSION                                    { [($1, Just $3)] }
+            | DECLARATIONVARS ',' varId '=' EXPRESSION                    { ($3, Just $5):($1) }
+            | varId                                                       { [($1, Nothing)] }
+            | DECLARATIONVARS ',' varId                                   { ($3, Nothing):($1) }
 
 
 TYPE :: { OKType }
 TYPE : TYPE '^'                                                                      { OKPointer $1 }
+     | TYPE '[' EXPRESSION ']'                                                       {% arrayTypeAction (tkn_pos $2) $1 $3 }
      | int                                                                           { OKInt }
      | float                                                                         { OKFloat }
      | boolean                                                                       { OKBoolean }
@@ -215,7 +214,7 @@ TYPE : TYPE '^'                                                                 
      | record BEGIN '{' MAYBELINE INSIDERECORD '}' END                               { OKRecord $2 }
      | tuple '(' TYPES ')'                                                           { OKTuple (reverse $3) }
      | list '(' TYPE ')'                                                             { OKList $3 }
-     | id                                                                            {% nameTypeAction $1 }
+     | typeId                                                                            {% nameTypeAction $1 }
 
 TYPES :: { [OKType] }
 TYPES : TYPE                                              { [$1] }
@@ -243,7 +242,7 @@ INSTRUCTION : go '(' NONEMPTYEXPRESSIONS ')' newline                            
 
 IFELSE : ifyouhavetoask EXPRESSION BEGIN BLOCK IFELSE                           {% ifYouHaveToAskAction $1 $2 (reverse $4) $5 }
        | otherside BEGIN BLOCK                                                  { AST.OTHERSIDE $3 }
-       | {- empty -}                                                            { AST.IFELSEVOID }
+       | {-λ-}                                                            { AST.IFELSEVOID }
 
 EXPRESSION :: { AST.EXPRESSION }
 EXPRESSION : LVAL                               { $1 }
@@ -276,7 +275,7 @@ EXPRESSION : LVAL                               { $1 }
            | EXPRESSION '%' EXPRESSION          {% numOperationAction $2 $1 $3 "%" }
            | EXPRESSION mod EXPRESSION          {% intOperationAction $2 $1 $3 "mod" }
            | EXPRESSION div EXPRESSION          {% intOperationAction $2 $1 $3 "div" }
-           | id '(' EXPRESSIONS ')'             {% functionCallAction $1 $3 }
+           | varId '(' EXPRESSIONS ')'             {% functionCallAction $1 $3 }
            | newlife '(' EXPRESSION ')'         { AST.NEWLIFE $3 $ OKPointer (exp_type $3)}
            | LVAL '=' EXPRESSION                {% assignAction $2 $1 $3 }
 
@@ -290,11 +289,11 @@ NONEMPTYEXPRESSIONS : NONEMPTYEXPRESSIONS ',' EXPRESSION        { $3 : $1 }
 
 -- Anything with L-Value: variables, record.member, array[position]...
 LVAL :: { AST.EXPRESSION }
-LVAL :  id {% idAction $1 }
-           | EXPRESSION '[' EXPRESSION ']'                {% arrayOrListAccessAction (tkn_pos $2) $1 $3 }
-           | EXPRESSION '.' id                            {% recordMemberAction $1 $3 }
-           | '^' EXPRESSION                               {% pointerAction $1 $2 }
-           | EXPRESSION '._' n                            {% tupleAccessAction $2 $1 (read $ tkn_string $3) }
+LVAL :  varId                                              {% idAction $1 }
+       | EXPRESSION '[' EXPRESSION ']'                {% arrayOrListAccessAction (tkn_pos $2) $1 $3 }
+       | EXPRESSION '.' varId                            {% recordMemberAction $1 $3 }
+       | '^' EXPRESSION                               {% pointerAction $1 $2 }
+       | EXPRESSION '._' n                            {% tupleAccessAction $2 $1 (read $ tkn_string $3) }
 
 
 LVALS :: { [AST.EXPRESSION] }
@@ -305,7 +304,7 @@ NONEMPTYLVALS :: { [AST.EXPRESSION] }
 NONEMPTYLVALS : NONEMPTYLVALS ',' LVAL    { $3 : $1 }
               | LVAL                      { [$1] }
 
-MAYBELINE : {- empty -}                   { }
+MAYBELINE : {-λ-}                   { }
           | newline                       { }
 
 --- 1}}}
@@ -347,30 +346,23 @@ functionParameterAction oktype id = do
        return $ Parameter oktype (tkn_string id, scope)
 
 
---                               (name, Maybe value         , Maybe array size    )
-declarationAction :: OKType -> [(Token, Maybe AST.EXPRESSION, Maybe AST.EXPRESSION)] -> ParseM ([AST.EXPRESSION])
-declarationAction oktype l =
-      do  let decls = reverse l                                                       :: [(Token, Maybe AST.EXPRESSION, Maybe AST.EXPRESSION)]
-              assigns = filter (isJust.mySnd) decls                                   :: [(Token, Maybe AST.EXPRESSION, Maybe AST.EXPRESSION)]
-              allVars = map (\x -> (tkn_string.myFst $ x, tkn_pos.myFst $ x, myThrd x)) decls   :: [(String, Pos, Maybe AST.EXPRESSION)]
-              tkn = (myFst.head) decls
-          vars <- mapM checkIfArray allVars
+-- Takes a type and a list of ids with maybe expressions, adds the ids to the table
+-- and builds the expression nodes.
+declarationAction :: OKType -> [(Token, Maybe AST.EXPRESSION)] -> ParseM [AST.EXPRESSION]
+declarationAction oktype l = do
+    let assigns = filter (isJust . snd) l
+        ids = map (\x -> (tkn_string.fst $ x, tkn_pos.fst $ x)) l :: [(Id, Pos)]
+        tkn = fst.head $ l
 
-          scope <- P.topScope
-          mapM_ (\(id, pos, okt) -> P.insertSym (VarSym scope id pos okt)) vars
+    scope <- P.topScope
+    mapM_ (\(id, pos) -> P.insertSym (VarSym scope id pos oktype)) ids
 
-          ids <- mapM idAction (map myFst assigns)
-          let exps = map (fromJust.mySnd) assigns
-          zipWithM (assignAction tkn) ids exps
-    where myFst (a,_,_)=a
-          mySnd (_,b,_)=b
-          myThrd (_,_,c)=c
-          -- If it's an array, the size should be an integer
-          checkIfArray :: (Id, Pos, Maybe AST.EXPRESSION) -> ParseM (Id, Pos, OKType)
-          checkIfArray (id, pos, Nothing) = return (id, pos, oktype)
-          checkIfArray (id, pos, Just exp) = do
-            checkExpectedType pos OKInt (exp_type exp) " for array size"
-            return (id, pos, OKArray 0 oktype)
+    idExps <- mapM idAction $ map fst assigns
+    let exps = map (fromJust . snd) assigns
+    zipWithM (assignAction tkn) idExps exps
+
+
+
 
 arrayOrListAccessAction :: Pos -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 arrayOrListAccessAction pos exp posExp = do
@@ -390,6 +382,11 @@ recordMemberAction exp tkn = do
          OKErrorT -> return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
          _ -> do  showExpectedRecord (fst.tkn_pos $ tkn) (exp_type exp)
                   return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
+
+arrayTypeAction :: Pos -> OKType -> AST.EXPRESSION -> ParseM OKType
+arrayTypeAction pos oktype sizeExp = do
+      checkExpectedType pos OKInt (exp_type sizeExp) " for array size"
+      return $ OKArray 0 oktype
 
 
 nameTypeAction :: Token -> ParseM OKType
@@ -531,6 +528,7 @@ intOperationAction tkn exp1 exp2 op = do
           oktype <- checkIntOpType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
           return $ AST.ARIT exp1 op exp2 oktype
 
+-- Builds ASSIGN node, checking the types
 assignAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 assignAction tkn lhs rhs = do
   oktype <- case (exp_type lhs, exp_type rhs) of
@@ -541,6 +539,9 @@ assignAction tkn lhs rhs = do
                                                       else throwNotWhatIExpectedAndImNotSatisfied (fst.tkn_pos $ tkn) (exp_type lhs) (exp_type rhs) "" --TODO Check why
   return $ AST.ASSIGN lhs rhs (oktype)
 
+
+-- looks for an id in the sym table, returning the corresponging IDEXPRESSION or
+-- .... TODO
 idAction :: Token -> ParseM AST.EXPRESSION
 idAction tkn = do
           sym <- P.findSym (tkn_string tkn) (tkn_pos tkn) `catchError` (\_ -> return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT)

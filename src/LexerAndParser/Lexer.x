@@ -9,6 +9,8 @@ import Control.Monad.Except
 $ignore = [\ \t] -- check against [\ \t\n\f\v\r].
 $digit = 0-9            -- digits
 $Alpha = [a-zA-Z]       -- alphabetic characters
+$alpha = [a-z]       -- alphabetic characters
+$ALPHA = [A-Z]       -- alphabetic characters
 -- ...
 
 tokens :-
@@ -30,9 +32,9 @@ tokens :-
 <0>  \.\_                                    {newToken TupleAccessTkn}
 <0>  \{                                      {newToken OpenBraceTkn}
 <0>  \}                                      {newToken CloseBraceTkn}
-<0>  list                                    {newToken ListTypeTkn}
+<0>  List                                    {newToken ListTypeTkn}
 <0>  \+\+                                    {newToken ConcatTkn}
-<0>  tuple                                   {newToken TupleTypeTkn}
+<0>  Tuple                                   {newToken TupleTypeTkn}
 <0>  \<\<                                    {newToken OpenTupleTkn}
 <0>  \>\>                                    {newToken CloseTupleTkn}
 <0>  \;                                      {newToken SemiColonTkn}       -- For Iteration
@@ -43,7 +45,7 @@ tokens :-
 <0>  dafunk                                  {newToken DaFunkTkn}          -- Method with return/Function
 <0>  \:                                      {newToken ColonTkn}           -- Method with return/Function
 <0>  getback                                 {newToken GetBackTkn}         -- Return
-<0>  intothevoid                             {newToken IntoTheVoidTkn}     -- Void
+<0>  Intothevoid                             {newToken IntoTheVoidTkn}     -- Void
 <0>  newlife                                 {newToken NewLifeTkn}         -- Calloc
 <0>  saveme                                  {newToken SaveMeTkn}          -- Malloc
 <0>  keepyourselfalive                       {newToken KeepAliveTkn}       -- Realloc
@@ -53,16 +55,16 @@ tokens :-
 <0>  holeinmysoul                            {newToken HoleInMySoulTkn}    -- Templates
 
   -- Type Tokens
-<0>  int                                     {newToken IntTkn}
-<0>  float                                   {newToken FloatTkn}
-<0>  char                                    {newToken CharTkn}
-<0>  boolean                                 {newToken BooleanTkn}
-<0>  string                                  {newToken StringTkn}
+<0>  Int                                     {newToken IntTkn}
+<0>  Float                                   {newToken FloatTkn}
+<0>  Char                                    {newToken CharTkn}
+<0>  Boolean                                 {newToken BooleanTkn}
+<0>  String                                  {newToken StringTkn}
 <0>  ok                                      {newToken OkTkn}              -- True
 <0>  notok                                   {newToken NotOkTkn}           -- False
 <0>  \[                                      {newToken ArrayStartTkn}
 <0>  \]                                      {newToken ArrayEndTkn}
-<0> record                                   {newToken RecordTkn}
+<0>  Record                                   {newToken RecordTkn}
 <0>  \^                                      {newToken PointerTkn}         -- Pointers
 
   -- Operations Tokens
@@ -92,7 +94,8 @@ tokens :-
   -- String Tokens
 <0>         $digit+                                     {newStringToken IntLiteralTkn}  -- Numbers
 <0>         $digit+(\.[$digit]+)?                       {newStringToken FloatLiteralTkn}  -- Numbers
-<0>         $Alpha[a-zA-Z\_0-9]*                        {newStringToken IdTkn}          -- Id
+<0>         $alpha[a-zA-Z\_0-9]*                        {newStringToken VarIdTkn}          -- Id
+<0>         $ALPHA[a-zA-Z\_0-9]*                        {newStringToken TypeIdTkn}          -- Id
 <0>         \"                                          {beginString}         --"
 <string>    ([^\"] | \n)                                {addCharToString}     --"
 <string>    \"                                          {endString}           --"
