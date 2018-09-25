@@ -52,6 +52,12 @@ youbegin
      a.test1 = 6
 
      Int prueba = rec.x + 2
+
+     Int pruebazooo
      
 whereiend
 
+dafunk funcion2(Int egg):Int
+youbegin
+	pruebazooo = 8
+whereiend

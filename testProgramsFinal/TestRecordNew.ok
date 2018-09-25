@@ -1,0 +1,15 @@
+dafunk funcion(Int x, Int y, String s) : Intothevoid
+youbegin
+
+Record {
+	Int x2
+	Float y2
+} prueba
+
+prueba.x2 = 5
+
+prueba.y2 = 5
+
+prueba.invento = 5
+
+whereiend
