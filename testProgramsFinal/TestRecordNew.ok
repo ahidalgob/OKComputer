@@ -24,3 +24,10 @@ elweboenmascarado.webazo = 3.0
 elweboenmascarado.weboerror = 4
 
 whereiend
+
+dafunk funcionwebo(Int[3][4] arreglowebo):Intothevoid
+youbegin
+
+arreglowebo[1][1] = 2.0
+
+whereiend
