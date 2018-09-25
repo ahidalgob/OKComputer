@@ -1,8 +1,46 @@
-module ParseMonad where
+module ParseMonad(
+                   ParseM
+                 , ParseMError(..)    -- TODO maybe shouldn't be here IDK
+
+                  -- General
+                 , runParseM
+                 , ParseState(..)
+
+                  -- Lexer
+                 , setAlexInput
+                 , getAlexInput
+                 , setLastNewLine
+                 , getLastNewLine
+                 , setAlexStartCode
+                 , getAlexStartCode
+                 , setStrPos
+                 , getStrPos
+                 , getAndClearStr
+                 , pushStrC
+                 , pushInvalidC
+
+                  -- Parser
+                 , beginScope
+                 , endScope
+                 , topScope
+
+                 , setReturnType
+                 , getReturnType
+
+
+                 , insertSym
+                 , completeFunctionDef
+                 , findSym
+                 , findFunction
+                 , findSymInScope
+
+
+
+                 )where
 import Tokens
 import LowLevelAlex
 
-import qualified AST
+--import qualified AST
 import SymTable
 import OKTypes
 import Scope
@@ -28,21 +66,21 @@ import Data.Char (ord)
 
 
 data ParseState = ParseState {
-        alex_inp :: AlexInput,    -- the current input
+        alex_inp :: AlexInput,     -- the current input
         alex_scd :: !Int,          -- the current startcode
 
-        alex_invalidC :: [(Char, Pos)],
-        alex_strPos :: Pos,
-        alex_str :: String,
+        alex_invalidC :: [(Char, Pos)], -- list of invalid characters
+        alex_strPos :: Pos,             -- where string begins in string mode
+        alex_str :: String,             -- the string in string mode
 
-        last_new_line :: Bool,
+        last_new_line :: Bool,          -- whether the last token was a newline
 
-        state_ScopeStack :: ScopeStack,
-        state_ScopeSet :: ScopeSet,
-        state_NextScope :: Int,
-        state_SymTable :: SymTable,
+        state_ScopeStack :: ScopeStack,       -- Stack of scopes
+        state_ScopeSet :: ScopeSet,           -- Set of scopes
+        state_NextScope :: Int,               -- Next scope
+        state_SymTable :: SymTable,           -- Sym table
 
-        state_returnType :: OKType
+        state_returnType :: OKType            -- Return type when inside function
 } deriving Show
 
 
@@ -65,6 +103,7 @@ initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
 ----------------- Error --------------------------------
 --------------------------------------------------------
 
+-- TODO please don't read this
 data ParseMError = IdNotFound Id Pos |
                    IdNotInScope Id Pos |
                    AlreadyDefinedInScope |
@@ -131,6 +170,15 @@ setLastNewLine b = modify (\s -> s{last_new_line = b})
 --------------------------------------------------------
 
 
+
+-- exported
+setReturnType :: OKType -> ParseM ()
+setReturnType oktype = modify (\s -> s{state_returnType = oktype})
+
+-- exported
+getReturnType :: ParseM OKType
+getReturnType = gets state_returnType
+
 -----------------------------------------------
 ----------------------- SYM TABLE
 -----------------------------------------------
@@ -138,8 +186,9 @@ setLastNewLine b = modify (\s -> s{last_new_line = b})
 
 ---------------------- ScopeStack
 --{{{2
+-- exported
 topScope :: ParseM Scope
-topScope = head <$> (gets state_ScopeStack)
+topScope = head <$> gets state_ScopeStack
 
 popScope :: ParseM ()
 popScope = modify
@@ -147,13 +196,13 @@ popScope = modify
 
 pushScope :: Scope -> ParseM ()
 pushScope sc = modify
-      (\s -> s{state_ScopeStack = sc:(state_ScopeStack s)})
+      (\s -> s{state_ScopeStack = sc : state_ScopeStack s})
 --}}}
 
 ------------------- ScopeSet
 -- {{{2
 scopesMember :: Scope -> ParseM Bool
-scopesMember sc = (scopeSetMember sc) <$> (gets state_ScopeSet)
+scopesMember sc = scopeSetMember sc <$> gets state_ScopeSet
 
 insertScope :: Scope -> ParseM ()
 insertScope sc = do
@@ -168,6 +217,7 @@ deleteScope sc = do
 --}}}
 
 -- TODO catch all errors
+-- exported
 beginScope :: ParseM Scope
 beginScope = do
   nextScope <- gets state_NextScope
@@ -177,6 +227,7 @@ beginScope = do
   modify (\s -> s{state_NextScope = nextScope+1})
   return nextScope
 
+-- exported
 endScope :: ParseM ()
 endScope = do
   topScope <- topScope
@@ -194,6 +245,7 @@ findAllSyms id pos = do
        Just syms -> return syms
 
 -- Finds the first symbol on the list of the give Id such that its scope is active
+-- exported
 findSym :: Id -> Pos -> ParseM Sym
 findSym id pos = do
   l <- findAllSyms id pos
@@ -205,6 +257,7 @@ findSym id pos = do
     scopeIsIn :: ScopeSet -> Sym -> Bool
     scopeIsIn ss sym = scopeSetMember (sym_scope sym) ss
 
+-- exported
 findSymInScope :: Scope -> Token -> OKType -> ParseM Sym
 findSymInScope scope idTkn oktype = do
   l <- filter (\s -> sym_scope s == scope) <$> (findAllSyms (tkn_string idTkn) (tkn_pos idTkn) `catchError` (\_ -> return []))
@@ -213,6 +266,7 @@ findSymInScope scope idTkn oktype = do
                     return $ ErrorSym (-1) (tkn_string idTkn) (tkn_pos idTkn) OKErrorT
             else return $ head l
 
+-- exported
 insertSym :: Sym -> ParseM ()
 insertSym sym@(VarSym _ _ _ _) = insertVarSym sym `catchError` (\_ -> return ())
 insertSym sym@(FuncSym _ _ _ _ _ _) = insertFunctionSym sym `catchError` (\_ -> return ())
@@ -278,6 +332,7 @@ sameParams :: [OKType] -> Sym -> Bool
 sameParams prms1 (FuncSym{sym_type = OKFunc prms2 _ }) = prms1==prms2
 sameParams _ _ = False
 
+-- exported
 findFunction :: Id -> Pos -> [OKType] -> ParseM Sym
 findFunction id pos paramTypes = do
   syms <- findAllSyms id pos `catchError` (\_ -> return [])
@@ -296,6 +351,7 @@ findFunction id pos paramTypes = do
     findMatchingFunction params syms = find (sameParams params) syms
 
 
+-- exported
 completeFunctionDef :: Sym -> ParseM ()
 completeFunctionDef sym = do
     newList <- updateSym sym <$> findAllSyms (sym_Id sym) (sym_pos sym)
@@ -309,13 +365,6 @@ completeFunctionDef sym = do
                                 in ns : updateSym s ss
 
 --}}}
-
-
-setReturnType :: OKType -> ParseM ()
-setReturnType oktype = modify (\s -> s{state_returnType = oktype})
-
-getReturnType :: ParseM OKType
-getReturnType = gets state_returnType
 
 
 

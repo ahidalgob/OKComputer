@@ -1,14 +1,12 @@
 TODO NEW
 
-- [HACER] La dimension de los arreglos no se esta guardando
-
-- [ARREGLAR *TOS* REHACER *TOS*] CATCH ERROR QUE NO AGARRA -> RECORDS ADMITE CUALQUIER ELEMENTO
+- [ARREGLAR] arroz con mango en ParseMonad
 
 - [ARREGLAR] ERRORES VOID
 
-- [HACER] UNIONS
+- [HACER] La dimension de los arreglos no se esta guardando
 
-- [ARREGLAR GRAMATICA] PASAR ARREGLOS COMO ARGUMENTO A FUNCIONES
+- [HACER] UNIONS
 
 - [HACER D:] CASTING
 
