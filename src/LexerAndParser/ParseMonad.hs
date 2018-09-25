@@ -212,7 +212,7 @@ findSym id pos = do
 
 findSymInScope :: Scope -> Token -> OKType -> ParseM Sym
 findSymInScope scope idTkn oktype = do
-  l <- filter (\s -> sym_scope s == scope) <$> findAllSyms (tkn_string idTkn) (tkn_pos idTkn)
+  l <- filter (\s -> sym_scope s == scope) <$> (findAllSyms (tkn_string idTkn) (tkn_pos idTkn) `catchError` (\_ -> return []))
   let msg = if isNameType oktype then " " ++ type_Name oktype else ""
   if null l then do showMemberNotFound (tkn_string idTkn) (fst.tkn_pos $ idTkn) msg
                     return $ ErrorSym (-1) (tkn_string idTkn) (tkn_pos idTkn) OKErrorT

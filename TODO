@@ -1,9 +1,5 @@
 TODO NEW
 
-- [HACER] ARREGLOS MULTIMENSIONALES Y ALGO MAS
-
-int a, b[10], c[6][6][6]
-
 - [HACER] La dimension de los arreglos no se esta guardando
 
 - [ARREGLAR *TOS* REHACER *TOS*] CATCH ERROR QUE NO AGARRA -> RECORDS ADMITE CUALQUIER ELEMENTO
