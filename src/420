@@ -1,0 +1,36 @@
+Insert Symbol:
+    NameTypeSym  (insertSym (NameTypeSym)):
+        scope is always 0
+        ERROR: name already defined: function, variable or another nametype
+
+    FuncSym (insertSym (FuncSym)):
+      scope is always 1, no body
+      ERROR: already defined: a variable, nametype or function with same type of arguments
+
+    VarSym in current scope(insertSym (VarSym)):
+      this happens on arguments declarations and in normal declarations
+      ERROR: already defined: a variable in same scope, nametype
+
+Modify Symbol:
+    complete function (completeFunctionDef):
+        save its AST
+
+Look up symbol:
+    in given scope(findSymInScope):
+      this happens on record access
+      it shoul be a varsym
+      ERROR: not defined in that scope
+    in closest scope (findSym):
+      this happens in name actions and variable ids
+      ERROR: not defined in reachable scopes
+
+    look up function(findFunction):
+      ERROR:  function found but not the correct arguments
+              defined as variable or type
+              not defined
+
+beginScope
+endScope
+
+setReturnType
+getReturnType

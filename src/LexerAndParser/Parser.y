@@ -318,14 +318,14 @@ data Parameter = Parameter{param_type :: OKType, param_id :: SymId} deriving Sho
 -- Adds the name to the symtable as a type alias
 typedefAction :: Token -> OKType -> ParseM ()
 typedefAction tkn_id oktype = do
-  P.insertSym $ NameTypeSym 0 (tkn_string tkn_id) (tkn_pos tkn_id) (OKNameType (tkn_string tkn_id) oktype)
+  P.insertNameTypeSym (tkn_string tkn_id) (tkn_pos tkn_id) oktype
 
 
 -- Adds the body of the function to the sym table
 functionDefAction :: (Token, [Parameter], OKType) -> [AST.INSTRUCTION] -> ParseM ()
 functionDefAction (tkn, params, ret) instrs = do
         let oktype = OKFunc (map param_type params) ret
-        P.completeFunctionDef $ FuncSym 1 (tkn_string tkn) (tkn_pos tkn) oktype (map param_id params) instrs
+        P.completeFunctionDef (tkn_string tkn) oktype instrs
 
 -- Adds the function, without body, to the sym table
 functionSignAction :: Token -> [Parameter] -> OKType -> ParseM (Token, [Parameter], OKType)
@@ -334,7 +334,7 @@ functionSignAction tkn params retType = do
             id = tkn_string tkn
             pos = tkn_pos tkn
             param_ids = map param_id params
-        P.insertSym $ FuncSym 1 id pos oktype param_ids [] -- no body
+        P.insertSym id pos oktype param_ids
         P.setReturnType retType
         return (tkn, params, retType)
 
@@ -342,7 +342,7 @@ functionSignAction tkn params retType = do
 functionParameterAction :: OKType -> Token -> ParseM Parameter
 functionParameterAction oktype id = do
        scope <- P.topScope
-       P.insertSym $ VarSym scope (tkn_string id) (tkn_pos id) oktype
+       P.insertVarSym scope (tkn_string id) (tkn_pos id) oktype
        return $ Parameter oktype (tkn_string id, scope)
 
 
@@ -355,7 +355,7 @@ declarationAction oktype l = do
         tkn = fst.head $ l
 
     scope <- P.topScope
-    mapM_ (\(id, pos) -> P.insertSym (VarSym scope id pos oktype)) ids
+    mapM_ (\(id, pos) -> P.insertVarSym scope id pos oktype) ids
 
     idExps <- mapM idAction $ map fst assigns
     let exps = map (fromJust . snd) assigns
@@ -374,10 +374,8 @@ arrayOrListAccessAction pos exp posExp = do
 recordMemberAction :: AST.EXPRESSION -> Token -> ParseM AST.EXPRESSION
 recordMemberAction exp tkn = do
     case solveNameTypes (exp_type exp) of
-         OKRecord scope -> do sym <- P.findSymInScope scope tkn (exp_type exp) `catchError` (\_ -> return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT)
-                              case sym of
-                                ErrorSym{} -> do return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
-                                _ -> return $ AST.RECORDACCESS exp (tkn_string tkn) (sym_type sym)
+         OKRecord scope -> do sym <- P.findSymInScope scope tkn
+                              return $ AST.RECORDACCESS exp (tkn_string tkn) (sym_type sym)
          OKErrorT -> return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
          _ -> do  showExpectedRecord (fst.tkn_pos $ tkn) (exp_type exp)
                   return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
@@ -390,14 +388,10 @@ arrayTypeAction pos oktype sizeExp = do
 
 nameTypeAction :: Token -> ParseM OKType
 nameTypeAction tkn = do
-  sym <- P.findSym (tkn_string tkn) (tkn_pos tkn) `catchError`
-                      (\_ -> return $ ErrorSym (-1) "" (tkn_pos tkn) OKErrorT)
+  sym <- P.findNameTypeSym (tkn_string tkn) (tkn_pos tkn)
   case sym of
       NameTypeSym{} -> return $ sym_type sym
-      ErrorSym{} -> do showNameTypeNotDefined (tkn_string tkn) (fst.tkn_pos $ tkn)
-                       return OKErrorT
-      _ -> do showNameIsNotNameType (tkn_string tkn) (fst.tkn_pos $ tkn) (fst.sym_pos $ sym)
-              return OKErrorT
+      _ -> do return OKErrorT
 
 ifAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> AST.IFELSE -> ParseM AST.INSTRUCTION
 ifAction tkn condition blk ifelse = do
@@ -540,14 +534,10 @@ assignAction tkn lhs rhs = do
 
 
 -- looks for an id in the sym table, returning the corresponging IDEXPRESSION or
--- .... TODO
 idAction :: Token -> ParseM AST.EXPRESSION
 idAction tkn = do
-          sym <- P.findSym (tkn_string tkn) (tkn_pos tkn) `catchError` (\_ -> return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT)
-          case sym of
-            ErrorSym{} -> do showIDActionNotFound (tkn_string tkn) (fst.tkn_pos $ tkn)
-                             return $ AST.IDEXPRESSION (tkn_string tkn, sym_scope sym) OKErrorT
-            _ -> return $ AST.IDEXPRESSION (tkn_string tkn, sym_scope sym) (sym_type sym)
+          sym <- P.findVarSym (tkn_string tkn) (tkn_pos tkn)
+          return $ AST.IDEXPRESSION (tkn_string tkn, sym_scope sym) (sym_type sym)
 
 pointerAction :: Token -> AST.EXPRESSION -> ParseM AST.EXPRESSION
 pointerAction tkn exp = do
@@ -556,16 +546,10 @@ pointerAction tkn exp = do
 
 functionCallAction :: Token -> [AST.EXPRESSION] -> ParseM AST.EXPRESSION
 functionCallAction tkn exp = do
-         sym <- P.findFunction (tkn_string tkn) (tkn_pos tkn) (map exp_type exp) `catchError` catcher
+         sym <- P.findFunction (tkn_string tkn) (tkn_pos tkn) (map exp_type exp)
          case sym of
               FuncSym{} -> return $ AST.FUNCTIONCALL (tkn_string tkn) exp (func_RetType.sym_type $ sym)
               _ -> return $ AST.FUNCTIONCALL (tkn_string tkn) exp OKErrorT
-  where
-    catcher :: P.ParseMError -> ParseM Sym
-    catcher FunctionNotDefined = do showFunctionNotDefined (fst.tkn_pos $ tkn) (tkn_string tkn)
-                                    return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT
-    catcher (VariableInScopeIsNotFunction ln oktype) = do showFunctionVariableAlreadyDefined (fst.tkn_pos $ tkn) (tkn_string tkn) ln oktype
-                                                          return $ ErrorSym (-1) (tkn_string tkn) (tkn_pos tkn) OKErrorT
 
 --- 1}}}
 
@@ -695,17 +679,17 @@ throwNotArrayType line t = do
     liftIO $ putStrLn $ "Where do we go from here? The words are coming out all weird \n"
     return OKErrorT
 
-showNameTypeNotDefined :: Id -> Int -> ParseM ()
-showNameTypeNotDefined id ln = do
-    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Type " ++ id ++ " is not defined."
-    liftIO $ putStrLn $ "You dont remember. Why dont you remember my name? \n"
+--showNameTypeNotDefined :: Id -> Int -> ParseM ()
+--showNameTypeNotDefined id ln = do
+    --liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    --liftIO $ putStrLn $ "Type " ++ id ++ " is not defined."
+    --liftIO $ putStrLn $ "You dont remember. Why dont you remember my name? \n"
 
-showNameIsNotNameType :: Id -> Int -> Int -> ParseM ()
-showNameIsNotNameType id ln ln2 = do
-    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ id ++ " defined in line " ++ show ln2 ++ " does not refer to a type."
-    liftIO $ putStrLn $ "You dont remember. Why dont you remember my name? \n"
+--showNameIsNotNameType :: Id -> Int -> Int -> ParseM ()
+--showNameIsNotNameType id ln ln2 = do
+    --liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    --liftIO $ putStrLn $ id ++ " defined in line " ++ show ln2 ++ " does not refer to a type."
+    --liftIO $ putStrLn $ "You dont remember. Why dont you remember my name? \n"
 
 
 showFoundDifferentTypesInArray :: Int -> [OKType] -> ParseM ()
@@ -746,29 +730,24 @@ showNotATuple ln oktype = do
     liftIO $ putStrLn $ "Expected a tuple, found a " ++ show oktype ++ "."
     liftIO $ putStrLn $ "Let down and hanging around. Crushed like a bug in the ground. \n"
 
-showFunctionNotDefined :: Int -> Id -> ParseM ()
-showFunctionNotDefined ln id = do
-    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Function " ++ id ++ " not defined."
-    liftIO $ putStrLn $ "You dont remember. Why dont you remember my name?\n"
+--showFunctionNotDefined :: Int -> Id -> ParseM ()
+--showFunctionNotDefined ln id = do
+    --liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    --liftIO $ putStrLn $ "Function " ++ id ++ " not defined."
+    --liftIO $ putStrLn $ "You dont remember. Why dont you remember my name?\n"
 
-showFunctionVariableAlreadyDefined :: Int -> Id -> Int -> OKType -> ParseM ()
-showFunctionVariableAlreadyDefined ln id ln2 oktype = do
-    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Function " ++ show id ++ " is already defined in line " ++ show ln2 ++ " with type " ++ show oktype ++ "."
-    liftIO $ putStrLn $ "Picked over by the worms and weird fishes. \n"
+--showFunctionVariableAlreadyDefined :: Int -> Id -> Int -> OKType -> ParseM ()
+--showFunctionVariableAlreadyDefined ln id ln2 oktype = do
+    --liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    --liftIO $ putStrLn $ "Function " ++ show id ++ " is already defined in line " ++ show ln2 ++ " with type " ++ show oktype ++ "."
+    --liftIO $ putStrLn $ "Picked over by the worms and weird fishes. \n"
 
-showRecordMemberNotDefined :: Int -> Id -> OKType -> ParseM ()
-showRecordMemberNotDefined ln id oktype = do
-    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "Struct has no inside variable " ++ id ++ "."
-    liftIO $ putStrLn $ "Picked over by the worms and weird fishes. \n"
 
-showIDActionNotFound :: Id -> Int -> ParseM ()
-showIDActionNotFound id ln = do
-    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
-    liftIO $ putStrLn $ "ID " ++ id ++ " on left side of assign not found."
-    liftIO $ putStrLn $ "Picked over by the worms and weird fishes. \n"
+--showIDActionNotFound :: Id -> Int -> ParseM ()
+--showIDActionNotFound id ln = do
+    --liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    --liftIO $ putStrLn $ "ID " ++ id ++ " on left side of assign not found."
+    --liftIO $ putStrLn $ "Picked over by the worms and weird fishes. \n"
 --- 1}}}
 
 lexwrap :: (Token -> ParseM a) -> ParseM a
