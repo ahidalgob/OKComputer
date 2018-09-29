@@ -334,7 +334,7 @@ functionSignAction tkn params retType = do
             id = tkn_string tkn
             pos = tkn_pos tkn
             param_ids = map param_id params
-        P.insertSym id pos oktype param_ids
+        P.insertFuncSym id pos oktype param_ids
         P.setReturnType retType
         return (tkn, params, retType)
 
