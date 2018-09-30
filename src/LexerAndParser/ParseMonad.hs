@@ -110,15 +110,7 @@ initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
 --------------------------------------------------------
 
 -- TODO please don't read this
-data ParseMError = IdNotFound Id Pos |
-                   IdNotInScope Id Pos |
-                   AlreadyDefinedInScope |
-                   ParseError String |
-                   VarWithFunctionName |
-                   NameIsUsedForType Id Pos |
-                   FunctionNotDefined |
-                   IsNotType String Int |
-                   VariableInScopeIsNotFunction Int OKType
+data ParseMError = ParseError String
                  deriving Show
 
 --------------------------------------------------------
