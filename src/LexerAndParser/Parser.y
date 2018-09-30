@@ -318,7 +318,7 @@ data Parameter = Parameter{param_type :: OKType, param_id :: SymId} deriving Sho
 -- Adds the name to the symtable as a type alias
 typedefAction :: Token -> OKType -> ParseM ()
 typedefAction tkn_id oktype = do
-  P.insertNameTypeSym (tkn_string tkn_id) (tkn_pos tkn_id) oktype
+  P.insertNameTypeSym (tkn_string tkn_id) (tkn_pos tkn_id) (OKNameType (tkn_string tkn_id) oktype)
 
 
 -- Adds the body of the function to the sym table
@@ -374,7 +374,7 @@ arrayOrListAccessAction pos exp posExp = do
 recordMemberAction :: AST.EXPRESSION -> Token -> ParseM AST.EXPRESSION
 recordMemberAction exp tkn = do
     case solveNameTypes (exp_type exp) of
-         OKRecord scope -> do sym <- P.findSymInScope scope tkn
+         OKRecord scope -> do sym <- P.findSymInRecord scope (tkn_string tkn)
                               return $ AST.RECORDACCESS exp (tkn_string tkn) (sym_type sym)
          OKErrorT -> return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
          _ -> do  showExpectedRecord (fst.tkn_pos $ tkn) (exp_type exp)

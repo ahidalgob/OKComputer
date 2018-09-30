@@ -28,22 +28,28 @@ module ParseMonad(
                  , getReturnType
 
 
-                 , insertSym
+                 , insertVarSym
+                 , insertNameTypeSym
+                 , insertFuncSym
                  , completeFunctionDef
-                 , findSym
                  , findFunction
-                 , findSymInScope
+                 , findVarSym
+                 , findNameTypeSym
+                 , findSymInRecord
 
 
 
                  )where
-import Tokens
+--import Tokens
 import LowLevelAlex
 
---import qualified AST
+import qualified AST(INSTRUCTION)
 import SymTable
 import OKTypes
 import Scope
+
+
+import Data.Maybe
 
 import Control.Monad.State.Lazy
 import Control.Monad.Except
@@ -62,7 +68,7 @@ import Data.List(find)
 -}
 -- -----------------------------------------------------------------------------
 
-import Data.Char (ord)
+--import Data.Char (ord)
 
 
 data ParseState = ParseState {
@@ -201,8 +207,8 @@ pushScope sc = modify
 
 ------------------- ScopeSet
 -- {{{2
-scopesMember :: Scope -> ParseM Bool
-scopesMember sc = scopeSetMember sc <$> gets state_ScopeSet
+--scopesMember :: Scope -> ParseM Bool
+--scopesMember sc = scopeSetMember sc <$> gets state_ScopeSet
 
 insertScope :: Scope -> ParseM ()
 insertScope sc = do
@@ -237,96 +243,124 @@ endScope = do
 
 
 -- Finds all the symbols associated with an Id
-findAllSyms :: Id -> Pos -> ParseM [Sym]
-findAllSyms id pos = do
-  maybeList <- (symTableLookUp id) <$> (gets state_SymTable)
+findAllSyms :: Id -> ParseM [Sym]
+findAllSyms id = do
+  maybeList <- symTableLookUp id <$> gets state_SymTable
   case maybeList of
-       Nothing -> throwError (IdNotFound id pos)
+       Nothing -> return []
        Just syms -> return syms
 
--- Finds the first symbol on the list of the give Id such that its scope is active
--- exported
-findSym :: Id -> Pos -> ParseM Sym
-findSym id pos = do
-  l <- findAllSyms id pos
+findAllSymsInActiveScopes :: Id -> ParseM [Sym]
+findAllSymsInActiveScopes id = do
+  l <- findAllSyms id
   activeScopes <- gets state_ScopeSet
-  case find (scopeIsIn activeScopes) l of
-       Nothing -> throwError (IdNotInScope id pos)
-       Just sym -> return sym
+  return $ filter (scopeIsIn activeScopes) l
   where
     scopeIsIn :: ScopeSet -> Sym -> Bool
     scopeIsIn ss sym = scopeSetMember (sym_scope sym) ss
 
--- exported
-findSymInScope :: Scope -> Token -> OKType -> ParseM Sym
-findSymInScope scope idTkn oktype = do
-  l <- filter (\s -> sym_scope s == scope) <$> (findAllSyms (tkn_string idTkn) (tkn_pos idTkn) `catchError` (\_ -> return []))
-  let msg = if isNameType oktype then " " ++ type_Name oktype else ""
-  if null l then do showMemberNotFound (tkn_string idTkn) (fst.tkn_pos $ idTkn) msg
-                    return $ ErrorSym (-1) (tkn_string idTkn) (tkn_pos idTkn) OKErrorT
-            else return $ head l
 
--- exported
-insertSym :: Sym -> ParseM ()
-insertSym sym@(VarSym _ _ _ _) = insertVarSym sym `catchError` (\_ -> return ())
-insertSym sym@(FuncSym _ _ _ _ _ _) = insertFunctionSym sym `catchError` (\_ -> return ())
-insertSym sym@(NameTypeSym _ _ _ _) = insertNameTypeSym sym
-insertSym sym@(ErrorSym _ _ _ _) = liftIO $ putStrLn "Trying to add an ErrorSym to SymTable. What ya trying?"
-
-checkDefinedNameTypeSym :: Id -> Pos -> ParseM ()
-checkDefinedNameTypeSym id pos = do
-  syms <- findAllSyms id pos `catchError` (\_ -> return [])
-  case find isNameTypeSym syms of
-       Nothing -> return ()
-       Just sym -> do showNameAlreadyUsedAsType id (fst pos) sym
-                      throwError $ NameIsUsedForType id pos
-
-checkNoVarInScope1 :: [Sym] -> Id -> Int -> ParseM ()
-checkNoVarInScope1 list id ln = do
-  let filterList = filter (\sym -> (sym_scope sym == 1) && isVarSym sym) list
-  when (not (null filterList)) $ do showFunctionNameUsedAsGlobalVariable id ln (head filterList)
-                                    throwError VarWithFunctionName
-
-insertVarSym :: Sym -> ParseM ()
-insertVarSym sym@(VarSym scp id pos oktype) = do
-  checkDefinedNameTypeSym id pos
-  prevSym <- findSym id pos
-                `catchError` (\_ -> return $ ErrorSym (-1) id pos OKErrorT)
-  case sym_scope prevSym == sym_scope sym of
-       True -> do showVariableRedeclaredInScope id (fst pos) prevSym
-                  throwError $ AlreadyDefinedInScope
-       False -> do
-          symTable <- gets state_SymTable
-          let newSymTable = symTableInsert sym symTable
-          modify (\s -> s{state_SymTable = newSymTable})
+findFirstSymInActiveScopes :: Id -> ParseM (Maybe Sym)
+findFirstSymInActiveScopes id = do
+  l <- findAllSymsInActiveScopes id
+  if null l
+     then return Nothing
+     else return.Just $ head l -- TODO why not error
 
 
-insertFunctionSym :: Sym -> ParseM ()
-insertFunctionSym sym@(FuncSym scp id pos (OKFunc prms ret) argsId instrs) = do
-  checkDefinedNameTypeSym (sym_Id sym) (sym_pos sym)
-  list <- (findAllSyms id pos) `catchError` (\_ -> return [])
-  symTable <- gets state_SymTable
+findSymInScope :: Scope -> Id -> ParseM (Maybe Sym)
+findSymInScope scope id = do
+  activeScopes <- gets state_ScopeSet
+  modify (\s -> s{state_ScopeSet = scopeSetInsert scope emptyScopeSet})
+  sym <- findFirstSymInActiveScopes id
+  modify (\s -> s{state_ScopeSet = activeScopes})
+  return sym
 
-  checkNoVarInScope1 list id (fst pos)
+findAllSymsInScope :: Scope -> Id -> ParseM [Sym]
+findAllSymsInScope scope id = do
+  activeScopes <- gets state_ScopeSet
+  modify (\s -> s{state_ScopeSet = scopeSetInsert scope emptyScopeSet})
+  syms <- findAllSymsInActiveScopes id
+  modify (\s -> s{state_ScopeSet = activeScopes})
+  return syms
 
-  case find (sameParams (func_ParamTypes.sym_type $ sym)) list of
-       Just x -> do showRedeclarationOfFunction id (fst pos) x
-                    throwError AlreadyDefinedInScope
-       Nothing -> do
-          let newSymTable = symTableInsert sym symTable
-          modify (\s -> s{state_SymTable = newSymTable})
+
+-- finds the symbol in the closest scope, it has to be a varSym
+findVarSym :: Id -> Pos -> ParseM Sym
+findVarSym id pos = do
+  sym <- findFirstSymInActiveScopes id
+  case sym of
+    Nothing -> undefined
+    Just FuncSym{} -> undefined
+    Just NameTypeSym{} -> undefined
+    Just ErrorSym{} -> undefined
+    Just VarSym{} -> undefined
+
+findNameTypeSym :: Id -> Pos -> ParseM Sym
+findNameTypeSym id pos = do
+  sym <- findFirstSymInActiveScopes id
+  case sym of
+    Nothing -> undefined
+    Just FuncSym{} -> undefined
+    Just VarSym{} -> undefined
+    Just ErrorSym{} -> undefined
+    Just NameTypeSym{} -> undefined
+
+
+findSymInRecord :: Scope -> String -> ParseM Sym
+findSymInRecord scope id = do
+  sym <- findSymInScope scope id
+  case sym of
+    Nothing -> undefined
+    Just FuncSym{} -> undefined
+    Just VarSym{} -> undefined
+    Just ErrorSym{} -> undefined
+    Just NameTypeSym{} -> undefined
+
+insertVarSym :: Scope -> Id -> Pos -> OKType -> ParseM ()
+insertVarSym scope id pos oktype = do
+  -- the error is just a dummy variable
+  prevSym <- fromMaybe (ErrorSym (-1) id pos OKErrorT) <$> findSymInScope scope id
+  if sym_scope prevSym == scope
+       then showVariableRedeclaredInScope id (fst pos) prevSym
+       else  do symTable <- gets state_SymTable
+                let newSymTable = symTableInsert (VarSym scope id pos oktype) symTable
+                modify (\s -> s{state_SymTable = newSymTable})
+
+
+
+
+--checkNoVarInScope1 :: [Sym] -> Id -> Int -> ParseM ()
+--checkNoVarInScope1 list id ln = do
+  --let filterList = filter (\sym -> (sym_scope sym == 1) && isVarSym sym) list
+  --when (not (null filterList)) $ do showFunctionNameUsedAsGlobalVariable id ln (head filterList)
+                                    --throwError VarWithFunctionName
+
+insertFuncSym :: Id -> Pos -> OKType -> [SymId] -> ParseM ()
+insertFuncSym id pos oktype@(OKFunc paramTypes _) paramIds = do
+  syms <- findAllSymsInScope 1 id
+  if not.null $ filter isVarSym syms
+     then undefined -- already defined as variable
+     else if any (sameParams paramTypes) syms
+            then undefined -- already defined with same arguments
+            else do
+              symTable <- gets state_SymTable
+              let newSymTable = symTableInsert (FuncSym 1 id pos oktype paramIds []) symTable
+              modify (\s -> s{state_SymTable = newSymTable})
+
 
 
 -- Checks if the name is already defined (as anything else)
-insertNameTypeSym :: Sym -> ParseM ()
-insertNameTypeSym sym = do
-  syms <- findAllSyms (sym_Id sym) (sym_pos sym) `catchError` (\_ -> return [])
-  symTable <- gets state_SymTable
-  case null syms of
-       False -> showNameTypeAlreadyUsed (sym_Id sym) (fst.sym_pos $ sym) (head syms)
-       True -> do
-          let newSymTable = symTableInsert sym symTable
+insertNameTypeSym :: Id -> Pos -> OKType -> ParseM ()
+insertNameTypeSym id pos oktype = do
+  prevSym <- findFirstSymInActiveScopes id
+  case prevSym of
+    Nothing -> do
+          symTable <- gets state_SymTable
+          let newSymTable = symTableInsert (NameTypeSym 0 id pos oktype) symTable
           modify (\s -> s{state_SymTable = newSymTable})
+    Just sym -> undefined -- alias already defined
+                          -- showNameTypeAlreadyUsed (sym_Id sym) (fst.sym_pos $ sym) (head syms)
 
 sameParams :: [OKType] -> Sym -> Bool
 sameParams prms1 (FuncSym{sym_type = OKFunc prms2 _ }) = prms1==prms2
@@ -335,34 +369,36 @@ sameParams _ _ = False
 -- exported
 findFunction :: Id -> Pos -> [OKType] -> ParseM Sym
 findFunction id pos paramTypes = do
-  syms <- findAllSyms id pos `catchError` (\_ -> return [])
-  case null syms of
-   True -> throwError FunctionNotDefined
-   False -> do
-      current <- findSym id pos
-      case current of
-        FuncSym{} -> do
-          case findMatchingFunction paramTypes syms of
-               Nothing -> throwError FunctionNotDefined
-               Just sym -> return sym
-        sym -> throwError $ VariableInScopeIsNotFunction (fst.sym_pos $ sym) (sym_type sym)
+  current <- findFirstSymInActiveScopes id
+  case current of
+    Nothing -> undefined -- not defined
+    Just VarSym{} -> undefined -- defined as variable
+    Just FuncSym{} -> do
+        syms <- findAllSymsInActiveScopes id
+        case findMatchingFunction paramTypes syms of
+             Nothing -> undefined -- not found with those arguments
+             Just sym -> return sym
   where
     findMatchingFunction :: [OKType] -> [Sym] -> Maybe Sym
-    findMatchingFunction params syms = find (sameParams params) syms
+    findMatchingFunction params = find (sameParams params)
+
 
 
 -- exported
-completeFunctionDef :: Sym -> ParseM ()
-completeFunctionDef sym = do
-    newList <- updateSym sym <$> findAllSyms (sym_Id sym) (sym_pos sym)
-    symTable <- gets state_SymTable
-    let newSymTable = symTableModify (sym_Id sym) newList symTable
-    modify (\s -> s{state_SymTable = newSymTable})
+completeFunctionDef :: Id -> OKType -> [AST.INSTRUCTION] -> ParseM ()
+completeFunctionDef id oktype instrs = do
+  newList <- updateFunc oktype instrs <$> findAllSyms id
+  symTable <- gets state_SymTable
+  let newSymTable = symTableModify id newList symTable
+  modify (\s -> s{state_SymTable = newSymTable})
   where
-        updateSym :: Sym -> [Sym] -> [Sym]
-        updateSym _ [] = []
-        updateSym s (s' : ss) = let ns = if sameParams ( func_ParamTypes.sym_type $ s) s' then s else s'
-                                in ns : updateSym s ss
+        updateFunc :: OKType -> [AST.INSTRUCTION] -> [Sym] -> [Sym]
+        updateFunc _ _ [] = []
+        updateFunc funcType instrs (sym : syms) =
+          (if funcType == sym_type sym
+              then sym{sym_AST = instrs}
+              else sym
+              ) : updateFunc funcType instrs syms
 
 --}}}
 
