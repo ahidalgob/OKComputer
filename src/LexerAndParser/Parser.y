@@ -528,8 +528,9 @@ assignAction tkn lhs rhs = do
                   (OKErrorT, _) -> return OKErrorT
                   (_, OKErrorT) -> return OKErrorT
                   (lhstype, rhstype) ->
-                          if listComp lhstype rhstype then return lhstype
-                                                      else throwNotWhatIExpectedAndImNotSatisfied (fst.tkn_pos $ tkn) (exp_type lhs) (exp_type rhs) "" --TODO Check why
+                          if listComp (solveNameTypes lhstype) (solveNameTypes rhstype)
+                             then return lhstype
+                             else throwNotWhatIExpectedAndImNotSatisfied (fst.tkn_pos $ tkn) (exp_type lhs) (exp_type rhs) "" --TODO Check why
   return $ AST.ASSIGN lhs rhs (oktype)
 
 
@@ -560,6 +561,7 @@ functionCallAction tkn exp = do
 
 -- Type Checking{{{1
 
+-- TODO Show error or maybe rewrite this mess
 checkNumericalType :: Pos -> OKType -> ParseM OKType
 checkNumericalType pos found = do
     if isNumericalType found then return found

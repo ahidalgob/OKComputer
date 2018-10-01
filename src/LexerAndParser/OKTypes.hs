@@ -16,6 +16,28 @@ data OKType = OKPointer {pointer_Type::OKType}
             | OKRecord Int
             | OKErrorT deriving (Eq)
 
+instance Show OKType where
+  show (OKPointer t) = "pointer("++ show t ++")"
+  show OKVoid = "void"
+  show (OKFunc params ret) = "func(" ++ show params ++ "->" ++ show ret ++ ")"
+  show OKBoolean = "boolean"
+  show OKInt = "int"
+  show OKFloat = "float"
+  show OKChar = "char"
+  show OKString = "string"
+  show (OKNameType id t) = "name("++ id ++ "," ++ show t ++")"
+  show (OKArray _ t) = "array("++ show t ++")"
+  show (OKTuple ts) = "tuple(" ++ show ts ++ ")"
+  show (OKList OKVoid) = "list()"
+  show OKErrorT = "error_type"
+  show (OKList t) = "list("++ show t ++")"
+  show (OKRecord scp) = "record(scope="++ show scp ++")"
+
+
+solveNameTypes (OKNameType _ oktype) = solveNameTypes oktype
+solveNameTypes t = t
+
+
 mergeVoidType :: OKType -> OKType -> OKType
 mergeVoidType (OKPointer t1) (OKPointer t2) =
         let merged = mergeVoidType t1 t2
@@ -60,23 +82,6 @@ listComp t1 t2 = t1 == t2
 
 
 
-instance Show OKType where
-  show (OKPointer t) = "pointer("++ show t ++")"
-  show OKVoid = "void"
-  show (OKFunc params ret) = "func(" ++ show params ++ "->" ++ show ret ++ ")"
-  show OKBoolean = "boolean"
-  show OKInt = "int"
-  show OKFloat = "float"
-  show OKChar = "char"
-  show OKString = "string"
-  show (OKNameType id t) = "name("++ id ++ "," ++ show t ++")"
-  show (OKArray _ t) = "array("++ show t ++")"
-  show (OKTuple ts) = "tuple(" ++ show ts ++ ")"
-  show (OKList OKVoid) = "list()"
-  show OKErrorT = "error_type"
-  show (OKList t) = "list("++ show t ++")"
-  show (OKRecord scp) = "record(scope="++ show scp ++")"
-
 
 
 isNumericalType :: OKType -> Bool
@@ -93,5 +98,3 @@ isErrorType _ = False
 isNameType (OKNameType _ _) = True
 isNameType _ = False
 
-solveNameTypes (OKNameType _ oktype) = solveNameTypes oktype
-solveNameTypes t = t

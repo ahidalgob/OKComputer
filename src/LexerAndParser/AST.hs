@@ -68,6 +68,22 @@ printIdSymbol n s = putStrLnWithIdent n $ "ID: " ++ (fst s) ++ " Scope: " ++ sho
 
 printId n s = putStrLnWithIdent n $ "ID: " ++ s
 
+printSTARTN :: Int -> START -> IO()
+printSTARTN n (START imports outsides) = do
+    putStrLnWithIdent n "Program start: "
+    mapM_ (printImportN (n+1)) imports
+    mapM_ (printOutsideListN (n+1)) outsides
+
+printImportN :: Int -> IMPORT -> IO()
+printImportN n (IMPORT ids) = do
+  putStrLnWithIdent n "Imports list: "
+  mapM_ (printId (n+1)) ids
+
+printOutsideListN :: Int -> OUTSIDE -> IO()
+printOutsideListN n (OUTASSIGN exps) = do
+  putStrLnWithIdent n "Global assigns: "
+  mapM_ (printExpN (n+1)) exps
+
 printExpN :: Int -> EXPRESSION -> IO()
 printExpN n (IDEXPRESSION s t) = do
     printIdSymbol n s
@@ -215,22 +231,6 @@ printExpN n (TUPLEEXP exps oktype) = do
    printOKType (n+1) oktype
    putStrLnWithIdent (n+1) $ "Contents:"
    mapM_ (printExpN (n+2)) exps
-
-printSTARTN :: Int -> START -> IO()
-printSTARTN n (START imports outsides) = do
-    putStrLnWithIdent n "Program start: "
-    mapM_ (printImportN (n+1)) imports
-    mapM_ (printOutsideListN (n+1)) outsides
-
-printImportN :: Int -> IMPORT -> IO()
-printImportN n (IMPORT ids) = do
-  putStrLnWithIdent n "Imports list: "
-  mapM_ (printId (n+1)) ids
-
-printOutsideListN :: Int -> OUTSIDE -> IO()
-printOutsideListN n (OUTASSIGN exps) = do
-  putStrLnWithIdent n "Global assigns: "
-  mapM_ (printExpN (n+1)) exps
 
 printOKType :: Int -> OKType -> IO()
 printOKType n (OKPointer inner) = do
