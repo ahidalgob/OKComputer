@@ -1,12 +1,15 @@
 TODO NEW
 
-- [ARREGLAR] arroz con mango en ParseMonad
+- [HACER] UNIONS -> Resolver que queremos
+
+
+
+
+- [REHACER] Arreglar arroz con mango pt2 type checking
 
 - [ARREGLAR] ERRORES VOID
 
-- [HACER] La dimension de los arreglos no se esta guardando -> Guardarla en tabla de simbolos!
+- [HACER D:] CASTING (si ni type check tenemos)
 
-- [HACER] UNIONS -> Resolver que queremos
-
-- [HACER D:] CASTING
+- [TERMINAR] arroz con mango en ParseMonad
 
