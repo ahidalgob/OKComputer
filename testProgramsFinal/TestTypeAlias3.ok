@@ -1,0 +1,9 @@
+# Error assigning
+
+typedef Hola Int
+
+typedef Chao Hola
+
+Hola y = 3
+
+Hola c = "error"

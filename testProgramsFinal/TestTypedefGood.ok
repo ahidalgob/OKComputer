@@ -1,0 +1,9 @@
+# All good
+
+typedef Hola Int
+
+typedef Chao Hola
+
+Hola x = 3
+
+Chao y = 5

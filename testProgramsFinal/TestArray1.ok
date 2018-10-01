@@ -1,15 +1,15 @@
 # Error
-int^ ola
+Int^ ola
 
-int b[3] = {1,2,3}
+Int[3] b = {1,2,3}
 
-int c = {1,2,3,4}
+Int c = {1,2,3,4}
 
-dafunk funcion1(int x, int y, string s) : intothevoid
+dafunk funcion1(Int x, Int y, String s) : Intothevoid
 youbegin
 
-	int x1 = b[0]
+	Int x1 = b[0]
 
-	float x2 = b[0]
+	Float x2 = b[0]
 
 whereiend
