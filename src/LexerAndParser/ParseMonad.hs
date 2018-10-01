@@ -286,8 +286,8 @@ findVarSym id pos = do
     Nothing -> undefined -- not defined
     Just FuncSym{} -> undefined -- it's a function
     --Just NameTypeSym{} -> undefined -- it's a type
-    Just ErrorSym{} -> undefined -- it was defined but with an error so don't show an error
-    Just VarSym{} -> undefined
+    Just s@ErrorSym{} -> return s-- it was defined but with an error so don't show an error
+    Just s@VarSym{} -> return s
 
 findNameTypeSym :: Id -> Pos -> ParseM Sym
 findNameTypeSym id pos = do
@@ -296,8 +296,8 @@ findNameTypeSym id pos = do
     Nothing -> undefined -- not defined
     --Just FuncSym{} -> undefined -- it's a function
     --Just VarSym{} -> undefined -- it's a variable
-    Just ErrorSym{} -> undefined -- defined with error, don't show error
-    Just NameTypeSym{} -> undefined
+    Just s@ErrorSym{} -> return s -- defined with error, don't show error
+    Just s@NameTypeSym{} -> return s
 
 
 findSymInRecord :: Scope -> String -> ParseM Sym
@@ -307,8 +307,8 @@ findSymInRecord scope id = do
     Nothing -> undefined -- not defined
     --Just FuncSym{} -> undefined -- it's a function
     --Just NameTypeSym{} -> undefined -- it's a type
-    Just ErrorSym{} -> undefined -- it was defined but with an error so don't show an error
-    Just VarSym{} -> undefined
+    Just s@ErrorSym{} -> return s -- it was defined but with an error so don't show an error
+    Just s@VarSym{} -> return s
 
 insertVarSym :: Scope -> Id -> Pos -> OKType -> ParseM ()
 insertVarSym scope id pos oktype = do
