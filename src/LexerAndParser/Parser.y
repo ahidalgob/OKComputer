@@ -11,10 +11,9 @@ import Lexer
 import ParseMonad (ParseM, ParseMError(..))
 import qualified ParseMonad as P
 import qualified AST
-import AST (exp_type)
+import AST (exp_type, OKType(..), Id, isNumericalType, mergeVoidType, listComp, isNameType, isListType, isErrorType, solveNameTypes)
 import SymTable
 import Scope
-import OKTypes
 
 import Control.Monad.Except
 import Data.Maybe
@@ -383,7 +382,7 @@ recordMemberAction exp tkn = do
 arrayTypeAction :: Pos -> OKType -> AST.EXPRESSION -> ParseM OKType
 arrayTypeAction pos oktype sizeExp = do
       checkExpectedType pos OKInt (exp_type sizeExp) " for array size"
-      return $ OKArray 0 oktype
+      return $ OKArray sizeExp oktype
 
 
 nameTypeAction :: Token -> ParseM OKType
@@ -438,7 +437,7 @@ arrayLiteralAction tkn exps = do
                               if merged == OKErrorT
                                   then do showFoundDifferentTypesInArray (fst $ tkn_pos tkn) types
                                           return OKErrorT
-                                  else return (OKArray 0 merged)
+                                  else return (OKArray (AST.INTEXP (length exps) OKInt) merged)
     return $ AST.ARRAYEXP exps oktype
 
 tupleLiteralAction :: Token -> [AST.EXPRESSION] -> AST.EXPRESSION

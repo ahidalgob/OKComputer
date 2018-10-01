@@ -44,8 +44,8 @@ module ParseMonad(
 import LowLevelAlex
 
 import qualified AST(INSTRUCTION)
+import AST(OKType(..), Id)
 import SymTable
-import OKTypes
 import Scope
 
 

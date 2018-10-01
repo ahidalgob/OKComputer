@@ -1,7 +1,7 @@
 module SymTable where
 import LowLevelAlex
 import Scope
-import OKTypes
+import AST(Id, OKType)
 import qualified AST
 import qualified Data.HashMap.Strict as H
 

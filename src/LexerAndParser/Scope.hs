@@ -1,9 +1,8 @@
 module Scope where
-import OKTypes
 import qualified Data.Set as S
 
 type Scope = Int
-type SymId = (Id, Scope)
+type SymId = (String, Scope)
 
 type ScopeStack = [Scope]
 emptyScopeStack :: ScopeStack
