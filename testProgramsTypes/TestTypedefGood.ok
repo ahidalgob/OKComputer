@@ -1,9 +1,0 @@
-# All good
-
-typedef hola int
-
-typedef chao hola
-
-hola x = 3
-
-chao y = 5

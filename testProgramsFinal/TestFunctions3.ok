@@ -1,11 +1,11 @@
 
-dafunk funcion1(int x, int y, string s) : intothevoid
+dafunk funcion1(Int x, Int y, String s) : Intothevoid
 youbegin
 
 whereiend
 
 # Error Funciones polimorficas!!!
-dafunk funcion2(int x, int y, string a) : int
+dafunk funcion2(Int x, Int y, String a) : Int
 youbegin
 
 	# Error
@@ -13,14 +13,14 @@ youbegin
 
 whereiend
 
-dafunk funcion3(string x) : tuple(list(list(int)),string)
+dafunk funcion3(String x) : Tuple(List(List(Int)),String)
 youbegin
 
-	tuple(list(list(int)),string) le = <<[[]],"yeah">>
+	Tuple(List(List(Int)),String) le = <<[[]],"yeah">>
 	getback(le)
 
 	# Error
-	tuple(list(list(int)),string) lel = <<[[3.2]],"yeah">>
+	Tuple(List(List(Int)),String) lel = <<[[3.2]],"yeah">>
 	getback(lel)
 
 whereiend

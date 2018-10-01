@@ -1,0 +1,7 @@
+# Error defining an alias twice
+
+typedef Hola Int
+
+typedef Chao Float
+
+typedef Hola Float

@@ -1,9 +1,0 @@
-# Error assigning
-
-typedef hola int
-
-typedef chao hola
-
-hola y = 3
-
-hola c = "error"

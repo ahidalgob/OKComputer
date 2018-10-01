@@ -1,18 +1,18 @@
-int funcion1
-int nametype1
+Int funcion1
+Int nametype1
 
 # Error
-typedef nametype1 float
+typedef Nametype1 Float
 
 # Error
-dafunk funcion1(int x, int y, string s) : intothevoid
+dafunk funcion1(Int x, Int y, String s) : Intothevoid
 youbegin
 
 whereiend
 
-dafunk funcion2(int x, int y, string a) : int 
+dafunk funcion2(Int x, Int y, String a) : Int 
 youbegin
 
-	int c
+	Int c
 	
 whereiend

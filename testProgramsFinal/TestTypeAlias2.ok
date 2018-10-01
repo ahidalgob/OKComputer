@@ -1,7 +1,7 @@
 # Error defining an alias with something that doesn't exist
 
-typedef hola int
+typedef Hola Int
 
-typedef chao hola
+typedef Chao Hola
 
-typedef mevoy noexisto
+typedef Mevoy Noexisto
