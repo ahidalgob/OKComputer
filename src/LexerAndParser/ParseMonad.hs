@@ -278,24 +278,25 @@ findAllSymsInScope scope id = do
 
 
 -- finds the symbol in the closest scope, it has to be a varSym
+-- throws an error if not found or it's not a variable
 findVarSym :: Id -> Pos -> ParseM Sym
 findVarSym id pos = do
   sym <- findFirstSymInActiveScopes id
   case sym of
-    Nothing -> undefined
-    Just FuncSym{} -> undefined
-    Just NameTypeSym{} -> undefined
-    Just ErrorSym{} -> undefined
+    Nothing -> undefined -- not defined
+    Just FuncSym{} -> undefined -- it's a function
+    --Just NameTypeSym{} -> undefined -- it's a type
+    Just ErrorSym{} -> undefined -- it was defined but with an error so don't show an error
     Just VarSym{} -> undefined
 
 findNameTypeSym :: Id -> Pos -> ParseM Sym
 findNameTypeSym id pos = do
   sym <- findFirstSymInActiveScopes id
   case sym of
-    Nothing -> undefined
-    Just FuncSym{} -> undefined
-    Just VarSym{} -> undefined
-    Just ErrorSym{} -> undefined
+    Nothing -> undefined -- not defined
+    --Just FuncSym{} -> undefined -- it's a function
+    --Just VarSym{} -> undefined -- it's a variable
+    Just ErrorSym{} -> undefined -- defined with error, don't show error
     Just NameTypeSym{} -> undefined
 
 
@@ -303,11 +304,11 @@ findSymInRecord :: Scope -> String -> ParseM Sym
 findSymInRecord scope id = do
   sym <- findSymInScope scope id
   case sym of
-    Nothing -> undefined
-    Just FuncSym{} -> undefined
+    Nothing -> undefined -- not defined
+    --Just FuncSym{} -> undefined -- it's a function
+    --Just NameTypeSym{} -> undefined -- it's a type
+    Just ErrorSym{} -> undefined -- it was defined but with an error so don't show an error
     Just VarSym{} -> undefined
-    Just ErrorSym{} -> undefined
-    Just NameTypeSym{} -> undefined
 
 insertVarSym :: Scope -> Id -> Pos -> OKType -> ParseM ()
 insertVarSym scope id pos oktype = do
@@ -320,13 +321,6 @@ insertVarSym scope id pos oktype = do
                 modify (\s -> s{state_SymTable = newSymTable})
 
 
-
-
---checkNoVarInScope1 :: [Sym] -> Id -> Int -> ParseM ()
---checkNoVarInScope1 list id ln = do
-  --let filterList = filter (\sym -> (sym_scope sym == 1) && isVarSym sym) list
-  --when (not (null filterList)) $ do showFunctionNameUsedAsGlobalVariable id ln (head filterList)
-                                    --throwError VarWithFunctionName
 
 insertFuncSym :: Id -> Pos -> OKType -> [SymId] -> ParseM ()
 insertFuncSym id pos oktype@(OKFunc paramTypes _) paramIds = do

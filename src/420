@@ -1,15 +1,15 @@
 Insert Symbol:
     NameTypeSym  (insertSym (NameTypeSym) -> insertNameTypeSym):
         scope is always 0
-        ERROR: name already defined: function, variable or another nametype
+        ERROR: name already defined:  nametype
 
     FuncSym (insertSym (FuncSym) -> insertFuncSym):
       scope is always 1, no body
-      ERROR: already defined: a variable, nametype or function with same type of arguments
+      ERROR: already defined: a variable or function with same type of arguments
 
     VarSym in current scope(insertSym (VarSym) -> insertVarSym):
       this happens on arguments declarations and in normal declarations
-      ERROR: already defined: a variable in same scope, nametype
+      ERROR: already defined: a variable in same scope
 
 Modify Symbol:
     complete function (completeFunctionDef):
@@ -19,7 +19,7 @@ Look up symbol:
     in given scope(findSymInScope):
       this happens on record access
       ERROR: not defined in that scope
-    in closest scope (findSym  -> findVarSym and findNameType):
+    in closest scope (findSym  -> findVarSym and findNameTypeSym):
       this happens in nametypes use and variable ids (split in two functions)
       ERROR: not defined in reachable scopes
 
