@@ -45,6 +45,7 @@ data Token =
   OpenTupleTkn        { tkn_pos :: (Int, Int) }  |
   CloseTupleTkn       { tkn_pos :: (Int, Int) }  |
   RecordTkn           { tkn_pos :: (Int, Int) }  |
+  UnionTkn            { tkn_pos :: (Int, Int) }  |
   PointerTkn          { tkn_pos :: (Int, Int) }  |
   ModTkn              { tkn_pos :: (Int, Int) }  |
   DivTkn              { tkn_pos :: (Int, Int) }  |
