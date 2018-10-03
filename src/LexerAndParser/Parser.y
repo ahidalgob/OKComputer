@@ -373,7 +373,7 @@ arrayOrListAccessAction pos exp posExp = do
 recordMemberAction :: AST.EXPRESSION -> Token -> ParseM AST.EXPRESSION
 recordMemberAction exp tkn = do
     case solveNameTypes (exp_type exp) of
-         OKRecord scope -> do sym <- P.findSymInRecord scope (tkn_string tkn)
+         OKRecord scope -> do sym <- P.findSymInRecord scope (tkn_string tkn) (tkn_pos tkn)
                               return $ AST.RECORDACCESS exp (tkn_string tkn) (sym_type sym)
          OKErrorT -> return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
          _ -> do  showExpectedRecord (fst.tkn_pos $ tkn) (exp_type exp)
