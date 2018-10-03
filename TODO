@@ -1,6 +1,10 @@
 TODO NEW
 
-- [HACER] UNIONS -> Resolver que queremos
+- [HACER] UNIONS -> Tagged Unions
+                    Del tipo de una expresion union nos interesa:
+                        - El union completo (para asignarlo a un union)
+                        - El conjunto de tipos que puede ser (para operarlo con otros valores)
+                                OKMultiType
 
 
 
