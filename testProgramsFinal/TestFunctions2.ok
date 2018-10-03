@@ -4,6 +4,11 @@ youbegin
 
 whereiend
 
+dafunk funcion3(String x) : Tuple(List(List(Int)),String)
+youbegin
+
+whereiend
+
 # Error Funciones polimorficas!!!
 dafunk funcion2(Int x, Int y, String a) :Intothevoid
 youbegin
@@ -16,7 +21,15 @@ youbegin
 	funcion3("haha")
 
 	# Error
-	funcion3('no')
+	funcion3('n')
+
+	'n'
+
+	'no'
+
+	"no"
+
+	no
 
 whereiend
 

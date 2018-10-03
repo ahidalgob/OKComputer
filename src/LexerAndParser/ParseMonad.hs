@@ -326,9 +326,9 @@ insertFuncSym :: Id -> Pos -> OKType -> [SymId] -> ParseM ()
 insertFuncSym id pos oktype@(OKFunc paramTypes _) paramIds = do
   syms <- findAllSymsInScope 1 id
   if not.null $ filter isVarSym syms
-     then undefined --  >> return (ErrorSym (-1) id pos OKErrorT)-- already defined as variable
+     then showFunctionNameUsedAsGlobalVariable id (fst pos) (head syms) --  >> return (ErrorSym (-1) id pos OKErrorT)-- already defined as variable
      else if any (sameParams paramTypes) syms
-            then undefined --  >> return (ErrorSym (-1) id pos OKErrorT) -- already defined with same arguments
+            then showRedeclarationOfFunction id (fst pos) (head $ filter (sameParams paramTypes) syms) --  >> return (ErrorSym (-1) id pos OKErrorT) -- already defined with same arguments
             else do
               symTable <- gets state_SymTable
               let newSymTable = symTableInsert (FuncSym 1 id pos oktype paramIds []) symTable
@@ -346,7 +346,7 @@ insertNameTypeSym id pos oktype = do
           let newSymTable = symTableInsert (NameTypeSym 0 id pos oktype) symTable
           modify (\s -> s{state_SymTable = newSymTable})
     Just sym -> showNameTypeAlreadyUsed (sym_Id sym) (fst pos) sym-- alias already defined
-                          -- showNameTypeAlreadyUsed (sym_Id sym) (fst.sym_pos $ sym) (head syms)
+
 
 sameParams :: [OKType] -> Sym -> Bool
 sameParams prms1 (FuncSym{sym_type = OKFunc prms2 _ }) = prms1==prms2
@@ -357,12 +357,12 @@ findFunction :: Id -> Pos -> [OKType] -> ParseM Sym
 findFunction id pos paramTypes = do
   current <- findFirstSymInActiveScopes id
   case current of
-    Nothing -> undefined --  >> return (ErrorSym (-1) id pos OKErrorT)-- not defined
-    Just VarSym{} -> undefined --  >> return (ErrorSym (-1) id pos OKErrorT) -- defined as variable
+    Nothing -> showFunctionNotFound id (fst pos)  >> return (ErrorSym (-1) id pos OKErrorT)-- not defined
+    Just s@VarSym{} -> showFunctionAlreadyUsedAsVariable id (fst pos) s  >> return (ErrorSym (-1) id pos OKErrorT) -- defined as variable
     Just FuncSym{} -> do
         syms <- findAllSymsInActiveScopes id
         case findMatchingFunction paramTypes syms of
-             Nothing -> undefined -- not found with those arguments
+             Nothing ->  showFunctionNotFoundWithArguments id (fst pos)  >> return (ErrorSym (-1) id pos OKErrorT)-- not found with those arguments
              Just sym -> return sym
   where
     findMatchingFunction :: [OKType] -> [Sym] -> Maybe Sym
@@ -408,25 +408,17 @@ showNameTypeAlreadyUsed id ln sym = do
     liftIO $ putStrLn $ "Name for typedef " ++ id ++ " is already used in line " ++ show (fst.sym_pos $ sym) ++ "."
     liftIO $ putStrLn $ "You're not to blame for bittersweet distractors \n"
 
--- showNameAlreadyUsedAsType :: Id -> Int -> Sym -> ParseM ()
--- showNameAlreadyUsedAsType id ln sym = do
---     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
---     liftIO $ putStrLn $ "Name " ++ id ++ " is already used in a typedef in line " ++ show (fst.sym_pos $ sym) ++ "."
---     liftIO $ putStrLn $ "You're not to blame for bittersweet distractors \n"
+showFunctionNameUsedAsGlobalVariable :: Id -> Int -> Sym -> ParseM ()
+showFunctionNameUsedAsGlobalVariable id ln sym = do
+     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+     liftIO $ putStrLn $ "Name for function " ++ id ++ " is already used as a global variable in line " ++ show (fst.sym_pos $ sym) ++ "."
+     liftIO $ putStrLn $ "You're not to blame for bittersweet distractors \n"
 
--- -- Falta showFunctionNotDefined
-
--- showFunctionNameUsedAsGlobalVariable :: Id -> Int -> Sym -> ParseM ()
--- showFunctionNameUsedAsGlobalVariable id ln sym = do
---     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
---     liftIO $ putStrLn $ "Name for function " ++ id ++ " is already used as a global variable in line " ++ show (fst.sym_pos $ sym) ++ "."
---     liftIO $ putStrLn $ "You're not to blame for bittersweet distractors \n"
-
--- showRedeclarationOfFunction :: Id -> Int -> Sym -> ParseM ()
--- showRedeclarationOfFunction id ln sym = do
---     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
---     liftIO $ putStrLn $ "Function " ++ id ++ " with same signature (arguments type) already defined in line " ++ show (fst.sym_pos $ sym) ++ "."
---     liftIO $ putStrLn $ "For a minute there I lost myself \n"
+showRedeclarationOfFunction :: Id -> Int -> Sym -> ParseM ()
+showRedeclarationOfFunction id ln sym = do
+    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "Function " ++ id ++ " with same signature (arguments type) already defined in line " ++ show (fst.sym_pos $ sym) ++ "."
+    liftIO $ putStrLn $ "For a minute there I lost myself \n"
 
 showVariableRedeclaredInScope :: Id -> Int -> Sym -> ParseM ()
 showVariableRedeclaredInScope id ln sym = do
@@ -444,19 +436,37 @@ showNameTypeNotFound :: Id -> Int -> ParseM ()
 showNameTypeNotFound id ln = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
     liftIO $ putStrLn $ "Nametype " ++ id ++ " was not found."
-    liftIO $ putStrLn $ "For a minute there I lost myself \n"
+    liftIO $ putStrLn $ "You’ve been stuck in a lift, we’ve been trying to reach you \n"
 
 showVariableAlreadyUsedAsFunction :: Id -> Int -> Sym -> ParseM ()
 showVariableAlreadyUsedAsFunction id ln sym = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
     liftIO $ putStrLn $ "Variable " ++ id ++ " is already used as a function " ++ show (fst.sym_pos $ sym) ++ "."
-    liftIO $ putStrLn $ "For a minute there I lost myself \n"
+    liftIO $ putStrLn $ "You’ve been stuck in a lift, we’ve been trying to reach you \n"
 
 showMemberNotFound :: Id -> Int -> ParseM ()
 showMemberNotFound id ln = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
     liftIO $ putStrLn $ id ++ " is not a member of the record."
-    liftIO $ putStrLn $ "For a minute there I lost myself \n"
+    liftIO $ putStrLn $ "I have seen too much, I haven't seen enough\n"
+
+showFunctionNotFound :: Id -> Int -> ParseM ()
+showFunctionNotFound id ln = do
+    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "Function " ++ id ++ " was not found."
+    liftIO $ putStrLn $ "I have seen too much, I haven't seen enough\n"
+
+showFunctionAlreadyUsedAsVariable :: Id -> Int -> Sym -> ParseM ()
+showFunctionAlreadyUsedAsVariable id ln sym = do
+     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+     liftIO $ putStrLn $ "Function " ++ id ++ " is already used as a variable in line " ++ show (fst.sym_pos $ sym) ++ "."
+     liftIO $ putStrLn $ "You’ve been stuck in a lift, we’ve been trying to reach you \n"
+
+showFunctionNotFoundWithArguments :: Id -> Int -> ParseM ()
+showFunctionNotFoundWithArguments id ln = do
+    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "Function " ++ id ++ " was not found with same arguments."
+    liftIO $ putStrLn $ "I have seen too much, I haven't seen enough\n"
 
 
 --}}
