@@ -1,15 +1,27 @@
 TODO NEW
 
-- [HACER] UNIONS -> Resolver que queremos
+- [HACER] UNIONS
 
-
-
+- Separar otra vez OKTypes
+    Resolver donde guardar la expresion.
 
 - [REHACER] Arreglar arroz con mango pt2 type checking
 
 - [ARREGLAR] ERRORES VOID
 
+- [TERMINAR] arroz con mango en ParseMonad
+    Mensajes de error
+
 - [HACER D:] CASTING (si ni type check tenemos)
 
-- [TERMINAR] arroz con mango en ParseMonad
+
+
+
+Generating
+
+- Guardar width para los tipos
+
+- Generar TAC, generando las variables temporales
+        Estas variables temporales tienen que ir a la tabla de simbolos
+        Asi que lo mas razonable es anadir la generacion de codigo al mismo parser
 

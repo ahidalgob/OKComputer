@@ -149,29 +149,35 @@ OUTSIDE_FUNCTION :: { [AST.OUTSIDE] }
 OUTSIDE_FUNCTION : FUNCTION_DEF OUTSIDE_FUNCTION           { $2 }
                 | DECLARATION newline OUTSIDE_FUNCTION     { (AST.OUTASSIGN $1):$3 }
                 | TYPEDEF OUTSIDE_FUNCTION                 { $2 }
-                | {-λ-}                              { [] }
+                | {-λ-}                                    { [] }
 
 TYPEDEF :: { () }
 TYPEDEF : typedef typeId TYPE newline                          {% typedefAction $2 $3 }
 
 FUNCTION_DEF :: { () }
+-- Completes the definition of the function
 FUNCTION_DEF : FUNCTION_SIGN BLOCK {% functionDefAction $1 $2}
 
 FUNCTION_SIGN :: { (Token, [Parameter], OKType) }
-FUNCTION_SIGN : dafunk BEGIN varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE     {% functionSignAction $3 $5 $8 }
 -- Creates the function symbol and inserts it to the sym table
+FUNCTION_SIGN : dafunk BEGIN varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE     {% functionSignAction $3 $5 $8 }
+
 
 RETURNTYPE :: { OKType }
 RETURNTYPE: intothevoid                                                 { OKVoid }
           | TYPE                                                        { $1 }
 
+
 LPARAMETERSFUNC :: { [Parameter] }
-LPARAMETERSFUNC : {-λ-}                                           { [] }
-                | NONEMPTYLPARAMETERSFUNC                               { reverse $1 }
+LPARAMETERSFUNC : NONEMPTYLPARAMETERSFUNC                               { reverse $1 }
+                | {-λ-}                                                 { [] }
+
 
 NONEMPTYLPARAMETERSFUNC :: { [Parameter] }
 NONEMPTYLPARAMETERSFUNC : NONEMPTYLPARAMETERSFUNC ',' FUNCTIONPARAMETER { $3:($1) }
                         | FUNCTIONPARAMETER                             { [$1] }
+
+
 
 FUNCTIONPARAMETER :: { Parameter }
 FUNCTIONPARAMETER : TYPE varId         {% functionParameterAction $1 $2}
@@ -194,12 +200,14 @@ DECLARATION :: { [AST.EXPRESSION] } -- All Expressions are assignments
 DECLARATION : TYPE DECLARATIONVARS {% declarationAction $1 (reverse $2) }
 
 
--- Symbols are added in parent rule
+
+-- Symbols are added in parent rule, this just gets everything and passes it up
 DECLARATIONVARS :: { [(Token, Maybe AST.EXPRESSION)] }
 DECLARATIONVARS : varId '=' EXPRESSION                                    { [($1, Just $3)] }
             | DECLARATIONVARS ',' varId '=' EXPRESSION                    { ($3, Just $5):($1) }
             | varId                                                       { [($1, Nothing)] }
             | DECLARATIONVARS ',' varId                                   { ($3, Nothing):($1) }
+
 
 
 TYPE :: { OKType }
@@ -215,9 +223,11 @@ TYPE : TYPE '^'                                                                 
      | list '(' TYPE ')'                                                             { OKList $3 }
      | typeId                                                                            {% nameTypeAction $1 }
 
+
 TYPES :: { [OKType] }
 TYPES : TYPE                                              { [$1] }
       | TYPES ',' TYPE                                    { $3 : $1 }
+
 
 INSIDERECORD :: { [AST.INSTRUCTION] }
 INSIDERECORD : INSIDERECORD DECLARATION newline                 { (map AST.EXPRESSIONINST $ reverse $2)++$1 }
@@ -239,9 +249,11 @@ INSTRUCTION : go '(' NONEMPTYEXPRESSIONS ')' newline                            
             | exitmusic newline                                                 { AST.EXITMUSIC }
             | EXPRESSION newline                                                { AST.EXPRESSIONINST $1 }
 
+
 IFELSE : ifyouhavetoask EXPRESSION BEGIN BLOCK IFELSE                           {% ifYouHaveToAskAction $1 $2 (reverse $4) $5 }
        | otherside BEGIN BLOCK                                                  { AST.OTHERSIDE $3 }
        | {-λ-}                                                                  { AST.IFELSEVOID }
+
 
 EXPRESSION :: { AST.EXPRESSION }
 EXPRESSION : LVAL                               { $1 }
@@ -267,20 +279,20 @@ EXPRESSION : LVAL                               { $1 }
            | EXPRESSION and EXPRESSION          {% booleanOperationAction $2 $1 $3 "and" }
            | EXPRESSION or EXPRESSION           {% booleanOperationAction $2 $1 $3 "or" }
            | '-' EXPRESSION                     {% minusAction $1 $2 }
-           | EXPRESSION '+' EXPRESSION          {% numOperationAction $2 $1 $3 "+" }
-           | EXPRESSION '-' EXPRESSION          {% numOperationAction $2 $1 $3 "-" }
-           | EXPRESSION '*' EXPRESSION          {% numOperationAction $2 $1 $3 "*" }
-           | EXPRESSION '/' EXPRESSION          {% numOperationAction $2 $1 $3 "/" }
-           | EXPRESSION '%' EXPRESSION          {% numOperationAction $2 $1 $3 "%" }
-           | EXPRESSION mod EXPRESSION          {% intOperationAction $2 $1 $3 "mod" }
-           | EXPRESSION div EXPRESSION          {% intOperationAction $2 $1 $3 "div" }
-           | varId '(' EXPRESSIONS ')'             {% functionCallAction $1 $3 }
+           | EXPRESSION '+' EXPRESSION          {% numOperationAction (tkn_pos $2) $1 $3 "+" }
+           | EXPRESSION '-' EXPRESSION          {% numOperationAction (tkn_pos $2) $1 $3 "-" }
+           | EXPRESSION '*' EXPRESSION          {% numOperationAction (tkn_pos $2) $1 $3 "*" }
+           | EXPRESSION '/' EXPRESSION          {% numOperationAction (tkn_pos $2) $1 $3 "/" }
+           | EXPRESSION '%' EXPRESSION          {% numOperationAction (tkn_pos $2) $1 $3 "%" }
+           | EXPRESSION mod EXPRESSION          {% intOperationAction (tkn_pos $2) $1 $3 "mod" }
+           | EXPRESSION div EXPRESSION          {% intOperationAction (tkn_pos $2) $1 $3 "div" }
+           | varId '(' EXPRESSIONS ')'          {% functionCallAction $1 $3 }
            | newlife '(' EXPRESSION ')'         { AST.NEWLIFE $3 $ OKPointer (exp_type $3)}
            | LVAL '=' EXPRESSION                {% assignAction $2 $1 $3 }
 
 EXPRESSIONS :: { [AST.EXPRESSION] }
-EXPRESSIONS :                       { [] }
-            | NONEMPTYEXPRESSIONS   { reverse $ $1 }
+EXPRESSIONS : NONEMPTYEXPRESSIONS   { reverse $ $1 }
+            | {-λ-}                 { [] }
 
 NONEMPTYEXPRESSIONS :: { [AST.EXPRESSION] }
 NONEMPTYEXPRESSIONS : NONEMPTYEXPRESSIONS ',' EXPRESSION        { $3 : $1 }
@@ -288,9 +300,9 @@ NONEMPTYEXPRESSIONS : NONEMPTYEXPRESSIONS ',' EXPRESSION        { $3 : $1 }
 
 -- Anything with L-Value: variables, record.member, array[position]...
 LVAL :: { AST.EXPRESSION }
-LVAL :  varId                                              {% idAction $1 }
+LVAL :  varId                                         {% idAction $1 }
        | EXPRESSION '[' EXPRESSION ']'                {% arrayOrListAccessAction (tkn_pos $2) $1 $3 }
-       | EXPRESSION '.' varId                            {% recordMemberAction $1 $3 }
+       | EXPRESSION '.' varId                         {% recordMemberAction $1 $3 }
        | '^' EXPRESSION                               {% pointerAction $1 $2 }
        | EXPRESSION '._' n                            {% tupleAccessAction $2 $1 (read $ tkn_string $3) }
 
@@ -510,14 +522,14 @@ minusAction tkn exp = do
           oktype <- checkNumericalType (tkn_pos tkn) (exp_type exp)
           return $ AST.MINUS exp oktype
 
-numOperationAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
-numOperationAction tkn exp1 exp2 op = do
-          oktype <- checkNumOpType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
+numOperationAction :: Pos -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
+numOperationAction pos exp1 exp2 op = do
+          oktype <- checkNumOpType pos (exp_type exp1) (exp_type exp2)
           return $ AST.ARIT exp1 op exp2 oktype
 
-intOperationAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
-intOperationAction tkn exp1 exp2 op = do
-          oktype <- checkIntOpType (tkn_pos tkn) (exp_type exp1) (exp_type exp2)
+intOperationAction :: Pos -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
+intOperationAction pos exp1 exp2 op = do
+          oktype <- checkIntOpType pos (exp_type exp1) (exp_type exp2)
           return $ AST.ARIT exp1 op exp2 oktype
 
 -- Builds ASSIGN node, checking the types
