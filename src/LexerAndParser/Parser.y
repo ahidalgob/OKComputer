@@ -74,6 +74,7 @@ import Data.List
   '['                                     { ArrayStartTkn _ }
   ']'                                     { ArrayEndTkn _ }
   record                                  { RecordTkn _ }            -- Registers/structs
+  union                                   { UnionTkn _ }
   '.'                                     { DotTkn _ }
   '._'                                    { TupleAccessTkn _ }
   '^'                                     { PointerTkn _ }
@@ -108,7 +109,7 @@ import Data.List
   n                                       { IntLiteralTkn _ _ }
   newline                                 { NewLineTkn _ }
   c                                       { LiteralCharTkn _ _ } -- char
-  s                                  { LiteralStringTkn _ _ }
+  s                                       { LiteralStringTkn _ _ }
 
 -- 1}}}
 
@@ -219,6 +220,7 @@ TYPE : TYPE '^'                                                                 
      | char                                                                          { OKChar }
      | string                                                                        { OKString }
      | record BEGIN '{' MAYBELINE INSIDERECORD '}' END                               { OKRecord $2 }
+     | union '{' MAYBELINE INSIDEUNION '}'                                           { OKUnion $2 }
      | tuple '(' TYPES ')'                                                           { OKTuple (reverse $3) }
      | list '(' TYPE ')'                                                             { OKList $3 }
      | typeId                                                                            {% nameTypeAction $1 }
@@ -232,6 +234,9 @@ TYPES : TYPE                                              { [$1] }
 INSIDERECORD :: { [AST.INSTRUCTION] }
 INSIDERECORD : INSIDERECORD DECLARATION newline                 { (map AST.EXPRESSIONINST $ reverse $2)++$1 }
               | DECLARATION MAYBELINE                           { map AST.EXPRESSIONINST $ reverse $1 }
+
+--INSIDEUNION ::
+
 
 
 INSTRUCTION :: { AST.INSTRUCTION }

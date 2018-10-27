@@ -1,0 +1,63 @@
+typedef Tiporecord Record{
+    Int test1, test2
+}
+
+dafunk funcion(Int x, Int y, String s) : Intothevoid
+youbegin
+     Record {
+         Int x
+     }^ rec
+
+
+     Int[2][3][4] elwebo
+
+     elwebo[1][2][3] = 2
+
+     elwebo [1][2] = 3
+
+     Tiporecord[2][5] eLWEBISIMO
+
+     eLWEBISIMO[3][2].test1 = 2.9
+
+     Int a = 7
+
+     (^rec).x = 10
+
+     Record {
+         Int x
+         Int y
+     } [3][4][5] mierdison
+
+     Record {
+     	  String w
+     } rec
+
+     rec.pene = 5 + rec.vagina
+
+     rec2 = rec
+
+     Tiporecord a
+
+     # FALLA BIEN PERO ES FEITO
+     a = 2
+     a = 3.0
+
+     # DEBERIA FALLAR NO FALLA
+     a.testfallo = a.pene
+
+     # SI FALLA ESTA BIEN LA VERGA
+     a.test1 = "buenas"
+
+     # ESTE NO DEBERIA FALLAR
+     a.test1 = 6
+
+     Int prueba = rec.x + 2
+
+     Int pruebazooo
+     
+whereiend
+
+dafunk funcion2(Int egg):Int
+youbegin
+	pruebazooo = 8
+whereiend
