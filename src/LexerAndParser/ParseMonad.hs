@@ -44,7 +44,7 @@ module ParseMonad(
 import LowLevelAlex
 
 import qualified AST(INSTRUCTION)
-import AST(OKType(..), Id)
+import OKTypes
 import SymTable
 import Scope
 
@@ -313,11 +313,11 @@ findSymInRecord scope id = do
 insertVarSym :: Scope -> Id -> Pos -> OKType -> ParseM ()
 insertVarSym scope id pos oktype = do
   -- the error is just a dummy variable
-  prevSym <- fromMaybe (ErrorSym (-1) id pos OKErrorT) <$> findSymInScope scope id
+  prevSym <- fromMaybe (ErrorSym (-1) id pos OKErrorT 0) <$> findSymInScope scope id
   if sym_scope prevSym == scope
        then showVariableRedeclaredInScope id (fst pos) prevSym
        else  do symTable <- gets state_SymTable
-                let newSymTable = symTableInsert (VarSym scope id pos oktype) symTable
+                let newSymTable = symTableInsert (VarSym scope id pos oktype 0) symTable
                 modify (\s -> s{state_SymTable = newSymTable})
 
 
@@ -331,7 +331,7 @@ insertFuncSym id pos oktype@(OKFunc paramTypes _) paramIds = do
             then undefined -- already defined with same arguments
             else do
               symTable <- gets state_SymTable
-              let newSymTable = symTableInsert (FuncSym 1 id pos oktype paramIds []) symTable
+              let newSymTable = symTableInsert (FuncSym 1 id pos oktype paramIds [] 0) symTable
               modify (\s -> s{state_SymTable = newSymTable})
 
 
@@ -343,7 +343,7 @@ insertNameTypeSym id pos oktype = do
   case prevSym of
     Nothing -> do
           symTable <- gets state_SymTable
-          let newSymTable = symTableInsert (NameTypeSym 0 id pos oktype) symTable
+          let newSymTable = symTableInsert (NameTypeSym 0 id pos oktype 0) symTable
           modify (\s -> s{state_SymTable = newSymTable})
     Just sym -> undefined -- alias already defined
                           -- showNameTypeAlreadyUsed (sym_Id sym) (fst.sym_pos $ sym) (head syms)

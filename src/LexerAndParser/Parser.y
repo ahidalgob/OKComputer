@@ -11,7 +11,8 @@ import Lexer
 import ParseMonad (ParseM, ParseMError(..))
 import qualified ParseMonad as P
 import qualified AST
-import AST (exp_type, OKType(..), Id, isNumericalType, mergeVoidType, listComp, isNameType, isListType, isErrorType, solveNameTypes)
+import AST (exp_type)
+import OKTypes
 import SymTable
 import Scope
 
@@ -74,7 +75,7 @@ import Data.List
   '['                                     { ArrayStartTkn _ }
   ']'                                     { ArrayEndTkn _ }
   record                                  { RecordTkn _ }            -- Registers/structs
-  union                                   { UnionTkn _ }
+  --union                                   { UnionTkn _ }
   '.'                                     { DotTkn _ }
   '._'                                    { TupleAccessTkn _ }
   '^'                                     { PointerTkn _ }
@@ -213,14 +214,14 @@ DECLARATIONVARS : varId '=' EXPRESSION                                    { [($1
 
 TYPE :: { OKType }
 TYPE : TYPE '^'                                                                      { OKPointer $1 }
-     | TYPE '[' EXPRESSION ']'                                                       {% arrayTypeAction (tkn_pos $2) $1 $3 }
+     | TYPE '[' n ']'                                                                {% arrayTypeAction (tkn_pos $2) $1 (read $ tkn_string $3) }
      | int                                                                           { OKInt }
      | float                                                                         { OKFloat }
      | boolean                                                                       { OKBoolean }
      | char                                                                          { OKChar }
      | string                                                                        { OKString }
      | record BEGIN '{' MAYBELINE INSIDERECORD '}' END                               { OKRecord $2 }
-     | union '{' MAYBELINE INSIDEUNION '}'                                           { OKUnion $2 }
+     -- | union '{' MAYBELINE INSIDEUNION '}'                                           { OKUnion $2 }
      | tuple '(' TYPES ')'                                                           { OKTuple (reverse $3) }
      | list '(' TYPE ')'                                                             { OKList $3 }
      | typeId                                                                            {% nameTypeAction $1 }
@@ -396,10 +397,9 @@ recordMemberAction exp tkn = do
          _ -> do  showExpectedRecord (fst.tkn_pos $ tkn) (exp_type exp)
                   return $ AST.RECORDACCESS exp (tkn_string tkn) OKErrorT
 
-arrayTypeAction :: Pos -> OKType -> AST.EXPRESSION -> ParseM OKType
-arrayTypeAction pos oktype sizeExp = do
-      checkExpectedType pos OKInt (exp_type sizeExp) " for array size"
-      return $ OKArray sizeExp oktype
+arrayTypeAction :: Pos -> OKType -> Int -> ParseM OKType
+arrayTypeAction pos oktype size = do
+      return $ OKArray size oktype
 
 
 nameTypeAction :: Token -> ParseM OKType
@@ -454,7 +454,7 @@ arrayLiteralAction tkn exps = do
                               if merged == OKErrorT
                                   then do showFoundDifferentTypesInArray (fst $ tkn_pos tkn) types
                                           return OKErrorT
-                                  else return (OKArray (AST.INTEXP (length exps) OKInt) merged)
+                                  else return (OKArray (length exps) merged)
     return $ AST.ARRAYEXP exps oktype
 
 tupleLiteralAction :: Token -> [AST.EXPRESSION] -> AST.EXPRESSION

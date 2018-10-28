@@ -1,7 +1,7 @@
 module SymTable where
 import LowLevelAlex
 import Scope
-import AST(Id, OKType)
+import OKTypes
 import qualified AST
 import qualified Data.HashMap.Strict as H
 
@@ -9,28 +9,31 @@ import qualified Data.HashMap.Strict as H
 ----------------------------------
 -------------Symbols--------------
 ----------------------------------
-data Sym = VarSym{ sym_scope :: Scope,
-                sym_Id :: Id,
-                sym_pos :: Pos, -- declaration position
-                sym_type :: OKType
+data Sym = VarSym{ sym_scope :: Scope
+                 , sym_Id :: Id
+                 , sym_pos :: Pos -- declaration position
+                 , sym_type :: OKType
+                 , offset :: Int
            }
-          | FuncSym{ sym_scope :: Scope,
-                sym_Id :: Id,
-                sym_pos :: Pos, -- declaration position
-                sym_type :: OKType,
-                sym_argsId :: [SymId],
-                sym_AST :: [AST.INSTRUCTION]
+          | FuncSym{ sym_scope :: Scope
+                   , sym_Id :: Id
+                   , sym_pos :: Pos -- declaration position
+                   , sym_type :: OKType
+                   , sym_argsId :: [SymId]
+                   , sym_AST :: [AST.INSTRUCTION]
+                   , offset :: Int
            }
-          | NameTypeSym{ sym_scope :: Scope,
-                     sym_Id :: Id,
-                     sym_pos :: Pos, -- declaration position
-                     sym_type :: OKType
+          | NameTypeSym{ sym_scope :: Scope
+                       , sym_Id :: Id
+                       , sym_pos :: Pos -- declaration position
+                       , sym_type :: OKType
+                       , offset :: Int
            }
-          | ErrorSym {
-                sym_scope :: Scope,
-                sym_Id :: Id,
-                sym_pos :: Pos,
-                sym_type :: OKType
+          | ErrorSym { sym_scope :: Scope
+                     , sym_Id :: Id
+                     , sym_pos :: Pos
+                     , sym_type :: OKType
+                     , offset :: Int
             } deriving Show
 
 isVarSym VarSym{} = True
