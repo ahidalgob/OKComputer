@@ -322,8 +322,8 @@ insertVarSym scope id pos oktype = do
 
 
 
-insertFuncSym :: Id -> Pos -> OKType -> [SymId] -> ParseM ()
-insertFuncSym id pos oktype@(OKFunc paramTypes _) paramIds = do
+insertFuncSym :: Id -> Pos -> OKType -> [SymId] -> Bool -> ParseM ()
+insertFuncSym id pos oktype@(OKFunc paramTypes _) paramIds defining = do
   syms <- findAllSymsInScope 1 id
   if not.null $ filter isVarSym syms
      then undefined -- already defined as variable
@@ -343,7 +343,7 @@ insertNameTypeSym id pos oktype = do
   case prevSym of
     Nothing -> do
           symTable <- gets state_SymTable
-          let newSymTable = symTableInsert (NameTypeSym 0 id pos oktype 0) symTable
+          let newSymTable = symTableInsert (NameTypeSym 0 id pos oktype) symTable
           modify (\s -> s{state_SymTable = newSymTable})
     Just sym -> undefined -- alias already defined
                           -- showNameTypeAlreadyUsed (sym_Id sym) (fst.sym_pos $ sym) (head syms)

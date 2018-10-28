@@ -149,6 +149,7 @@ IDS : IDS ',' varId                             { (tkn_string $3):$1 }
 
 OUTSIDE_FUNCTION :: { [AST.OUTSIDE] }
 OUTSIDE_FUNCTION : FUNCTION_DEF OUTSIDE_FUNCTION           { $2 }
+                | FUNCTION_SIGN_DECL OUTSIDE_FUNCTION           { $2 }
                 | DECLARATION newline OUTSIDE_FUNCTION     { (AST.OUTASSIGN $1):$3 }
                 | TYPEDEF OUTSIDE_FUNCTION                 { $2 }
                 | {-λ-}                                    { [] }
@@ -162,8 +163,12 @@ FUNCTION_DEF : FUNCTION_SIGN BLOCK {% functionDefAction $1 $2}
 
 FUNCTION_SIGN :: { (Token, [Parameter], OKType) }
 -- Creates the function symbol and inserts it to the sym table
-FUNCTION_SIGN : dafunk BEGIN varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE     {% functionSignAction $3 $5 $8 }
+FUNCTION_SIGN : dafunk BEGIN varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE     {% functionSignAction $3 $5 $8 true }
 
+
+FUNCTION_SIGN_DECL :: { (Token, [Parameter], OKType) }
+-- Creates the function symbol and inserts it to the sym table
+FUNCTION_SIGN_DECL : dafunk BEGIN varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE     {% functionSignAction $3 $5 $8 false }
 
 RETURNTYPE :: { OKType }
 RETURNTYPE: intothevoid                                                 { OKVoid }
@@ -345,13 +350,13 @@ functionDefAction (tkn, params, ret) instrs = do
         P.completeFunctionDef (tkn_string tkn) oktype instrs
 
 -- Adds the function, without body, to the sym table
-functionSignAction :: Token -> [Parameter] -> OKType -> ParseM (Token, [Parameter], OKType)
-functionSignAction tkn params retType = do
+functionSignAction :: Token -> [Parameter] -> OKType -> Bool -> ParseM (Token, [Parameter], OKType)
+functionSignAction tkn params retType defining = do
         let oktype = OKFunc (map param_type params) retType
             id = tkn_string tkn
             pos = tkn_pos tkn
             param_ids = map param_id params
-        P.insertFuncSym id pos oktype param_ids
+        P.insertFuncSym id pos oktype param_ids defined
         P.setReturnType retType
         return (tkn, params, retType)
 
