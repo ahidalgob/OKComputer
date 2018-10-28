@@ -21,7 +21,7 @@ tokens :-
   -- Instructions
 <0>  typedef                                 {newToken TypedefTkn}
 <0>  youbegin                                {newToken YouBeginTkn}        -- Block Start
-<0>  whereiend                               {newEndTkn}                   -- Block End
+<0>  whereiend                               {newToken WhereIEndTkn}       -- Block End
 <0>  if                                      {newToken IfTkn}              -- Selection
 <0>  ifyouhavetoask                          {newToken IfYouHaveToAskTkn}  -- Selection
 <0>  otherside                               {newToken OthersideTkn}       -- Selection
@@ -178,12 +178,13 @@ newLine = \alexIn _ -> do
                 return $ NewLineTkn pos
     True -> alexGetToken
 
-newEndTkn :: AlexAction Token
-newEndTkn = \alexIn _ -> do
-  let pos = getPos alexIn
-  --liftIO $ print $ tknConstr pos
-  setLastNewLine True
-  return $ WhereIEndTkn pos
+-- No idea what this was
+--newEndTkn :: AlexAction Token
+--newEndTkn = \alexIn _ -> do
+  --let pos = getPos alexIn
+  ----liftIO $ print $ tknConstr pos
+  --setLastNewLine True
+  --return $ WhereIEndTkn pos
 
 beginString :: AlexAction Token
 beginString = \alexIn _ -> do

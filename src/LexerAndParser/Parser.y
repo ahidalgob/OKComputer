@@ -54,7 +54,7 @@ import Data.List
 --  keepyourselfalive                       { KeepAliveTkn }       -- Realloc
   amnesiac                                { AmnesiacTkn _ }        -- Free
   exitmusic                               { ExitMusicTkn _ }       -- Exit
-  aroundtheworld                          { AroundTheWorldTkn _ }  -- Import
+  --aroundtheworld                          { AroundTheWorldTkn _ }  -- Import
 --  holeinmysoul                            { HoleInMySoulTkn }    -- Templates
 
   -- Type Tokens
@@ -132,19 +132,19 @@ import Data.List
 -- Grammar{{{1
 %%
 START :: { AST.START }
-START : IMPORTS OUTSIDE_FUNCTION         { AST.START (reverse $1) $2 }
+START : MAYBELINE OUTSIDE_FUNCTION         { AST.START $2 }
 
 
-IMPORTS :: { [AST.IMPORT] } --{{{
-IMPORTS : IMPORTS newline IMPORT        { (AST.IMPORT $3):$1 }
-        | {-λ-}                         { [] }
+--IMPORTS :: { [AST.IMPORT] } --{{{
+--IMPORTS : IMPORTS newline IMPORT        { (AST.IMPORT $3):$1 }
+        -- | [>λ<]                         { [] }
 
-IMPORT :: { [Id] }
-IMPORT : aroundtheworld IDS             { reverse $2 }
+--IMPORT :: { [Id] }
+--IMPORT : aroundtheworld IDS             { reverse $2 }
 
-IDS :: { [Id] }
-IDS : IDS ',' varId                             { (tkn_string $3):$1 }
-  | varId                                       { [tkn_string $1] }
+--IDS :: { [Id] }
+--IDS : IDS ',' varId                             { (tkn_string $3):$1 }
+  -- | varId                                       { [tkn_string $1] }
 -- }}}
 
 OUTSIDE_FUNCTION :: { [AST.OUTSIDE] }
@@ -157,18 +157,17 @@ OUTSIDE_FUNCTION : FUNCTION_DEF OUTSIDE_FUNCTION           { $2 }
 TYPEDEF :: { () }
 TYPEDEF : typedef typeId TYPE newline                          {% typedefAction $2 $3 }
 
-FUNCTION_DEF :: { () }
 -- Completes the definition of the function
-FUNCTION_DEF : FUNCTION_SIGN BLOCK {% functionDefAction $1 $2}
+FUNCTION_DEF :: { () }
+FUNCTION_DEF : FUNCTION_SIGN BLOCK MAYBELINE {% functionDefAction $1 $2}
 
+-- Creates the function symbol and inserts it to the sym table
 FUNCTION_SIGN :: { (Token, [Parameter], OKType) }
+FUNCTION_SIGN : dafunk BEGIN varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE MAYBELINE     {% functionSignAction $3 $5 $8 True }
+
 -- Creates the function symbol and inserts it to the sym table
-FUNCTION_SIGN : dafunk BEGIN varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE     {% functionSignAction $3 $5 $8 true }
-
-
 FUNCTION_SIGN_DECL :: { (Token, [Parameter], OKType) }
--- Creates the function symbol and inserts it to the sym table
-FUNCTION_SIGN_DECL : dafunk BEGIN varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE     {% functionSignAction $3 $5 $8 false }
+FUNCTION_SIGN_DECL : dafunk BEGIN varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE MAYBELINE END   {% functionSignAction $3 $5 $8 False }
 
 RETURNTYPE :: { OKType }
 RETURNTYPE: intothevoid                                                 { OKVoid }
@@ -190,7 +189,7 @@ FUNCTIONPARAMETER :: { Parameter }
 FUNCTIONPARAMETER : TYPE varId         {% functionParameterAction $1 $2}
 
 BLOCK :: { [AST.INSTRUCTION] }
-BLOCK : MAYBELINE youbegin MAYBELINE INSIDEFUNCTION whereiend END                    { reverse $4 }
+BLOCK : youbegin MAYBELINE INSIDEFUNCTION whereiend END                   { reverse $3 }
 
 BEGIN : {-λ-}                                                       {% P.beginScope }
 
@@ -241,7 +240,6 @@ INSIDERECORD :: { [AST.INSTRUCTION] }
 INSIDERECORD : INSIDERECORD DECLARATION newline                 { (map AST.EXPRESSIONINST $ reverse $2)++$1 }
               | DECLARATION MAYBELINE                           { map AST.EXPRESSIONINST $ reverse $1 }
 
---INSIDEUNION ::
 
 
 
@@ -251,9 +249,9 @@ INSTRUCTION : go '(' NONEMPTYEXPRESSIONS ')' newline                            
             | gomental '(' NONEMPTYEXPRESSIONS ')' newline                      { AST.GOINGMENTAL $ reverse $3 }
             | readmymind '(' LVALS ')' newline                                  { AST.READMYMIND $3 }
             | amnesiac '(' EXPRESSION ')' newline                               { AST.AMNESIAC $ $3 }
-            | if EXPRESSION BEGIN BLOCK IFELSE                                  {% ifAction $1 $2 (reverse $4) $5 }
-            | cantstop EXPRESSION BEGIN BLOCK                                   {% cantStopAction $1 $2 (reverse $4) }
-            | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION BLOCK {% oneMoreTimeAction $1 $5 $3 $7 (reverse $8) }
+            | if EXPRESSION BEGIN MAYBELINE BLOCK IFELSE                                  {% ifAction $1 $2 (reverse $5) $6 }
+            | cantstop EXPRESSION BEGIN MAYBELINE BLOCK                                   {% cantStopAction $1 $2 (reverse $5) }
+            | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION MAYBELINE BLOCK {% oneMoreTimeAction $1 $5 $3 $7 (reverse $9) }
             | getback EXPRESSION newline                                        {% getBackAction $1 (Just $2) }
             | getback newline                                                   {% getBackAction $1 Nothing }
             | breakthru newline                                                 { AST.BREAKTHRU }
@@ -261,8 +259,8 @@ INSTRUCTION : go '(' NONEMPTYEXPRESSIONS ')' newline                            
             | EXPRESSION newline                                                { AST.EXPRESSIONINST $1 }
 
 
-IFELSE : ifyouhavetoask EXPRESSION BEGIN BLOCK IFELSE                           {% ifYouHaveToAskAction $1 $2 (reverse $4) $5 }
-       | otherside BEGIN BLOCK                                                  { AST.OTHERSIDE $3 }
+IFELSE : ifyouhavetoask EXPRESSION BEGIN MAYBELINE BLOCK IFELSE                           {% ifYouHaveToAskAction $1 $2 (reverse $5) $6 }
+       | otherside BEGIN MAYBELINE BLOCK                                                  { AST.OTHERSIDE $4 }
        | {-λ-}                                                                  { AST.IFELSEVOID }
 
 
@@ -356,7 +354,7 @@ functionSignAction tkn params retType defining = do
             id = tkn_string tkn
             pos = tkn_pos tkn
             param_ids = map param_id params
-        P.insertFuncSym id pos oktype param_ids defined
+        P.insertFuncSym id pos oktype param_ids defining
         P.setReturnType retType
         return (tkn, params, retType)
 

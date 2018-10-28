@@ -1,0 +1,13 @@
+
+dafunk maintheme2(Int n) : Intothevoid
+
+
+dafunk maintheme(Int n) : Intothevoid
+ youbegin
+    maintheme2(n)
+ whereiend
+
+dafunk maintheme2(Int n) : Intothevoid
+ youbegin
+    maintheme(n)
+ whereiend

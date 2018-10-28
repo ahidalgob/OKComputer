@@ -21,7 +21,7 @@ data Sym = VarSym{ sym_scope :: Scope
                    , sym_type :: OKType
                    , sym_argsId :: [SymId]
                    , sym_AST :: [AST.INSTRUCTION]
-                   , defined :: Bool -- or only declared?
+                   , sym_defined :: Bool -- or only declared?
                    , offset :: Int
            }
           | NameTypeSym{ sym_scope :: Scope
@@ -33,7 +33,6 @@ data Sym = VarSym{ sym_scope :: Scope
                      , sym_Id :: Id
                      , sym_pos :: Pos
                      , sym_type :: OKType
-                     , offset :: Int
             } deriving Show
 
 isVarSym VarSym{} = True

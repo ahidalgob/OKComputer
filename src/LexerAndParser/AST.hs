@@ -5,9 +5,10 @@ import OKTypes
 
 -- AST {{{1
 
-data START = START [IMPORT] [OUTSIDE] deriving Show
+--data START = START [IMPORT] [OUTSIDE] deriving Show
+data START = START [OUTSIDE] deriving Show
 
-data IMPORT = IMPORT [Id] deriving Show
+--data IMPORT = IMPORT [Id] deriving Show
 
 data OUTSIDE = OUTASSIGN [EXPRESSION] -- All the expressions are assigns
           deriving Show
@@ -71,15 +72,15 @@ printIdSymbol n s = putStrLnWithIdent n $ "ID: " ++ (fst s) ++ " Scope: " ++ sho
 printId n s = putStrLnWithIdent n $ "ID: " ++ s
 
 printSTARTN :: Int -> START -> IO()
-printSTARTN n (START imports outsides) = do
+printSTARTN n (START outsides) = do
     putStrLnWithIdent n "Program start: "
-    mapM_ (printImportN (n+1)) imports
+    --mapM_ (printImportN (n+1)) imports
     mapM_ (printOutsideListN (n+1)) outsides
 
-printImportN :: Int -> IMPORT -> IO()
-printImportN n (IMPORT ids) = do
-  putStrLnWithIdent n "Imports list: "
-  mapM_ (printId (n+1)) ids
+--printImportN :: Int -> IMPORT -> IO()
+--printImportN n (IMPORT ids) = do
+  --putStrLnWithIdent n "Imports list: "
+  --mapM_ (printId (n+1)) ids
 
 printOutsideListN :: Int -> OUTSIDE -> IO()
 printOutsideListN n (OUTASSIGN exps) = do

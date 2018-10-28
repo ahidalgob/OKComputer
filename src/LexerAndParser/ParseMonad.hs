@@ -313,7 +313,7 @@ findSymInRecord scope id pos = do
 insertVarSym :: Scope -> Id -> Pos -> OKType -> ParseM ()
 insertVarSym scope id pos oktype = do
   -- the error is just a dummy variable
-  prevSym <- fromMaybe (ErrorSym (-1) id pos OKErrorT 0) <$> findSymInScope scope id
+  prevSym <- fromMaybe (ErrorSym (-1) id pos OKErrorT) <$> findSymInScope scope id
   if sym_scope prevSym == scope
        then showVariableRedeclaredInScope id (fst pos) prevSym
        else  do symTable <- gets state_SymTable
@@ -321,18 +321,37 @@ insertVarSym scope id pos oktype = do
                 modify (\s -> s{state_SymTable = newSymTable})
 
 
+modifySymTableList :: Id -> [Sym] -> ParseM()
+modifySymTableList id newList = do
+  symTable <- gets state_SymTable
+  let newSymTable = symTableModify id newList symTable
+  modify (\s -> s{state_SymTable = newSymTable})
+
 
 insertFuncSym :: Id -> Pos -> OKType -> [SymId] -> Bool -> ParseM ()
 insertFuncSym id pos oktype@(OKFunc paramTypes _) paramIds defining = do
   syms <- findAllSymsInScope 1 id
   if not.null $ filter isVarSym syms
-     then showFunctionNameUsedAsGlobalVariable id (fst pos) (head syms) --  >> return (ErrorSym (-1) id pos OKErrorT)-- already defined as variable
-     else if any (sameParams paramTypes) syms
-            then showRedeclarationOfFunction id (fst pos) (head $ filter (sameParams paramTypes) syms) --  >> return (ErrorSym (-1) id pos OKErrorT) -- already defined with same arguments
-            else do
+     then showFunctionNameUsedAsGlobalVariable id (fst pos) (head syms) -- already defined as variable
+     else case find (sameParams paramTypes) syms of
+          Nothing -> do
               symTable <- gets state_SymTable
-              let newSymTable = symTableInsert (FuncSym 1 id pos oktype paramIds [] 0) symTable
+              let newSymTable = symTableInsert (FuncSym 1 id pos oktype paramIds [] False 0) symTable
               modify (\s -> s{state_SymTable = newSymTable})
+          Just FuncSym{sym_defined=def}
+            | def -> showRedeclarationOfDefinedFunction id (fst pos) (head $ filter (sameParams paramTypes) syms) -- already defined with same arguments
+            | not defining -> showRedeclarationOfDeclaredFunction id (fst pos) (head $ filter (sameParams paramTypes) syms) -- already defined with same arguments
+            | otherwise -> do
+                newList <- updateFunc oktype paramIds <$> findAllSyms id
+                modifySymTableList id newList
+                where
+                      updateFunc :: OKType -> [SymId] -> [Sym] -> [Sym]
+                      updateFunc _ _ [] = []
+                      updateFunc funcType ids (sym : syms) =
+                        (if funcType == sym_type sym
+                            then sym{sym_argsId = ids}
+                            else sym
+                            ) : updateFunc funcType ids syms
 
 
 
@@ -349,7 +368,7 @@ insertNameTypeSym id pos oktype = do
 
 
 sameParams :: [OKType] -> Sym -> Bool
-sameParams prms1 (FuncSym{sym_type = OKFunc prms2 _ }) = prms1==prms2
+sameParams prms1 FuncSym{sym_type = OKFunc prms2 _ } = prms1==prms2
 sameParams _ _ = False
 
 -- exported
@@ -374,26 +393,17 @@ findFunction id pos paramTypes = do
 completeFunctionDef :: Id -> OKType -> [AST.INSTRUCTION] -> ParseM ()
 completeFunctionDef id oktype instrs = do
   newList <- updateFunc oktype instrs <$> findAllSyms id
-  symTable <- gets state_SymTable
-  let newSymTable = symTableModify id newList symTable
-  modify (\s -> s{state_SymTable = newSymTable})
+  modifySymTableList id newList
   where
         updateFunc :: OKType -> [AST.INSTRUCTION] -> [Sym] -> [Sym]
         updateFunc _ _ [] = []
         updateFunc funcType instrs (sym : syms) =
           (if funcType == sym_type sym
-              then sym{sym_AST = instrs}
+              then sym{sym_AST = instrs, sym_defined = True}
               else sym
               ) : updateFunc funcType instrs syms
 
 --}}}
-
-
-
-
-
-
-
 
 
 
@@ -414,10 +424,16 @@ showFunctionNameUsedAsGlobalVariable id ln sym = do
      liftIO $ putStrLn $ "Name for function " ++ id ++ " is already used as a global variable in line " ++ show (fst.sym_pos $ sym) ++ "."
      liftIO $ putStrLn $ "You're not to blame for bittersweet distractors \n"
 
-showRedeclarationOfFunction :: Id -> Int -> Sym -> ParseM ()
-showRedeclarationOfFunction id ln sym = do
+showRedeclarationOfDefinedFunction :: Id -> Int -> Sym -> ParseM ()
+showRedeclarationOfDefinedFunction id ln sym = do
     liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
     liftIO $ putStrLn $ "Function " ++ id ++ " with same signature (arguments type) already defined in line " ++ show (fst.sym_pos $ sym) ++ "."
+    liftIO $ putStrLn $ "For a minute there I lost myself \n"
+
+showRedeclarationOfDeclaredFunction :: Id -> Int -> Sym -> ParseM ()
+showRedeclarationOfDeclaredFunction id ln sym = do
+    liftIO $ putStrLn $ "Error in line " ++ show ln ++ ":"
+    liftIO $ putStrLn $ "Function " ++ id ++ " with same signature (arguments type) already declared in line " ++ show (fst.sym_pos $ sym) ++ "."
     liftIO $ putStrLn $ "For a minute there I lost myself \n"
 
 showVariableRedeclaredInScope :: Id -> Int -> Sym -> ParseM ()
