@@ -6,11 +6,11 @@ import OKTypes
 -- AST {{{1
 
 --data START = START [IMPORT] [OUTSIDE] deriving Show
-data START = START [OUTSIDE] deriving Show
+newtype START = START [OUTSIDE] deriving Show
 
 --data IMPORT = IMPORT [Id] deriving Show
 
-data OUTSIDE = OUTASSIGN [EXPRESSION] -- All the expressions are assigns
+newtype OUTSIDE = OUTASSIGN [EXPRESSION] -- All the expressions are assigns
           deriving Show
 
 data INSTRUCTION = GOING [EXPRESSION]                                  |
