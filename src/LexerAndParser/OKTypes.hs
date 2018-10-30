@@ -19,6 +19,22 @@ data OKType = OKPointer {pointer_Type::OKType}
             | OKRecord Int
             | OKErrorT deriving (Eq)
 
+type_width :: OKType -> Int
+type_width OKPointer{} = 4
+type_width OKBoolean = 4
+type_width OKInt = 4
+type_width OKFloat = 4
+type_width OKChar = 1
+type_width OKString = 4
+type_width OKNameType{type_Type=t} = type_width t
+type_width (OKArray n t) = n * type_width t
+type_width (OKTuple lt) = sum $ map type_width lt
+type_width OKList{} = 4
+type_width OKRecord{} = undefined
+type_width OKVoid = 0
+type_width OKFunc{} = 0
+type_width OKErrorT{} = 0
+
 instance Show OKType where
   show (OKPointer t) = "pointer("++ show t ++")"
   show OKVoid = "void"

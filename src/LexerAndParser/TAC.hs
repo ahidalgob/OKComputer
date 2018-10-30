@@ -10,13 +10,14 @@ import Control.Monad.Writer.Lazy
 
 type Scope = Int
 type SymId = (Id, Scope)
+type Width = Int
 
 data X = Name SymId
        | IntCons Int
        | FloatCons Float
        | BoolCons Bool
        | CharCons Char
-       | Temporal Id
+       | Temporal Int Width
 
 type Label = String
 
@@ -47,15 +48,26 @@ data RelOp = LTOET | LT | GTOET | GT | ET | NET
 
 
 
-data TACkerState = TACkerState { tempCounter :: Int
+data TACkerState = TACkerState { tmpCounter :: Int
+                               , tmpWidths :: [Width]
                                , backPatchMap :: Int
                                }
-initTACkerState = TACkerState{ tempCounter = 0
+initTACkerState = TACkerState{ tmpCounter = 0
+                             , tmpWidths = []
                              , backPatchMap = 0
                              }
 
 
 type TACkerM a = WriterT TAC (StateT TACkerState IO) a
+
+fresh :: Width -> TACkerM X
+fresh w = do
+  tmpCnt <- gets tmpCounter
+  tmpWs <- gets tmpWidths
+  modify (\s -> s{tmpCounter = tmpCnt+1, tmpWidths = w:tmpWs})
+  return $ Temporal tmpCnt w
+
+
 
 tacExpression :: EXPRESSION -> TACkerM X
 tacExpression IDEXPRESSION{expId = symId}         = return $ Name symId
@@ -65,44 +77,40 @@ tacExpression CHAREXP{expChar = val}              = return $ CharCons val
 tacExpression BOOLEANEXP{expBooleanVal = val}     = return $ BoolCons val
 
 -- e can be a simple value, an array, a tuple, a list, string
-tacExpression (ASSIGN le re t)
-  | isSimpleType t = do
-      (base, tshift) <- tacLval le
-      t1 <- tacExpression re
+tacExpression (ASSIGN le re t) = do
+  (base, tshift) <- tacLval le
+  t1 <- tacExpression re
+  let width = type_width t
+  if isSimpleType t
+    then
+      case tshift of
+        Nothing -> tell [CopyInstr base t1]
+        Just shift -> tell [ArraySetPos base shift t1]
+    else
       case tshift of
         Nothing -> do
-          tell [CopyInstr base t1]
-          return t1
+          let setPos i = do
+                          t <- fresh (type_width OKInt)
+                          tell [ ArrayGetPos t t1 (IntCons i)
+                               , ArraySetPos base (IntCons i) t]
+          mapM_ setPos [0,4..(width-1)]
         Just shift -> do
-          tell [ArraySetPos base shift t1]
-          return t1
-  | otherwise = do
-    simplifyAssign le re t
-    return $ IntCons 0
+          let setPos i = do
+                          t <- fresh (type_width OKInt)
+                          t2 <- fresh (type_width OKInt)
+                          tell [ BinOpInstr t2 shift Add (IntCons i)
+                               , ArrayGetPos t t1 (IntCons i)
+                               , ArraySetPos base t2 t]
+          mapM_ setPos [0,4..(width-1)]
+  return t1
 
   where
-    isSimpleType :: OKType -> Bool -- TODO pointer?
+    isSimpleType :: OKType -> Bool
     isSimpleType OKArray{} = False
     isSimpleType OKRecord{} = False
     isSimpleType OKTuple{} = False
     isSimpleType _ = True
 
-    -- simplifies x = {1,2,3} into x[0]=1; x[1]=2; x[2]=3; and alike
-    simplifyAssign :: EXPRESSION -> EXPRESSION -> OKType -> TACkerM ()
-
-    -- chained assigns
-    simplifyAssign e1 (ASSIGN e2 e3 _) oktype = do
-      simplifyAssign e2 e3 oktype
-      simplifyAssign e1 e2 oktype
-
-    --for literal arrays we transform a = {e1, e2, ...} in a[0]=e1, a[1]=e2...
-    simplifyAssign e1 ARRAYEXP{expVals = list} (OKArray n oktype) =
-      mapM_ tacExpression [ASSIGN (ARRAYACCESS e1 i oktype) e oktype |
-        (i, e) <- zip (map (flip INTEXP OKInt) [0..(n-1)]) list]
-
-    --otherwise we transform a = b in a[0]=b[0], a[1]=b[1]...
-    simplifyAssign e1 e2 (OKArray n oktype) =
-      mapM_ tacExpression [ASSIGN (ARRAYACCESS e1 i oktype) (ARRAYACCESS e2 i oktype) oktype | i <- map (flip INTEXP OKInt) [0..(n-1)]]
 
 
 tacExpression COMPAR{}           = undefined

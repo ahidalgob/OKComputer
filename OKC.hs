@@ -2,6 +2,7 @@ import Lexer
 import ParseMonad
 import Parser
 import AST
+import TAC
 import Data.HashMap.Strict
 import System.Environment
 
