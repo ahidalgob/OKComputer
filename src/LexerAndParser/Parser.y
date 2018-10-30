@@ -500,10 +500,10 @@ tupleAccessAction tkn exp n =
          OKErrorT -> return exp
          OKTuple types -> do
             if n >= length types then do     showTupleOutOfRange (fst.tkn_pos $ tkn) n (length types)
-                                             return $ AST.TUPLEACCESS exp n OKErrorT
-                                 else return (AST.TUPLEACCESS exp n (types !! n))
+                                             return $ AST.TUPLEACCESS exp n OKErrorT 0
+                                 else return (AST.TUPLEACCESS exp n (types !! n) (sum.(map type_width) $ take n types))
          _ -> do  showNotATuple (fst.tkn_pos $ tkn) (exp_type exp)
-                  return $ AST.TUPLEACCESS exp n OKErrorT
+                  return $ AST.TUPLEACCESS exp n OKErrorT 0
 
 orderCompAction :: Token -> AST.EXPRESSION -> AST.EXPRESSION -> String -> ParseM AST.EXPRESSION
 orderCompAction tkn exp1 exp2 op = do

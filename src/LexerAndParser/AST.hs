@@ -56,9 +56,10 @@ data EXPRESSION = IDEXPRESSION {expId::SymId, exp_type::OKType}                 
                   CONCAT {expExp1::EXPRESSION, expExp2::EXPRESSION, exp_type::OKType}                  |
 
                   ARRAYACCESS {expExp::EXPRESSION, expExpIn::EXPRESSION, exp_type::OKType}             |
+                  TUPLEACCESS {expExp::EXPRESSION, expPos::Int, exp_type::OKType, exp_shift::Int}      |
+
                   LISTACCESS {expExp::EXPRESSION, expExpIn::EXPRESSION, exp_type::OKType}              |
                   RECORDACCESS {expExp::EXPRESSION, expName::String, exp_type::OKType}                 |
-                  TUPLEACCESS {expExp::EXPRESSION, expPos::Int, exp_type::OKType}                      |
                   FUNCTIONCALL {expFuncName::String, expArgs::[EXPRESSION], exp_type::OKType}          |
                   NEWLIFE {expExp::EXPRESSION, exp_type::OKType}                                       |
                   POINTER {expExp::EXPRESSION, exp_type::OKType}                                       |
@@ -188,7 +189,7 @@ printExpN n (LISTACCESS arrayid posnumber t) = do
     putStrWithIdent n "Type:\n"
     printOKType (n+1) t
 
-printExpN n (TUPLEACCESS arrayid posnumber t) = do
+printExpN n (TUPLEACCESS arrayid posnumber t _) = do
     putStrLnWithIdent n "Operation with Tuple Element:"
     printExpN n arrayid
     putStrLnWithIdent n $ "Tuple position: " ++ show posnumber

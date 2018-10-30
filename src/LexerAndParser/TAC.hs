@@ -68,6 +68,7 @@ fresh w = do
   return $ Temporal tmpCnt w
 
 
+-- tacExpression {{{1
 
 tacExpression :: EXPRESSION -> TACkerM X
 tacExpression IDEXPRESSION{expId = symId}         = return $ Name symId
@@ -90,17 +91,17 @@ tacExpression (ASSIGN le re t) = do
       case tshift of
         Nothing -> do
           let setPos i = do
-                          t <- fresh (type_width OKInt)
-                          tell [ ArrayGetPos t t1 (IntCons i)
-                               , ArraySetPos base (IntCons i) t]
+                  t <- fresh (type_width OKInt)
+                  tell [ ArrayGetPos t t1 (IntCons i)
+                       , ArraySetPos base (IntCons i) t]
           mapM_ setPos [0,4..(width-1)]
         Just shift -> do
           let setPos i = do
-                          t <- fresh (type_width OKInt)
-                          t2 <- fresh (type_width OKInt)
-                          tell [ BinOpInstr t2 shift Add (IntCons i)
-                               , ArrayGetPos t t1 (IntCons i)
-                               , ArraySetPos base t2 t]
+                  t <- fresh (type_width OKInt)
+                  t2 <- fresh (type_width OKInt)
+                  tell [ BinOpInstr t2 shift Add (IntCons i)
+                       , ArrayGetPos t t1 (IntCons i)
+                       , ArraySetPos base t2 t]
           mapM_ setPos [0,4..(width-1)]
   return t1
 
@@ -112,27 +113,59 @@ tacExpression (ASSIGN le re t) = do
     isSimpleType _ = True
 
 
+tacExpression (MINUS exp t) = do
+  t1 <- tacExpression exp
+  t <- fresh (type_width t)
+  tell [UnOpInstr t Minus t1]
+  return t
+
+tacExpression (ARIT exp1 opStr exp2 t) = do
+  t1 <- tacExpression exp1
+  t2 <- tacExpression exp2
+  let op = f opStr
+  t <- fresh (type_width t)
+  tell [BinOpInstr t t1 op t2]
+  return t
+  where
+  f "+" = Add
+  f "-" = Sub
+  f "*" = Mul
+  f "/" = Div
+  f "%" = Mod
+  f "div" = Div
+  f "mod" = Mod
+  f _ = error "what()"
 
 tacExpression COMPAR{}           = undefined
 tacExpression NOT{}              = undefined
 tacExpression LOGIC{}            = undefined
-tacExpression MINUS{}            = undefined
-tacExpression ARIT{}             = undefined
 
 tacExpression FUNCTIONCALL{}     = undefined
 
-tacExpression ARRAYACCESS{}      = undefined
-tacExpression RECORDACCESS{}     = undefined
+tacExpression e@(ARRAYACCESS exp expIn t) = do
+  (base, Just shift) <- tacLval e
+  let width = type_width t
+  t <- fresh (type_width t)
+  let setPos i = do
+          t1 <- fresh (type_width OKInt)
+          t2 <- fresh (type_width OKInt)
+          tell [ BinOpInstr t1 shift Add (IntCons i)
+               , ArrayGetPos t2 base t1
+               , ArraySetPos t (IntCons i) t2]
+  mapM_ setPos [0,4..(width-1)]
+  return t
+
 tacExpression TUPLEACCESS{}      = undefined
+
+tacExpression RECORDACCESS{}     = undefined
 
 tacExpression NEWLIFE{}          = undefined
 tacExpression POINTER{}          = undefined
 
+tacExpression ARRAYEXP{}         = undefined
+tacExpression TUPLEEXP{}         = undefined
+
 tacExpression STRINGEXP{}        = undefined
-tacExpression ARRAYEXP{}         = undefined {- just generate each expression it will happen when the array is not used but the evaluation can have border cases -}
-
-tacExpression TUPLEEXP{}         = undefined {- can this happen anywhere else other than assigns, returns and params? -}
-
 tacExpression LISTEXP{}          = undefined
 
 tacExpression LISTACCESS{}       = undefined
@@ -141,10 +174,33 @@ tacExpression CONCAT{}           = undefined
 
 
 
-
-
-
-
-
+-- tacLval {{{1
 tacLval :: EXPRESSION -> TACkerM (X, Maybe X)
-tacLval = undefined
+tacLval IDEXPRESSION{expId = symId} = return (Name symId, Nothing)
+
+tacLval (ARRAYACCESS exp expIn t) = do
+  (base, mshift) <- tacLval exp
+  tin <- tacExpression expIn
+  let w = type_width t
+  t_newshift <- fresh (type_width OKInt)
+  tell [BinOpInstr t_newshift tin Mul (IntCons w)]
+  case mshift of
+    Nothing -> return (base, Just t_newshift)
+    Just t_shift -> do
+      t_completeshift <- fresh (type_width OKInt)
+      tell [BinOpInstr t_completeshift t_newshift Add t_shift]
+      return (base, Just t_completeshift)
+
+tacLval (TUPLEACCESS exp pos t new_shift) = do
+  (base, mshift) <- tacLval exp
+  case mshift of
+    Nothing -> return (base, Just (IntCons new_shift))
+    Just t_shift -> do
+      t_completeshift <- fresh (type_width OKInt)
+      tell [BinOpInstr t_completeshift t_shift Add (IntCons new_shift)]
+      return (base, Just t_completeshift)
+
+
+tacLval RECORDACCESS{} = undefined
+tacLval LISTACCESS{} = undefined
+
