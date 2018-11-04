@@ -92,8 +92,12 @@ fresh w = do
 freshLabel :: String -> TACkerM Label
 freshLabel str = do
   labelCnt <- gets labelCounter
-  modify (\s -> s{labelCounter = labelCnt+1})
   return $ str ++ "L" ++ show labelCnt
+
+increaseLabelCounter :: TACkerM ()
+increaseLabelCounter = do
+  labelCnt <- gets labelCounter
+  modify (\s -> s{labelCounter = labelCnt+1})
 
 freshFakeLabel :: TACkerM Label
 freshFakeLabel = do
@@ -131,6 +135,7 @@ tacInstruction (IF exp instrs ifelse) = do
   trueLabel <- freshLabel "ifTrue"
   falseLabel <- freshLabel "ifFalse"
   endLabel <- freshLabel "ifEnd"
+  increaseLabelCounter
 
   backPatch tl trueLabel
   backPatch fl falseLabel
@@ -147,6 +152,7 @@ tacInstruction (CANTSTOP exp instrs) = do
   startLabel <- freshLabel "startCantStop"
   enterLabel <- freshLabel "enterCantStop"
   endLabel <- freshLabel "endCantStop"
+  increaseLabelCounter
 
   pushCycleLabel enterLabel endLabel
 
@@ -167,6 +173,7 @@ tacInstruction (ONEMORETIME iniExps condExp stepExp instrs) = do
   startLabel <- freshLabel "startOneMoreTime"
   enterLabel <- freshLabel "enterOneMoreTime"
   endLabel <- freshLabel "endOneMoreTime"
+  increaseLabelCounter
 
   mapM_ tacExpression iniExps
   pushCycleLabel enterLabel endLabel
@@ -213,6 +220,7 @@ tacIfElse (IFASK exp instrs ifelse) endLabel = do
   (tl, fl) <- tacBoolean exp
   trueLabel <- freshLabel "elseTrue"
   falseLabel <- freshLabel "elseFalse"
+  increaseLabelCounter
 
   backPatch tl trueLabel
   backPatch fl falseLabel
@@ -355,6 +363,8 @@ booleanToTemporal e = do
   trueLabel <- freshLabel "booleanToTempTrue"
   falseLabel <- freshLabel "booleanToTempFalse"
   exitLabel <- freshLabel "booleanToTempExit"
+  increaseLabelCounter
+
   backPatch trueList trueLabel
   backPatch falseList falseLabel
   tell [ PutLabel trueLabel
@@ -441,6 +451,7 @@ tacBoolean (NOT exp _) = do
 tacBoolean (LOGIC exp1 compar exp2 _)
   | compar == "and" = do
     label <- freshLabel "andFirstTrue"
+    increaseLabelCounter
     (tl1, fl1) <- tacBoolean exp1
     tell [ PutLabel label ]
     (tl2, fl2) <- tacBoolean exp2
@@ -449,6 +460,7 @@ tacBoolean (LOGIC exp1 compar exp2 _)
 
   | compar == "or" = do
     label <- freshLabel "orFirstFalse"
+    increaseLabelCounter
     (tl1, fl1) <- tacBoolean exp1
     tell [ PutLabel label ]
     (tl2, fl2) <- tacBoolean exp2
