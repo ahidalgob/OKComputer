@@ -8,6 +8,8 @@ import AST
 import Control.Monad.State.Lazy
 import Control.Monad.Writer.Lazy
 
+import Data.Map.Strict
+
 type Scope = Int
 type SymId = (Id, Scope)
 type Width = Int
@@ -39,6 +41,7 @@ data Instruction =
   | ArraySetPos X X X         -- x[i] = y
   | GetAddress X X            -- x = &y                  (9)
   | GetContents X X           -- x = *y
+  | PutLabel Label            -- Label:
 
 data BinOp = Add | Sub | Mul | Div | Mod | And | Or
 data UnOp = Not | Minus
@@ -50,11 +53,15 @@ data RelOp = LTOET | LT | GTOET | GT | ET | NET
 
 data TACkerState = TACkerState { tmpCounter :: Int
                                , tmpWidths :: [Width]
-                               , backPatchMap :: Int
+                               , labelCounter :: Int
+                               , fakeLabelCounter :: Int
+                               , backPatchMap :: Map Label Label
                                }
 initTACkerState = TACkerState{ tmpCounter = 0
                              , tmpWidths = []
-                             , backPatchMap = 0
+                             , labelCounter = 0
+                             , fakeLabelCounter = 0
+                             , backPatchMap = empty
                              }
 
 
@@ -67,6 +74,17 @@ fresh w = do
   modify (\s -> s{tmpCounter = tmpCnt+1, tmpWidths = w:tmpWs})
   return $ Temporal tmpCnt w
 
+freshLabel :: TACkerM Label
+freshLabel = do
+  labelCnt <- gets labelCounter
+  modify (\s -> s{labelCounter = labelCnt+1})
+  return $ "L" ++ show labelCnt
+
+freshFakeLabel :: TACkerM Label
+freshFakeLabel = do
+  labelCnt <- gets fakeLabelCounter
+  modify (\s -> s{fakeLabelCounter = labelCnt+1})
+  return $ "FL" ++ show labelCnt
 
 -- tacExpression {{{1
 
@@ -136,9 +154,11 @@ tacExpression (ARIT exp1 opStr exp2 t) = do
   f "mod" = Mod
   f _ = error "what()"
 
-tacExpression COMPAR{}           = undefined
-tacExpression NOT{}              = undefined
-tacExpression LOGIC{}            = undefined
+tacExpression e@COMPAR{} = booleanToTemporal e
+
+tacExpression e@NOT{} = booleanToTemporal e
+
+tacExpression e@LOGIC{} = booleanToTemporal e
 
 tacExpression FUNCTIONCALL{}     = undefined
 
@@ -165,13 +185,30 @@ tacExpression NEWLIFE{}          = undefined
 tacExpression POINTER{}          = undefined
 
 tacExpression STRINGEXP{}        = undefined
-tacExpression LISTEXP{}          = undefined
 
+tacExpression LISTEXP{}          = undefined
 tacExpression LISTACCESS{}       = undefined
 tacExpression CONCAT{}           = undefined
 
 
--- copyFromShift {{{1
+-- Auxiliary {{{1
+
+booleanToTemporal :: EXPRESSION -> TACkerM X
+booleanToTemporal e = do
+  t <- fresh (type_width OKBoolean)
+  (trueList, falseList) <- tacBoolean e
+  trueLabel <- freshLabel
+  falseLabel <- freshLabel
+  exitLabel <- freshLabel
+  backPatch trueList trueLabel
+  backPatch falseList falseLabel
+  tell [ PutLabel trueLabel
+       , CopyInstr t (BoolCons True)
+       , Goto exitLabel
+       , PutLabel falseLabel
+       , CopyInstr t (BoolCons False)
+       , PutLabel exitLabel ]
+  return t
 
 -- t <- fresh
 -- t[0] = base[shift]
