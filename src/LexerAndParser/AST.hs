@@ -24,6 +24,7 @@ data INSTRUCTION = GOING [EXPRESSION]                                  |
           CANTSTOP EXPRESSION [INSTRUCTION]                            |
           ONEMORETIME [EXPRESSION] EXPRESSION EXPRESSION [INSTRUCTION] |
           BREAKTHRU                                                    |
+          CONTINUE                                                     |
 
           GETBACK (Maybe EXPRESSION)                                   |
 

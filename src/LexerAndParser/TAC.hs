@@ -34,8 +34,10 @@ data Instruction =
   | IfFalseGoto X Label       -- ifFalse X goto Label
   | IfRelGoto X RelOp X Label -- if X relop Y goto Label (6)
   | Param X                   -- param X                 (7)
+  | PopParam X               -- popParam X                 (7)
   | Call SymId Int            -- call p, n
   | CallAssign X SymId Int    -- X = call p, n
+  | ReturnVoid                -- return
   | Return X                  -- return X
   | ArrayGetPos X X X         -- x = y[i]                (8)
   | ArraySetPos X X X         -- x[i] = y
@@ -55,14 +57,16 @@ data TACkerState = TACkerState { tmpCounter :: Int
                                , tmpWidths :: [Width]
                                , labelCounter :: Int
                                , fakeLabelCounter :: Int
-                               , cycleLables :: [Label]
+                               , startLabels :: [Label]
+                               , endLabels :: [Label]
                                , backPatchMap :: Map Label Label
                                }
 initTACkerState = TACkerState{ tmpCounter = 0
                              , tmpWidths = []
                              , labelCounter = 0
                              , fakeLabelCounter = 0
-                             , cycleLables = []
+                             , startLabels = []
+                             , endLabels = []
                              , backPatchMap = empty
                              }
 
@@ -85,11 +89,11 @@ fresh w = do
   modify (\s -> s{tmpCounter = tmpCnt+1, tmpWidths = w:tmpWs})
   return $ Temporal tmpCnt w
 
-freshLabel :: TACkerM Label
-freshLabel = do
+freshLabel :: String -> TACkerM Label
+freshLabel str = do
   labelCnt <- gets labelCounter
   modify (\s -> s{labelCounter = labelCnt+1})
-  return $ "L" ++ show labelCnt
+  return $ str ++ "L" ++ show labelCnt
 
 freshFakeLabel :: TACkerM Label
 freshFakeLabel = do
@@ -99,16 +103,23 @@ freshFakeLabel = do
 
 popCycleLabel :: TACkerM ()
 popCycleLabel = do
-  labels <- gets cycleLables
-  modify (\s -> s{cycleLables = tail labels})
+  startLs <- gets startLabels
+  endLs <- gets endLabels
+  modify (\s -> s{startLabels = tail startLs})
+  modify (\s -> s{endLabels = tail endLs})
 
-topCycleLabel :: TACkerM Label
-topCycleLabel = head <$> gets cycleLables
+topStartCycleLabel :: TACkerM Label
+topStartCycleLabel = head <$> gets startLabels
 
-pushCycleLabel :: Label -> TACkerM ()
-pushCycleLabel l = do
-  labels <- gets cycleLables
-  modify (\s -> s{cycleLables = l:labels})
+topEndCycleLabel :: TACkerM Label
+topEndCycleLabel = head <$> gets endLabels
+
+pushCycleLabel :: Label -> Label -> TACkerM ()
+pushCycleLabel sl el = do
+  startLs <- gets startLabels
+  endLs <- gets endLabels
+  modify (\s -> s{startLabels = sl:startLs})
+  modify (\s -> s{endLabels = el:endLs})
 
 
 -- tacInstruction {{{1
@@ -117,9 +128,9 @@ tacInstruction :: INSTRUCTION -> TACkerM ()
 tacInstruction (EXPRESSIONINST e) = void $ tacExpression e
 tacInstruction (IF exp instrs ifelse) = do
   (tl, fl) <- tacBoolean exp
-  trueLabel <- freshLabel
-  falseLabel <- freshLabel
-  endLabel <- freshLabel
+  trueLabel <- freshLabel "ifTrue"
+  falseLabel <- freshLabel "ifFalse"
+  endLabel <- freshLabel "ifEnd"
 
   backPatch tl trueLabel
   backPatch fl falseLabel
@@ -132,10 +143,60 @@ tacInstruction (IF exp instrs ifelse) = do
   tell [ PutLabel endLabel ]
 
 
-tacInstruction CANTSTOP{} = undefined
-tacInstruction ONEMORETIME{} = undefined
-tacInstruction BREAKTHRU{} = undefined
-tacInstruction GETBACK{} = undefined
+tacInstruction (CANTSTOP exp instrs) = do
+  startLabel <- freshLabel "startCantStop"
+  enterLabel <- freshLabel "enterCantStop"
+  endLabel <- freshLabel "endCantStop"
+
+  pushCycleLabel enterLabel endLabel
+
+  tell [ PutLabel startLabel ]
+  (tl, fl) <- tacBoolean exp
+  tell [ PutLabel enterLabel ]
+  mapM_ tacInstruction instrs
+  tell [ Goto startLabel
+       , PutLabel endLabel ]
+
+  popCycleLabel
+
+  backPatch tl enterLabel
+  backPatch fl endLabel
+
+
+tacInstruction (ONEMORETIME iniExps condExp stepExp instrs) = do
+  startLabel <- freshLabel "startOneMoreTime"
+  enterLabel <- freshLabel "enterOneMoreTime"
+  endLabel <- freshLabel "endOneMoreTime"
+
+  mapM_ tacExpression iniExps
+  pushCycleLabel enterLabel endLabel
+  tell [ PutLabel startLabel ]
+  (tl, fl) <- tacBoolean condExp
+  tell [ PutLabel enterLabel ]
+  mapM_ tacInstruction instrs
+  tacExpression stepExp
+  tell [ Goto startLabel
+       , PutLabel endLabel ]
+
+  popCycleLabel
+
+  backPatch tl enterLabel
+  backPatch fl endLabel
+
+tacInstruction BREAKTHRU = do
+  endLabel <- topEndCycleLabel
+  tell [ Goto endLabel ]
+
+tacInstruction CONTINUE = do
+  startLabel <- topStartCycleLabel
+  tell [ Goto startLabel ]
+
+tacInstruction (GETBACK (Just exp)) = do
+  t <- tacExpression exp
+  tell [ Return t ]
+
+tacInstruction (GETBACK Nothing) =
+  tell [ ReturnVoid ]
 
 tacInstruction EXITMUSIC{} = undefined
 tacInstruction GOING{} = undefined
@@ -145,12 +206,13 @@ tacInstruction READMYMIND{} = undefined
 tacInstruction AMNESIAC{} = undefined
 
 
+-- tacIfElse {{{2
 tacIfElse :: IFELSE -> Label -> TACkerM ()
 tacIfElse (IFELSEVOID) endLabel = tell [ Goto endLabel ]
 tacIfElse (IFASK exp instrs ifelse) endLabel = do
   (tl, fl) <- tacBoolean exp
-  trueLabel <- freshLabel
-  falseLabel <- freshLabel
+  trueLabel <- freshLabel "elseTrue"
+  falseLabel <- freshLabel "elseFalse"
 
   backPatch tl trueLabel
   backPatch fl falseLabel
@@ -239,7 +301,8 @@ tacExpression e@NOT{} = booleanToTemporal e
 
 tacExpression e@LOGIC{} = booleanToTemporal e
 
-tacExpression FUNCTIONCALL{}     = undefined
+tacExpression (FUNCTIONCALL name args tpe) = do
+
 
 
 tacExpression e@ARRAYACCESS{exp_type=t} = do
@@ -276,9 +339,9 @@ booleanToTemporal :: EXPRESSION -> TACkerM X
 booleanToTemporal e = do
   t <- fresh (type_width OKBoolean)
   (trueList, falseList) <- tacBoolean e
-  trueLabel <- freshLabel
-  falseLabel <- freshLabel
-  exitLabel <- freshLabel
+  trueLabel <- freshLabel "booleanToTempTrue"
+  falseLabel <- freshLabel "booleanToTempFalse"
+  exitLabel <- freshLabel "booleanToTempExit"
   backPatch trueList trueLabel
   backPatch falseList falseLabel
   tell [ PutLabel trueLabel
@@ -364,7 +427,7 @@ tacBoolean (NOT exp _) = do
 
 tacBoolean (LOGIC exp1 compar exp2 _)
   | compar == "and" = do
-    label <- freshLabel
+    label <- freshLabel "andFirstTrue"
     (tl1, fl1) <- tacBoolean exp1
     tell [ PutLabel label ]
     (tl2, fl2) <- tacBoolean exp2
@@ -372,7 +435,7 @@ tacBoolean (LOGIC exp1 compar exp2 _)
     return (tl2, fl1++fl2)
 
   | compar == "or" = do
-    label <- freshLabel
+    label <- freshLabel "orFirstFalse"
     (tl1, fl1) <- tacBoolean exp1
     tell [ PutLabel label ]
     (tl2, fl2) <- tacBoolean exp2
