@@ -272,13 +272,6 @@ tacBoolean (BOOLEANEXP False _) = do
   tell [ Goto fl ]
   return ([],[fl])
 
-tacBoolean (IDEXPRESSION symId _) = do
-  trueFl <- freshFakeLabel
-  falseFl <- freshFakeLabel
-  tell [ IfGoto (Name symId) trueFl
-       , Goto falseFl ]
-  return ([trueFl], [falseFl])
-
 tacBoolean (COMPAR exp1 comp exp2 _) = do
   t1 <- tacExpression exp1
   t2 <- tacExpression exp2
@@ -316,7 +309,7 @@ tacBoolean (LOGIC exp1 compar exp2 _)
     backPatch fl1 label
     return (tl1++tl2, fl2)
 
-tacBoolean e@(FUNCTIONCALL{}) = do
+tacBoolean e = do
   t <- tacExpression e
   trueFl <- freshFakeLabel
   falseFl <- freshFakeLabel
