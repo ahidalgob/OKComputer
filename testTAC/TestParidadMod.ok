@@ -1,0 +1,17 @@
+# Fibonnaci en OKComputer.
+dafunk maintheme(Int n) : Boolean
+ youbegin
+
+ 	Int calc = n mod 2
+
+ 	if (calc == 0) youbegin
+    	go("Numero Par")
+    	getback(ok)
+ 	whereiend
+
+ 	otherside youbegin
+ 		go("Numero Impar")
+ 		getback(notok)
+ 	whereiend
+
+ whereiend

@@ -1,0 +1,15 @@
+# Expresiones Aritmeticas Simples.
+dafunk maintheme(Int n) : Intothevoid
+ youbegin
+
+ Int a
+ Int b
+ Int c = 3*4+(7-5)/32
+
+ a = c/420
+
+ b = 66 - c/a * (520-100) 
+
+ a = b mod 2
+
+ whereiend
