@@ -34,9 +34,9 @@ data Instruction =
   | IfFalseGoto X Label       -- ifFalse X goto Label
   | IfRelGoto X RelOp X Label -- if X relop Y goto Label (6)
   | Param X                   -- param X                 (7)
-  | PopParam X               -- popParam X                 (7)
-  | Call SymId Int            -- call p, n
-  | CallAssign X SymId Int    -- X = call p, n
+  | PopParam X                -- popParam X                 (7)
+  | Call Label Int            -- call p, n
+  | CallAssign X Label Int    -- X = call p, n
   | ReturnVoid                -- return
   | Return X                  -- return X
   | ArrayGetPos X X X         -- x = y[i]                (8)
@@ -301,7 +301,20 @@ tacExpression e@NOT{} = booleanToTemporal e
 
 tacExpression e@LOGIC{} = booleanToTemporal e
 
-tacExpression (FUNCTIONCALL name args tpe) = do
+tacExpression (FUNCTIONCALL label args tpe) = do
+  let n = length args
+  ts <- mapM tacExpression args
+  mapM_ (\t -> tell [ Param t]) ts
+  case func_RetType tpe of
+    OKVoid -> do
+      tell [ Call label n ]
+      mapM_ (\t -> tell [ PopParam t ]) (reverse ts)
+      return (IntCons 0)
+    retT -> do
+      t <- fresh (type_width retT)
+      tell [ CallAssign t label n ]
+      mapM_ (\t -> tell [ PopParam t ]) (reverse ts)
+      return t
 
 
 
