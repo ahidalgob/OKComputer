@@ -45,12 +45,12 @@ data Instruction =
 
 data BinOp = Add | Sub | Mul | Div | Mod | And | Or
 data UnOp = Not | Minus
-data RelOp = LTOET | LT | GTOET | GT | ET | NET
+data RelOp = LTOET | LT2 | GTOET | GT2 | ET | NET
 
 
 
 
-
+-- TACkerM {{{1
 data TACkerState = TACkerState { tmpCounter :: Int
                                , tmpWidths :: [Width]
                                , labelCounter :: Int
@@ -66,6 +66,15 @@ initTACkerState = TACkerState{ tmpCounter = 0
 
 
 type TACkerM a = WriterT TAC (StateT TACkerState IO) a
+
+backPatch :: [Label] -> Label -> TACkerM ()
+backPatch [] _ = return ()
+
+backPatch (fl:fls) l = do
+  oldMap <- gets backPatchMap
+  let newMap = insert fl l oldMap
+  modify (\s -> s{backPatchMap=newMap})
+  backPatch fls l
 
 fresh :: Width -> TACkerM X
 fresh w = do
@@ -250,6 +259,70 @@ copyListOfExpressions exps totalWidth = do
       return $ shift + expWidth
   foldM_ f 0 exps
   return t
+
+-- tacBoolean {{{1
+tacBoolean :: EXPRESSION -> TACkerM ([Label], [Label])
+tacBoolean (BOOLEANEXP True _) = do
+  fl <- freshFakeLabel
+  tell [ Goto fl ]
+  return ([fl],[])
+
+tacBoolean (BOOLEANEXP False _) = do
+  fl <- freshFakeLabel
+  tell [ Goto fl ]
+  return ([],[fl])
+
+tacBoolean (IDEXPRESSION symId _) = do
+  trueFl <- freshFakeLabel
+  falseFl <- freshFakeLabel
+  tell [ IfGoto (Name symId) trueFl
+       , Goto falseFl ]
+  return ([trueFl], [falseFl])
+
+tacBoolean (COMPAR exp1 comp exp2 _) = do
+  t1 <- tacExpression exp1
+  t2 <- tacExpression exp2
+  trueFl <- freshFakeLabel
+  falseFl <- freshFakeLabel
+  tell [ IfRelGoto t1 (f comp) t2 trueFl
+       , Goto falseFl ]
+  return ([trueFl], [falseFl])
+  where
+  f "<=" = LTOET
+  f "<" = LT2
+  f ">=" = GTOET
+  f ">" = GT2
+  f "==" = ET
+  f "!=" = NET
+
+tacBoolean (NOT exp _) = do
+  (tl, fl) <- tacBoolean exp
+  return (fl, tl)
+
+tacBoolean (LOGIC exp1 compar exp2 _)
+  | compar == "and" = do
+    label <- freshLabel
+    (tl1, fl1) <- tacBoolean exp1
+    tell [ PutLabel label ]
+    (tl2, fl2) <- tacBoolean exp2
+    backPatch tl1 label
+    return (tl2, fl1++fl2)
+
+  | compar == "or" = do
+    label <- freshLabel
+    (tl1, fl1) <- tacBoolean exp1
+    tell [ PutLabel label ]
+    (tl2, fl2) <- tacBoolean exp2
+    backPatch fl1 label
+    return (tl1++tl2, fl2)
+
+tacBoolean e@(FUNCTIONCALL{}) = do
+  t <- tacExpression e
+  trueFl <- freshFakeLabel
+  falseFl <- freshFakeLabel
+  tell [ IfGoto t trueFl
+       , Goto falseFl ]
+  return ([trueFl], [falseFl])
 
 
 -- tacLval {{{1

@@ -17,12 +17,16 @@ data INSTRUCTION = GOING [EXPRESSION]                                  |
           GOINGSLOWLY [EXPRESSION]                                     |
           GOINGMENTAL [EXPRESSION]                                     |
           READMYMIND [EXPRESSION]                                      |
+
           AMNESIAC EXPRESSION                                          |
+
           IF EXPRESSION [INSTRUCTION] IFELSE                           |
           CANTSTOP EXPRESSION [INSTRUCTION]                            |
           ONEMORETIME [EXPRESSION] EXPRESSION EXPRESSION [INSTRUCTION] |
-          GETBACK (Maybe EXPRESSION)                                   |
           BREAKTHRU                                                    |
+
+          GETBACK (Maybe EXPRESSION)                                   |
+
           EXITMUSIC                                                    |
           EXPRESSIONINST EXPRESSION
           deriving (Show, Eq)
