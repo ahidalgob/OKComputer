@@ -55,12 +55,14 @@ data TACkerState = TACkerState { tmpCounter :: Int
                                , tmpWidths :: [Width]
                                , labelCounter :: Int
                                , fakeLabelCounter :: Int
+                               , cycleLables :: [Label]
                                , backPatchMap :: Map Label Label
                                }
 initTACkerState = TACkerState{ tmpCounter = 0
                              , tmpWidths = []
                              , labelCounter = 0
                              , fakeLabelCounter = 0
+                             , cycleLables = []
                              , backPatchMap = empty
                              }
 
@@ -94,6 +96,74 @@ freshFakeLabel = do
   labelCnt <- gets fakeLabelCounter
   modify (\s -> s{fakeLabelCounter = labelCnt+1})
   return $ "FL" ++ show labelCnt
+
+popCycleLabel :: TACkerM ()
+popCycleLabel = do
+  labels <- gets cycleLables
+  modify (\s -> s{cycleLables = tail labels})
+
+topCycleLabel :: TACkerM Label
+topCycleLabel = head <$> gets cycleLables
+
+pushCycleLabel :: Label -> TACkerM ()
+pushCycleLabel l = do
+  labels <- gets cycleLables
+  modify (\s -> s{cycleLables = l:labels})
+
+
+-- tacInstruction {{{1
+
+tacInstruction :: INSTRUCTION -> TACkerM ()
+tacInstruction (EXPRESSIONINST e) = void $ tacExpression e
+tacInstruction (IF exp instrs ifelse) = do
+  (tl, fl) <- tacBoolean exp
+  trueLabel <- freshLabel
+  falseLabel <- freshLabel
+  endLabel <- freshLabel
+
+  backPatch tl trueLabel
+  backPatch fl falseLabel
+
+  tell [ PutLabel trueLabel ]
+  mapM_ tacInstruction instrs
+  tell [ Goto endLabel ]
+  tell [ PutLabel falseLabel ]
+  tacIfElse ifelse endLabel
+  tell [ PutLabel endLabel ]
+
+
+tacInstruction CANTSTOP{} = undefined
+tacInstruction ONEMORETIME{} = undefined
+tacInstruction BREAKTHRU{} = undefined
+tacInstruction GETBACK{} = undefined
+
+tacInstruction EXITMUSIC{} = undefined
+tacInstruction GOING{} = undefined
+tacInstruction GOINGSLOWLY{} = undefined
+tacInstruction GOINGMENTAL{} = undefined
+tacInstruction READMYMIND{} = undefined
+tacInstruction AMNESIAC{} = undefined
+
+
+tacIfElse :: IFELSE -> Label -> TACkerM ()
+tacIfElse (IFELSEVOID) endLabel = tell [ Goto endLabel ]
+tacIfElse (IFASK exp instrs ifelse) endLabel = do
+  (tl, fl) <- tacBoolean exp
+  trueLabel <- freshLabel
+  falseLabel <- freshLabel
+
+  backPatch tl trueLabel
+  backPatch fl falseLabel
+
+  tell [ PutLabel trueLabel ]
+  mapM_ tacInstruction instrs
+  tell [ Goto endLabel ]
+  tell [ PutLabel falseLabel ]
+  tacIfElse ifelse endLabel
+
+tacIfElse (OTHERSIDE instrs) endLabel = do
+  mapM_ tacInstruction instrs
+  tell [ Goto endLabel ]
 
 -- tacExpression {{{1
 
