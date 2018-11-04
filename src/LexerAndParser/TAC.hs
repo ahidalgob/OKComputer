@@ -142,10 +142,44 @@ tacExpression LOGIC{}            = undefined
 
 tacExpression FUNCTIONCALL{}     = undefined
 
-tacExpression e@(ARRAYACCESS exp expIn t) = do
+
+tacExpression e@ARRAYACCESS{exp_type=t} = do
   (base, Just shift) <- tacLval e
-  let width = type_width t
-  t <- fresh (type_width t)
+  copyFromShift base shift $ type_width t
+
+tacExpression e@TUPLEACCESS{exp_type=t} = do
+  (base, Just shift) <- tacLval e
+  copyFromShift base shift $ type_width t
+
+tacExpression e@RECORDACCESS{exp_type=t} = do
+  (base, Just shift) <- tacLval e
+  copyFromShift base shift $ type_width t
+
+tacExpression (ARRAYEXP exps tpe) =
+  copyListOfExpressions exps (type_width tpe)
+
+tacExpression (TUPLEEXP exps tpe) =
+  copyListOfExpressions exps (type_width tpe)
+
+tacExpression NEWLIFE{}          = undefined
+tacExpression POINTER{}          = undefined
+
+tacExpression STRINGEXP{}        = undefined
+tacExpression LISTEXP{}          = undefined
+
+tacExpression LISTACCESS{}       = undefined
+tacExpression CONCAT{}           = undefined
+
+
+-- copyFromShift {{{1
+
+-- t <- fresh
+-- t[0] = base[shift]
+-- t[4] = base[shift+4]
+-- ...
+copyFromShift :: X -> X -> Int -> TACkerM X
+copyFromShift base shift width = do
+  t <- fresh width -- temporal where everything is saved
   let setPos i = do
           t1 <- fresh (type_width OKInt)
           t2 <- fresh (type_width OKInt)
@@ -155,23 +189,30 @@ tacExpression e@(ARRAYACCESS exp expIn t) = do
   mapM_ setPos [0,4..(width-1)]
   return t
 
-tacExpression TUPLEACCESS{}      = undefined
 
-tacExpression RECORDACCESS{}     = undefined
+-- t[shift] = t1[0]
+-- t[shift+4] = t1[4]
+-- ...
+copyToShift :: X -> Int -> X -> Int -> TACkerM () -- Very naive
+copyToShift t shift t1 width = do
+  let setPos i = do
+          t2 <- fresh (type_width OKInt)
+          t3 <- fresh (type_width OKInt)
+          tell [ BinOpInstr t2 (IntCons shift) Add (IntCons i)
+               , ArrayGetPos t3 t1 (IntCons i)
+               , ArraySetPos t t2 t3]
+  mapM_ setPos [0,4..(width-1)]
 
-tacExpression NEWLIFE{}          = undefined
-tacExpression POINTER{}          = undefined
-
-tacExpression ARRAYEXP{}         = undefined
-tacExpression TUPLEEXP{}         = undefined
-
-tacExpression STRINGEXP{}        = undefined
-tacExpression LISTEXP{}          = undefined
-
-tacExpression LISTACCESS{}       = undefined
-tacExpression CONCAT{}           = undefined
-
-
+copyListOfExpressions :: [EXPRESSION] -> Int -> TACkerM X
+copyListOfExpressions exps totalWidth = do
+  t <- fresh totalWidth
+  let f shift exp = do
+      t1 <- tacExpression exp
+      let expWidth = type_width.exp_type $ exp
+      copyToShift t shift t1 expWidth
+      return $ shift + expWidth
+  foldM_ f 0 exps
+  return t
 
 
 -- tacLval {{{1
@@ -180,8 +221,8 @@ tacLval IDEXPRESSION{expId = symId} = return (Name symId, Nothing)
 
 tacLval (ARRAYACCESS exp expIn t) = do
   (base, mshift) <- tacLval exp
-  tin <- tacExpression expIn
-  let w = type_width t
+  tin <- tacExpression expIn -- position expression
+  let w = type_width t -- width
   t_newshift <- fresh (type_width OKInt)
   tell [BinOpInstr t_newshift tin Mul (IntCons w)]
   case mshift of
