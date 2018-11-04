@@ -11,7 +11,7 @@ dafunk maintheme(Int n) : Intothevoid
 
   go("Resultado: ")
 
-  onemoretime int c = 0 ; (c < n) ; (c=c+1)
+  onemoretime Int c = 0 ; (c < n) ; (c=c+1)
   youbegin
     if (c <= 1) youbegin
         next = c

@@ -249,9 +249,9 @@ INSTRUCTION : go '(' NONEMPTYEXPRESSIONS ')' newline                            
             | gomental '(' NONEMPTYEXPRESSIONS ')' newline                      { AST.GOINGMENTAL $ reverse $3 }
             | readmymind '(' LVALS ')' newline                                  { AST.READMYMIND $3 }
             | amnesiac '(' EXPRESSION ')' newline                               { AST.AMNESIAC $ $3 }
-            | if EXPRESSION BEGIN MAYBELINE BLOCK IFELSE                                  {% ifAction $1 $2 (reverse $5) $6 }
-            | cantstop EXPRESSION BEGIN MAYBELINE BLOCK                                   {% cantStopAction $1 $2 (reverse $5) }
-            | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION MAYBELINE BLOCK {% oneMoreTimeAction $1 $5 $3 $7 (reverse $9) }
+            | if EXPRESSION BEGIN MAYBELINE BLOCK newline IFELSE                                  {% ifAction $1 $2 (reverse $5) $7 }
+            | cantstop EXPRESSION BEGIN MAYBELINE BLOCK newline                                  {% cantStopAction $1 $2 (reverse $5) }
+            | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION MAYBELINE BLOCK newline {% oneMoreTimeAction $1 $5 $3 $7 (reverse $9) }
             | getback EXPRESSION newline                                        {% getBackAction $1 (Just $2) }
             | getback newline                                                   {% getBackAction $1 Nothing }
             | breakthru newline                                                 { AST.BREAKTHRU }
@@ -259,8 +259,8 @@ INSTRUCTION : go '(' NONEMPTYEXPRESSIONS ')' newline                            
             | EXPRESSION newline                                                { AST.EXPRESSIONINST $1 }
 
 
-IFELSE : ifyouhavetoask EXPRESSION BEGIN MAYBELINE BLOCK IFELSE                           {% ifYouHaveToAskAction $1 $2 (reverse $5) $6 }
-       | otherside BEGIN MAYBELINE BLOCK                                                  { AST.OTHERSIDE $4 }
+IFELSE : ifyouhavetoask EXPRESSION BEGIN MAYBELINE BLOCK newline IFELSE                           {% ifYouHaveToAskAction $1 $2 (reverse $5) $7 }
+       | otherside BEGIN MAYBELINE BLOCK newline                                                { AST.OTHERSIDE $4 }
        | {-λ-}                                                                  { AST.IFELSEVOID }
 
 
