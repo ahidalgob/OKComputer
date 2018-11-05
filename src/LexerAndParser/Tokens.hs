@@ -22,6 +22,7 @@ data Token =
   DaFunkTkn           { tkn_pos :: (Int, Int) }  |
   ColonTkn            { tkn_pos :: (Int, Int) }  |
   GetBackTkn          { tkn_pos :: (Int, Int) }  |
+  ContinueTkn         { tkn_pos :: (Int, Int) }  |
   IntoTheVoidTkn      { tkn_pos :: (Int, Int) }  |
   NewLifeTkn          { tkn_pos :: (Int, Int) }  |
   SaveMeTkn           { tkn_pos :: (Int, Int) }  |

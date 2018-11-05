@@ -48,6 +48,7 @@ import Data.List
   dafunk                                  { DaFunkTkn _}          -- Method with return/Function
   ':'                                     { ColonTkn _ }           -- Method with return/Function
   getback                                 { GetBackTkn _ }         -- Return
+  continue                                { GetBackTkn _ }         -- Return
   intothevoid                             { IntoTheVoidTkn _ }     -- Void
   newlife                                 { NewLifeTkn _ }         -- Calloc
 --  saveme                                  { SaveMeTkn }          -- Malloc
@@ -254,6 +255,7 @@ INSTRUCTION : go '(' NONEMPTYEXPRESSIONS ')' newline                            
             | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION MAYBELINE BLOCK newline {% oneMoreTimeAction $1 $5 $3 $7 (reverse $9) }
             | getback EXPRESSION newline                                        {% getBackAction $1 (Just $2) }
             | getback newline                                                   {% getBackAction $1 Nothing }
+            | continue newline                                                  { AST.CONTINUE }
             | breakthru newline                                                 { AST.BREAKTHRU }
             | exitmusic newline                                                 { AST.EXITMUSIC }
             | EXPRESSION newline                                                { AST.EXPRESSIONINST $1 }
