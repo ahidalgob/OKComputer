@@ -1,0 +1,9 @@
+# Expresiones Aritmeticas Simples.
+dafunk maintheme(Int n) : Intothevoid
+ youbegin
+
+	Tuple(Int, Boolean, Float) tubien = <<3, ok, 2.0>>
+
+	Tuple(Int, Int[3], Float) tubien2 = <<3+5+6+7, {3,4,5}, 2.0*4.9>>
+
+ whereiend

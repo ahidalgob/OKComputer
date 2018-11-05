@@ -1,0 +1,22 @@
+# Break and Return
+
+dafunk maintheme(Int n) : Int
+ youbegin
+
+ Int[5] arg = {1,2,3,4,5}
+
+ Int arg2 = 30
+
+	onemoretime Int iterative = 0; iterative != 30; iterative = iterative + 1
+ 	youbegin
+
+ 		if (arg2 < 30)
+ 		youbegin
+ 			breakthru
+ 		whereiend
+
+ 	whereiend
+
+ 	getback(arg2)
+
+ whereiend

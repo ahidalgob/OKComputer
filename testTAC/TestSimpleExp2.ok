@@ -1,0 +1,14 @@
+# Expresiones Aritmeticas Simples.
+dafunk maintheme(Int n) : Intothevoid
+ youbegin
+
+ Boolean a
+ Boolean b
+ Boolean c
+ Int d = 54
+
+ a = (ok and notok) or (56<d)
+ b = (45 >= d) and a
+ c = a and b or notok or (5>6 and 6>7)
+
+ whereiend
