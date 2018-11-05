@@ -215,7 +215,7 @@ tacInstruction AMNESIAC{} = undefined
 
 -- tacIfElse {{{2
 tacIfElse :: IFELSE -> Label -> TACkerM ()
-tacIfElse (IFELSEVOID) endLabel = tell [ Goto endLabel ]
+tacIfElse IFELSEVOID endLabel = tell [ Goto endLabel ] -- Shouldn't be needed
 tacIfElse (IFASK exp instrs ifelse) endLabel = do
   (tl, fl) <- tacBoolean exp
   trueLabel <- freshLabel "elseTrue"
@@ -355,7 +355,8 @@ tacExpression CONCAT{}           = undefined
 
 
 -- Auxiliary {{{1
-
+-- After generating jumping code for a boolean expression
+-- we want a temporal with the final value.
 booleanToTemporal :: EXPRESSION -> TACkerM X
 booleanToTemporal e = do
   t <- fresh (type_width OKBoolean)
@@ -395,7 +396,10 @@ copyFromShift base shift width = do
 -- t[shift] = t1[0]
 -- t[shift+4] = t1[4]
 -- ...
-copyToShift :: X -> Int -> X -> Int -> TACkerM () -- Very naive
+-- Very naive:
+-- we do a t2 = shift+0
+-- more...
+copyToShift :: X -> Int -> X -> Int -> TACkerM ()
 copyToShift t shift t1 width = do
   let setPos i = do
           t2 <- fresh (type_width OKInt)
@@ -405,6 +409,8 @@ copyToShift t shift t1 width = do
                , ArraySetPos t t2 t3]
   mapM_ setPos [0,4..(width-1)]
 
+-- Generate code for each expression and return a temporal
+-- t with all the expression "concatenated"
 copyListOfExpressions :: [EXPRESSION] -> Int -> TACkerM X
 copyListOfExpressions exps totalWidth = do
   t <- fresh totalWidth
@@ -417,6 +423,9 @@ copyListOfExpressions exps totalWidth = do
   return t
 
 -- tacBoolean {{{1
+--
+-- Generates code for a boolean expression. Returns
+-- the two lists of labels to backpatch.
 tacBoolean :: EXPRESSION -> TACkerM ([Label], [Label])
 tacBoolean (BOOLEANEXP True _) = do
   fl <- freshFakeLabel
@@ -477,6 +486,8 @@ tacBoolean e = do
 
 
 -- tacLval {{{1
+-- Computes the base and the shift (generating its code) from that base of an LVAL
+-- TODO Pointers :D
 tacLval :: EXPRESSION -> TACkerM (X, Maybe X)
 tacLval IDEXPRESSION{expId = symId} = return (Name symId, Nothing)
 
