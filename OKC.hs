@@ -3,6 +3,7 @@ import ParseMonad
 import Parser
 import AST
 import TAC
+import SymTable
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict as M
 import System.Environment
@@ -30,10 +31,16 @@ sym code = do
 
 tac code = do
   (Right ast, parseState) <- runParseM parse code
-  ((_, tac), tacState) <- runTACkerM (tacStart ast)
+  let funcs' = filter isFuncSym $ concat.HM.elems $ state_SymTable parseState
+  let funcs = map (\f -> (sym_label f, sym_AST f)) funcs'
+
+  ((_, tac), tacState) <- runTACkerM (tacStart ast >> tacFuncs funcs)
+  --((_,tac2), tacState) <- runTACkerMS (tacFuncs funcs) tacState'
+  --let tac = tac1 ++ tac2
   let bp = backPatchMap tacState
   let bpmap = backPatcher bp tac
   mapM_ print bpmap
+
 
 
 backPatcher :: M.Map Label Label -> TAC -> TAC

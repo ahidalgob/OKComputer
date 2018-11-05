@@ -6,7 +6,7 @@ dafunk maintheme(Int n) : Boolean
 
  	if (calc == 0) youbegin
     	go("Numero Par")
-    	getback(ok)
+    	getback(notok)
  	whereiend
 
  	otherside youbegin

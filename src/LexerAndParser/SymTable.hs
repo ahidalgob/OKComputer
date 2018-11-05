@@ -42,6 +42,9 @@ isVarSym _ = False
 isNameTypeSym NameTypeSym{} = True
 isNameTypeSym _ = False
 
+isFuncSym FuncSym{} = True
+isFuncSym _ = False
+
 ----------------------------------
 -----------Sym Table--------------
 ----------------------------------

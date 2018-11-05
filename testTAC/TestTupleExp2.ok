@@ -6,7 +6,7 @@ dafunk maintheme(Int n) : Intothevoid
 
 	Int prueba = tubien._0
 
-	Bool prueba2 = tubien._1
+	Boolean prueba2 = tubien._1
 
 	Float prueba3 = tubien._2
 

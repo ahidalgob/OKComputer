@@ -21,6 +21,12 @@ data X = Name SymId
        | CharCons Char
        | Temporal Int Width
 
+isCons IntCons{} = True
+isCons FloatCons{} = True
+isCons CharCons{} = True
+isCons BoolCons{} = True
+isCons _ = False
+
 type Label = String
 
 type TAC = [Instruction]
@@ -43,6 +49,7 @@ data Instruction =
   | ArraySetPos X X X         -- x[i] = y
   | GetAddress X X            -- x = &y                  (9)
   | GetContents X X           -- x = *y
+  | Print X                   -- print x
   | PutLabel Label            -- Label:
 
 
@@ -62,24 +69,25 @@ instance Show X where
 
 
 instance Show Instruction where
-  show (BinOpInstr x y op z) = show x ++ " = " ++ show y ++ show op ++ show z
-  show (UnOpInstr x op y) = show x ++ " = " ++ show op ++ show y
-  show (CopyInstr x y) = show x ++ " = " ++ show y
-  show (Goto label) = "Goto " ++ label
-  show (IfGoto x label) = "if " ++ show x ++ " goto " ++ label
+  show (BinOpInstr x y op z) = "    " ++ show x ++ " = " ++ show y ++ show op ++ show z
+  show (UnOpInstr x op y) = "    " ++ show x ++ " = " ++ show op ++ show y
+  show (CopyInstr x y) = "    " ++ show x ++ " = " ++ show y
+  show (Goto label) = "    " ++ "Goto " ++ label
+  show (IfGoto x label) = "    " ++ "if " ++ show x ++ " goto " ++ label
   --show (IfFalseGoto x label) = "iffalse " ++ show x ++ " goto " ++ label
-  show (IfRelGoto x relop y label) = "if " ++ show x ++ show relop ++ show y ++ " goto " ++ label
-  show (Param x) = "param " ++ show x
-  show (PopParam x) = "popparam " ++ show x
-  show (Call label x) = "call " ++ label ++ " " ++ show x
-  show (CallAssign x label n) = show x ++ " = call " ++ label ++ " " ++ show n
-  show (ReturnVoid) = "return"
-  show (Return x) = "return " ++ show x
-  show (ArrayGetPos x y z) = show x ++ " = " ++ show y ++ "[" ++ show z ++ "]"
-  show (ArraySetPos x y z) = show x ++ "[" ++ show y ++ "] = " ++ show z
-  show (GetAddress x y) = show x ++ " = &" ++ show y
-  show (GetContents x y) = show x ++ " = *" ++ show y
-  show (PutLabel label) = "LABEL:" ++ label
+  show (IfRelGoto x relop y label) = "    " ++ "if " ++ show x ++ show relop ++ show y ++ " goto " ++ label
+  show (Param x) = "    " ++ "param " ++ show x
+  show (PopParam x) = "    " ++ "popparam " ++ show x
+  show (Call label x) = "    " ++ "call " ++ label ++ " " ++ show x
+  show (CallAssign x label n) = "    " ++ show x ++ " = call " ++ label ++ " " ++ show n
+  show (ReturnVoid) = "    " ++ "return"
+  show (Return x) = "    " ++ "return " ++ show x
+  show (ArrayGetPos x y z) = "    " ++ show x ++ " = " ++ show y ++ "[" ++ show z ++ "]"
+  show (ArraySetPos x y z) = "    " ++ show x ++ "[" ++ show y ++ "] = " ++ show z
+  show (GetAddress x y) = "    " ++ show x ++ " = &" ++ show y
+  show (GetContents x y) = "    " ++ show x ++ " = *" ++ show y
+  show (Print x) = "    " ++ "print " ++ show x
+  show (PutLabel label) = label ++ ":"
 
 
 instance Show BinOp where
@@ -124,7 +132,6 @@ type TACkerM a = WriterT TAC (StateT TACkerState IO) a
 
 runTACkerM :: TACkerM a -> IO ((a, TAC), TACkerState)
 runTACkerM f = runStateT (runWriterT f) initTACkerState
-
 
 backPatch :: [Label] -> Label -> TACkerM ()
 backPatch [] _ = return ()
@@ -182,6 +189,14 @@ pushCycleLabel sl el = do
 -- tacStart{{{1
 tacStart (START outs) = mapM_ tacOutsides outs
 tacOutsides (OUTASSIGN exps) = mapM_ tacExpression exps
+
+-- tacFuncs
+tacFuncs :: [(Label, [INSTRUCTION])] -> TACkerM ()
+tacFuncs [] = return ()
+tacFuncs ((lab, instrs):fs) = do
+  tell [ PutLabel lab ]
+  mapM_ tacInstruction instrs
+  tacFuncs fs
 
 -- tacInstruction {{{1
 
@@ -263,9 +278,10 @@ tacInstruction (GETBACK Nothing) =
   tell [ ReturnVoid ]
 
 tacInstruction EXITMUSIC{} = undefined
-tacInstruction GOING{} = undefined
-tacInstruction GOINGSLOWLY{} = undefined
-tacInstruction GOINGMENTAL{} = undefined
+tacInstruction (GOING es) = do
+  mapM_ (tacExpression >=> (\t -> tell [ Print t ])) es
+tacInstruction (GOINGSLOWLY es) = tacInstruction $ GOING es
+tacInstruction (GOINGMENTAL es) = tacInstruction $ GOING es
 tacInstruction READMYMIND{} = undefined
 tacInstruction AMNESIAC{} = undefined
 
@@ -370,7 +386,7 @@ tacExpression (FUNCTIONCALL _ label args tpe) = do
   let n = length args
   ts <- mapM tacExpression args
   mapM_ (\t -> tell [ Param t]) ts
-  case func_RetType tpe of
+  case tpe of
     OKVoid -> do
       tell [ Call label n ]
       mapM_ (\t -> tell [ PopParam t ]) (reverse ts)
@@ -404,7 +420,7 @@ tacExpression (TUPLEEXP exps tpe) =
 tacExpression NEWLIFE{}          = undefined
 tacExpression POINTER{}          = undefined
 
-tacExpression STRINGEXP{}        = undefined
+tacExpression STRINGEXP{}        = return (IntCons 0) --TODO
 
 tacExpression LISTEXP{}          = undefined
 tacExpression LISTACCESS{}       = undefined
@@ -457,7 +473,9 @@ copyFromShift base shift width = do
 -- we do a t2 = shift+0
 -- more...
 copyToShift :: X -> Int -> X -> Int -> TACkerM ()
-copyToShift t shift t1 width = do
+copyToShift t shift t1 width
+  | isCons t1 = tell [ ArraySetPos t (IntCons shift) t1 ]
+  | otherwise = do
   let setPos i = do
           t2 <- fresh (type_width OKInt)
           t3 <- fresh (type_width OKInt)

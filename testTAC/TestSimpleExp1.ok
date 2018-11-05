@@ -8,7 +8,7 @@ dafunk maintheme(Int n) : Intothevoid
 
  a = c/420
 
- b = 66 - c/a * (520-100) 
+ b = 66 - c/a * (520-100)
 
  a = b mod 2
 

@@ -1,6 +1,7 @@
 # Llamado a Funciones.
 
 
+
 dafunk llamada1(Int n, Boolean x, Int[5] a) : Intothevoid
  youbegin
  whereiend
@@ -9,6 +10,19 @@ dafunk llamada1(Int n, Boolean x, Int[5] a) : Intothevoid
 dafunk llamada2(Int n, Int n2, Int n3, Int n4) : Intothevoid
  youbegin
  whereiend
+
+
+dafunk f(Int n) : Int
+
+dafunk g(Int n) : Int
+youbegin
+  getback f(n)
+whereiend
+
+dafunk f(Int n) : Int
+youbegin
+  getback g(n)
+whereiend
 
 
 dafunk maintheme(Int n) : Intothevoid
