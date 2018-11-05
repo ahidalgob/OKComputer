@@ -1,0 +1,6 @@
+Tuple(Int,Tuple(Int, Boolean)) x, y
+# Boolean[2][4][5] p
+Boolean[6][11][15][19] p
+Boolean a,b,c
+Boolean d = p[5][7][8][9] or (b or c)
+

@@ -45,7 +45,7 @@ instance Show OKType where
   show OKChar = "char"
   show OKString = "string"
   show (OKNameType id t) = "name("++ id ++ "," ++ show t ++")"
-  show (OKArray _ t) = "array("++ show t ++")"
+  show (OKArray n t) = "array("++show n++ show t ++")"
   show (OKTuple ts) = "tuple(" ++ show ts ++ ")"
   show (OKList OKVoid) = "list()"
   show OKErrorT = "error_type"

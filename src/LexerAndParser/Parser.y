@@ -404,7 +404,12 @@ recordMemberAction exp tkn = do
 
 arrayTypeAction :: Pos -> OKType -> Int -> ParseM OKType
 arrayTypeAction pos oktype size = do
-      return $ OKArray size oktype
+      return $ elParcheToRowMajor size oktype
+
+elParcheToRowMajor :: Int -> OKType -> OKType
+elParcheToRowMajor n (OKArray ni t) = OKArray ni (elParcheToRowMajor n t)
+elParcheToRowMajor n t = OKArray n t
+
 
 
 nameTypeAction :: Token -> ParseM OKType
