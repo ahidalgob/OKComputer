@@ -567,11 +567,11 @@ pointerAction tkn exp = do
           return $ AST.POINTER exp oktype
 
 functionCallAction :: Token -> [AST.EXPRESSION] -> ParseM AST.EXPRESSION
-functionCallAction tkn exp = do
-         sym <- P.findFunction (tkn_string tkn) (tkn_pos tkn) (map exp_type exp)
+functionCallAction tkn exps = do
+         sym <- P.findFunction (tkn_string tkn) (tkn_pos tkn) (map exp_type exps)
          case sym of
-              FuncSym{} -> return $ AST.FUNCTIONCALL (tkn_string tkn) exp (func_RetType.sym_type $ sym)
-              _ -> return $ AST.FUNCTIONCALL (tkn_string tkn) exp OKErrorT
+              FuncSym{} -> return $ AST.FUNCTIONCALL (sym_Id sym,sym_scope sym) (sym_label sym) exps (func_RetType.sym_type $ sym)
+              _ -> return $ AST.FUNCTIONCALL (tkn_string tkn, -1) "error" exps OKErrorT
 
 --- 1}}}
 

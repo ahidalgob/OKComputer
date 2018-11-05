@@ -65,7 +65,7 @@ data EXPRESSION = IDEXPRESSION {expId::SymId, exp_type::OKType}                 
 
                   LISTACCESS {expExp::EXPRESSION, expExpIn::EXPRESSION, exp_type::OKType}              |
                   RECORDACCESS {expExp::EXPRESSION, expName::String, exp_type::OKType}                 |
-                  FUNCTIONCALL {expFuncName::String, expArgs::[EXPRESSION], exp_type::OKType}          |
+                  FUNCTIONCALL {expId::SymId, expFuncLabel::String, expArgs::[EXPRESSION], exp_type::OKType}          |
                   NEWLIFE {expExp::EXPRESSION, exp_type::OKType}                                       |
                   POINTER {expExp::EXPRESSION, exp_type::OKType}                                       |
                   ASSIGN {expLHS::EXPRESSION, expExp::EXPRESSION, exp_type::OKType}
@@ -201,7 +201,7 @@ printExpN n (TUPLEACCESS arrayid posnumber t _) = do
     putStrWithIdent n "Type:\n"
     printOKType (n+1) t
 
-printExpN n (FUNCTIONCALL funcid listid t) = do
+printExpN n (FUNCTIONCALL (funcid,scope) _ listid t) = do
     putStrLnWithIdent n "Function Call:"
     printId n funcid
     putStrLnWithIdent n "With the next IDs: "

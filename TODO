@@ -1,18 +1,16 @@
 TODO NEW
 
-
-- [HACER] Generar label para funciones en la symTable y guardar eso en el AST
-
-- [HACER] Revisar si todas las funciones fueron definidas
-
 - [HACER] Generar el codigo para todas las funciones
 
 
 
 
+- [HACER] Revisar si todas las funciones fueron definidas
+
+
+
 
 - [HACER] Revisar que break y continue esten dentro de ciclo
-
 
 - [HACER] UNIONS
 

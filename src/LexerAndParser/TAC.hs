@@ -309,7 +309,7 @@ tacExpression e@NOT{} = booleanToTemporal e
 
 tacExpression e@LOGIC{} = booleanToTemporal e
 
-tacExpression (FUNCTIONCALL label args tpe) = do
+tacExpression (FUNCTIONCALL _ label args tpe) = do
   let n = length args
   ts <- mapM tacExpression args
   mapM_ (\t -> tell [ Param t]) ts

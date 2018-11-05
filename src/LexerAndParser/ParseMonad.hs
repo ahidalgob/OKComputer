@@ -86,6 +86,8 @@ data ParseState = ParseState {
         state_NextScope :: Int,               -- Next scope
         state_SymTable :: SymTable,           -- Sym table
 
+        state_functionLabelNumber :: Int,
+
         state_returnType :: OKType            -- Return type when inside function
 } deriving Show
 
@@ -102,6 +104,8 @@ initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
                               state_ScopeSet = emptyScopeSet,
                               state_NextScope = 2,
                               state_SymTable = emptySymTable,
+
+                              state_functionLabelNumber = 0,
 
                               state_returnType = OKVoid}
 
@@ -177,6 +181,11 @@ setReturnType oktype = modify (\s -> s{state_returnType = oktype})
 getReturnType :: ParseM OKType
 getReturnType = gets state_returnType
 
+getNewFunctionLabelNumber :: ParseM String
+getNewFunctionLabelNumber = do
+  old <- gets state_functionLabelNumber
+  modify (\s -> s{state_functionLabelNumber = old+1})
+  return $ show (old+1)
 -----------------------------------------------
 ----------------------- SYM TABLE
 -----------------------------------------------
@@ -336,7 +345,8 @@ insertFuncSym id pos oktype@(OKFunc paramTypes _) paramIds defining = do
      else case find (sameParams paramTypes) syms of
           Nothing -> do
               symTable <- gets state_SymTable
-              let newSymTable = symTableInsert (FuncSym 1 id pos oktype paramIds [] False 0) symTable
+              labelid <- getNewFunctionLabelNumber
+              let newSymTable = symTableInsert (FuncSym 1 id pos oktype paramIds [] False (labelid++id) 0) symTable
               modify (\s -> s{state_SymTable = newSymTable})
           Just FuncSym{sym_defined=def}
             | def -> showRedeclarationOfDefinedFunction id (fst pos) (head $ filter (sameParams paramTypes) syms) -- already defined with same arguments
@@ -403,14 +413,13 @@ completeFunctionDef id oktype instrs = do
               else sym
               ) : updateFunc funcType instrs syms
 
---}}}
 
 
 
 
 
 
---Errors{{{
+--Errors{{{1
 
 showNameTypeAlreadyUsed :: Id -> Int -> Sym -> ParseM ()
 showNameTypeAlreadyUsed id ln sym = do

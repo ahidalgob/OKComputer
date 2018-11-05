@@ -22,6 +22,7 @@ data Sym = VarSym{ sym_scope :: Scope
                    , sym_argsId :: [SymId]
                    , sym_AST :: [AST.INSTRUCTION]
                    , sym_defined :: Bool -- or only declared?
+                   , sym_label :: String
                    , offset :: Int
            }
           | NameTypeSym{ sym_scope :: Scope
