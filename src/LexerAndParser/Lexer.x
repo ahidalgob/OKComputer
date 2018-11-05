@@ -45,6 +45,7 @@ tokens :-
 <0>  dafunk                                  {newToken DaFunkTkn}          -- Method with return/Function
 <0>  \:                                      {newToken ColonTkn}           -- Method with return/Function
 <0>  getback                                 {newToken GetBackTkn}         -- Return
+<0>  continue                                {newToken ContinueTkn}        -- Return
 <0>  Intothevoid                             {newToken IntoTheVoidTkn}     -- Void
 <0>  newlife                                 {newToken NewLifeTkn}         -- Calloc
 <0>  saveme                                  {newToken SaveMeTkn}          -- Malloc
