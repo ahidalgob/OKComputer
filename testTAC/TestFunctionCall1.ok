@@ -2,16 +2,6 @@
 
 
 
-dafunk llamada1(Int n, Boolean x, Int[5] a) : Intothevoid
- youbegin
- whereiend
-
-
-dafunk llamada2(Int n, Int n2, Int n3, Int n4) : Intothevoid
- youbegin
- whereiend
-
-
 dafunk f(Int n) : Int
 
 dafunk g(Int n) : Int
@@ -27,13 +17,4 @@ whereiend
 
 dafunk maintheme(Int n) : Intothevoid
  youbegin
-
- Int[5] arg = {1,2,3,4,5}
-
-
- llamada2(1,2,3,4)
-
- llamada1(4, ok, arg)
-
-
  whereiend

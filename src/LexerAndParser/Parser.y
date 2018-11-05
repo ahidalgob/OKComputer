@@ -117,7 +117,6 @@ import Data.List
 
 
 %right '='
-%nonassoc '!='
 %left or
 %left and
 %nonassoc '>' '<' '==' '!=' '>=' '<='

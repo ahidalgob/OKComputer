@@ -8,7 +8,7 @@ dafunk maintheme(Int n) : Intothevoid
  Int arg2 = 30
 
 
-	cantstop (arg2 != 30)
+	cantstop (arg2 != 30 and arg[2] != 5)
  	youbegin
 
  		if (arg2 < 30)
