@@ -1,0 +1,15 @@
+# Expresiones Aritmeticas Simples.
+dafunk maintheme(Int n) : Intothevoid
+ youbegin
+
+ Int[5] a
+ Int[5] b
+ Boolean[5] c
+
+ a = {3,4,5,6,7}
+
+ b = {3+1, a[2] - 3, 7*4, 50/3+1, 666}
+
+ c = {ok, notok, b[a[1]] > 6, ok and ok, 4+4>3}
+
+ whereiend

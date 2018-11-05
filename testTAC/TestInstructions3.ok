@@ -1,0 +1,25 @@
+# Llamado a Funciones.
+
+dafunk maintheme(Int n) : Intothevoid
+ youbegin
+
+ Int[5] arg = {1,2,3,4,5}
+
+ Int arg2 = 30
+
+	onemoretime Int iterative = 0; iterative != 30; iterative = iterative + 1
+ 	youbegin
+
+ 		if (arg2 < 30)
+ 		youbegin
+ 			arg2 = arg2+1
+ 		whereiend
+
+ 		otherside
+ 		youbegin
+ 			arg2 = arg2-1
+ 		whereiend
+
+ 	whereiend
+
+ whereiend
