@@ -27,9 +27,20 @@ sym code = do
         (\(id, lst) -> (putStrLn id >> (mapM_ print lst))) (toList (state_SymTable st))
     Left algomas -> putStrLn $ show algomas
 
+tac code = do
+  (Right ast, parseState) <- runParseM parse code
+  ((_, tac), tacState) <- runTACkerM (tacStart ast)
+  mapM_ print tac
+
+
+
+
+
+
 main = do
   [option, file] <- getArgs
   case option of
        "-l" -> readFile file >>= lexer
        "-p" -> readFile file >>= parser
        "-s" -> readFile file >>= sym
+       "-t" -> readFile file >>= tac

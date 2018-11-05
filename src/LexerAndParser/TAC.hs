@@ -31,7 +31,7 @@ data Instruction =
   | CopyInstr X X             -- X = Y                   (3)
   | Goto Label                -- goto Label              (4)
   | IfGoto X Label            -- if X goto Label         (5)
-  | IfFalseGoto X Label       -- ifFalse X goto Label
+  -- | IfFalseGoto X Label       -- ifFalse X goto Label
   | IfRelGoto X RelOp X Label -- if X relop Y goto Label (6)
   | Param X                   -- param X                 (7)
   | PopParam X                -- popParam X                 (7)
@@ -45,12 +45,61 @@ data Instruction =
   | GetContents X X           -- x = *y
   | PutLabel Label            -- Label:
 
-data BinOp = Add | Sub | Mul | Div | Mod | And | Or
+
+data BinOp = Add | Sub | Mul | Div | Mod
 data UnOp = Not | Minus
 data RelOp = LTOET | LT2 | GTOET | GT2 | ET | NET
 
 
+--Shows {{{2
+instance Show X where
+  show (Name sym) = show sym
+  show (IntCons x) = show x
+  show (FloatCons x) = show x
+  show (BoolCons x) = show x
+  show (CharCons x) = show x
+  show (Temporal x _) = "t"++show x
 
+
+instance Show Instruction where
+  show (BinOpInstr x y op z) = show x ++ " = " ++ show y ++ show op ++ show z
+  show (UnOpInstr x op y) = show x ++ " = " ++ show op ++ show y
+  show (CopyInstr x y) = show x ++ " = " ++ show y
+  show (Goto label) = "Goto " ++ label
+  show (IfGoto x label) = "if " ++ show x ++ " goto " ++ label
+  --show (IfFalseGoto x label) = "iffalse " ++ show x ++ " goto " ++ label
+  show (IfRelGoto x relop y label) = "if " ++ show x ++ show relop ++ show y ++ " goto " ++ label
+  show (Param x) = "param " ++ show x
+  show (PopParam x) = "popparam " ++ show x
+  show (Call label x) = "call " ++ label ++ " " ++ show x
+  show (CallAssign x label n) = show x ++ " = call " ++ label ++ " " ++ show n
+  show (ReturnVoid) = "return"
+  show (Return x) = "return " ++ show x
+  show (ArrayGetPos x y z) = show x ++ " = " ++ show y ++ "[" ++ show z ++ "]"
+  show (ArraySetPos x y z) = show x ++ "[" ++ show y ++ "] = " ++ show z
+  show (GetAddress x y) = show x ++ " = &" ++ show y
+  show (GetContents x y) = show x ++ " = *" ++ show y
+  show (PutLabel label) = "LABEL:" ++ label
+
+
+instance Show BinOp where
+  show Add = "+"
+  show Sub = "-"
+  show Mul = "*"
+  show Div = "/"
+  show Mod = "%"
+
+instance Show UnOp where
+  show Not = "¬"
+  show Minus = "-"
+
+instance Show RelOp where
+  show LTOET = "<="
+  show LT2 = "<"
+  show GTOET = ">="
+  show GT2 = ">"
+  show ET = "=="
+  show NET = "!="
 
 -- TACkerM {{{1
 data TACkerState = TACkerState { tmpCounter :: Int
@@ -72,6 +121,10 @@ initTACkerState = TACkerState{ tmpCounter = 0
 
 
 type TACkerM a = WriterT TAC (StateT TACkerState IO) a
+
+runTACkerM :: TACkerM a -> IO ((a, TAC), TACkerState)
+runTACkerM f = runStateT (runWriterT f) initTACkerState
+
 
 backPatch :: [Label] -> Label -> TACkerM ()
 backPatch [] _ = return ()
@@ -125,6 +178,10 @@ pushCycleLabel sl el = do
   modify (\s -> s{startLabels = sl:startLs})
   modify (\s -> s{endLabels = el:endLs})
 
+
+-- tacStart{{{1
+tacStart (START outs) = mapM_ tacOutsides outs
+tacOutsides (OUTASSIGN exps) = mapM_ tacExpression exps
 
 -- tacInstruction {{{1
 
