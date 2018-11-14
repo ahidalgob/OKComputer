@@ -8,7 +8,7 @@ dafunk maintheme(Int n) : Intothevoid
 
  Int arg2 = 30
 
- if (arg2 < 30)
+ if (arg2 < 30 and arg2 == 69 and ok)
  youbegin
  	arg2 = arg2+1
  whereiend

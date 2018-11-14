@@ -4,14 +4,14 @@
 
 dafunk f(Int n) : Int
 
-dafunk g(Int n) : Int
+dafunk g(Int n, Float x) : Int
 youbegin
   getback f(n)
 whereiend
 
 dafunk f(Int n) : Int
 youbegin
-  getback g(n)
+  getback g(n,3.0)
 whereiend
 
 

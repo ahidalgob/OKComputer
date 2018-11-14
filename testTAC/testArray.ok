@@ -4,7 +4,7 @@
 dafunk maintheme(Int n) : Intothevoid
  youbegin
 
-    Tuple(Int, Int)[3] a = {<<2,3>>, <<1+2, 5>>, <<420, 20>>}
+    Tuple(Int, Int)[2] a = {<<2,3>>, <<1+2, 5>>}
     a[a[2]._1]._1 = 1
 
  whereiend
