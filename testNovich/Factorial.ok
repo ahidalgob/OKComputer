@@ -1,0 +1,74 @@
+dafunk iterativo(Int x) : Int
+youbegin
+	Int res = 1
+	onemoretime Int i = 2; i <= x; i = i +1
+	youbegin
+		res = res*i
+	whereiend
+	getback(res)
+
+whereiend
+
+dafunk recursivo(Int x) : Int
+youbegin
+	if x == 0
+	youbegin
+		getback(1)
+	whereiend
+	otherside
+	youbegin
+		getback(x*recursivo(x-1))
+	whereiend
+whereiend
+
+
+dafunk maintheme() : Intothevoid
+ youbegin
+
+ Int x
+ Int n
+ Int res
+
+ cantstop(ok)
+ youbegin
+ 	
+ 	goslowly("Escoger cual metodo utilizar para calcular factorial. Seleccionar 1 para iterativo, 2 para recursivo y 0 para salir del programa")
+
+ 	readmymind(x)
+
+ 	if x == 0 
+ 	youbegin
+ 		breakthru
+ 	whereiend
+
+ 	goslowly("Introducir el numero a calcular factorial. Debe ser entero no negativo")
+
+ 	readmymind(n)
+
+ 	if n > 0
+ 	youbegin
+ 		if x == 1
+ 		youbegin
+ 			res = iterativo(n)
+
+ 		whereiend
+
+ 		ifyouhavetoask x == 2
+ 		youbegin
+ 			res = recursivo(n)
+ 		whereiend
+
+ 		goslowly("El resultado es: ")
+ 		goslowly(res)
+
+ 	whereiend
+
+ 	otherside
+ 	youbegin
+ 		 goslowly("Alguno de los valores introducidos no son validos.")
+ 	whereiend
+
+ whereiend
+
+
+ whereiend
