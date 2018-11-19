@@ -1,0 +1,36 @@
+dafunk raiz(Int x) : Int
+youbegin
+
+
+whereiend
+
+dafunk maintheme() : Intothevoid
+ youbegin
+
+ Float x
+ Int n
+ Int res
+
+ cantstop(ok)
+ youbegin
+ 	
+ 	goslowly("Introducir el numero a calcular la raiz cuadrada. Introduzca 0.0 para salir del programa")
+
+ 	readmymind(x)
+
+ 	if x == 0.0 
+ 	youbegin
+ 		breakthru
+ 	whereiend
+
+ 	readmymind(n)
+
+ 	otherside
+ 	youbegin
+ 		 goslowly("Alguno de los valores introducidos no son validos.")
+ 	whereiend
+
+ whereiend
+
+
+ whereiend
