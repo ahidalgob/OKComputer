@@ -48,7 +48,7 @@ import Data.List
   dafunk                                  { DaFunkTkn _}          -- Method with return/Function
   ':'                                     { ColonTkn _ }           -- Method with return/Function
   getback                                 { GetBackTkn _ }         -- Return
-  continue                                { GetBackTkn _ }         -- Return
+  continue                                { ContinueTkn _ }         -- Return
   intothevoid                             { IntoTheVoidTkn _ }     -- Void
   newlife                                 { NewLifeTkn _ }         -- Calloc
 --  saveme                                  { SaveMeTkn }          -- Malloc
