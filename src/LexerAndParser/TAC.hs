@@ -244,15 +244,17 @@ tacInstruction (CANTSTOP exp instrs) = do
 tacInstruction (ONEMORETIME iniExps condExp stepExp instrs) = do
   startLabel <- freshLabel "startOneMoreTime"
   enterLabel <- freshLabel "enterOneMoreTime"
+  nextLabel <- freshLabel "nextOneMoreTime"
   endLabel <- freshLabel "endOneMoreTime"
   increaseLabelCounter
 
   mapM_ tacExpression iniExps
-  pushCycleLabel enterLabel endLabel
+  pushCycleLabel nextLabel endLabel
   tell [ PutLabel startLabel ]
   (tl, fl) <- tacBoolean condExp
   tell [ PutLabel enterLabel ]
   mapM_ tacInstruction instrs
+  tell [ PutLabel nextLabel ]
   tacExpression stepExp
   tell [ Goto startLabel
        , PutLabel endLabel ]
