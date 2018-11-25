@@ -8,6 +8,8 @@ import AST
 import Control.Monad.State.Lazy
 import Control.Monad.Writer.Lazy
 
+import Control.Exception.Base
+
 import Data.Map.Strict
 
 type Scope = Int
@@ -21,11 +23,15 @@ data X = Name SymId
        | CharCons Char
        | Temporal Int Width
 
+
 isCons IntCons{} = True
 isCons FloatCons{} = True
 isCons CharCons{} = True
 isCons BoolCons{} = True
+isCons (Temporal _ w) = w<=4
 isCons _ = False
+
+is0Cons (IntCons 0) = True
 
 type Label = String
 
@@ -328,15 +334,15 @@ tacExpression (ASSIGN le re t) = do
     then
       case tshift of
         Nothing -> tell [CopyInstr base t1]
-        Just shift -> tell [ArraySetPos base shift t1]
+        Just shift -> tell $ if (isCons base && is0Cons shift) then [CopyInstr base t1] else [ArraySetPos base shift t1]
     else
       case tshift of
-        Nothing -> do
-          let setPos i = do
-                  t <- fresh (type_width OKInt)
-                  tell [ ArrayGetPos t t1 (IntCons i)
-                       , ArraySetPos base (IntCons i) t]
-          mapM_ setPos [0,4..(width-1)]
+        Nothing -> do copyToShift base 0 t1 width
+          --let setPos i = do
+                  --t <- fresh (type_width OKInt)
+                  --tell [ ArrayGetPos t t1 (IntCons i)
+                       --, ArraySetPos base (IntCons i) t]
+          --mapM_ setPos [0,4..(width-1)]
         Just shift -> do
           let setPos i = do
                   t <- fresh (type_width OKInt)
@@ -456,16 +462,26 @@ booleanToTemporal e = do
 -- t[4] = base[shift+4]
 -- ...
 copyFromShift :: X -> X -> Int -> TACkerM X
-copyFromShift base shift width = do
-  t <- fresh width -- temporal where everything is saved
-  let setPos i = do
+copyFromShift base shift width
+  | width <= 4 && isCons base = do
+    return $ assert (is0Cons shift) "pene"
+    t <- fresh width
+    tell [ CopyInstr t base ]
+    return t
+  | width <= 4 = do
+    t <- fresh width
+    tell [ ArrayGetPos t base shift ]
+    return t
+  | otherwise = do
+    t <- fresh width -- temporal where everything is saved
+    let setPos i = do
           t1 <- fresh (type_width OKInt)
           t2 <- fresh (type_width OKInt)
           tell [ BinOpInstr t1 shift Add (IntCons i)
                , ArrayGetPos t2 base t1
                , ArraySetPos t (IntCons i) t2]
-  mapM_ setPos [0,4..(width-1)]
-  return t
+    mapM_ setPos [0,4..(width-1)]
+    return t
 
 
 -- t[shift] = t1[0]
@@ -476,6 +492,7 @@ copyFromShift base shift width = do
 -- more...
 copyToShift :: X -> Int -> X -> Int -> TACkerM ()
 copyToShift t shift t1 width
+  | isCons t1 && isCons t = tell [ CopyInstr t t1 ]
   | isCons t1 = tell [ ArraySetPos t (IntCons shift) t1 ]
   | otherwise = do
   let setPos i = do

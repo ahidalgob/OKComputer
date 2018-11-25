@@ -1,0 +1,7 @@
+# Expresiones Aritmeticas Simples.
+dafunk maintheme(Int n) : Intothevoid
+ youbegin
+
+ Int[1][1] a = {{1}}
+
+ whereiend
