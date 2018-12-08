@@ -13,7 +13,6 @@ data Sym = VarSym{ sym_scope :: Scope
                  , sym_Id :: Id
                  , sym_pos :: Pos -- declaration position
                  , sym_type :: OKType
-                 , offset :: Int
            }
           | FuncSym{ sym_scope :: Scope
                    , sym_Id :: Id
@@ -23,7 +22,6 @@ data Sym = VarSym{ sym_scope :: Scope
                    , sym_AST :: [AST.INSTRUCTION]
                    , sym_defined :: Bool -- or only declared?
                    , sym_label :: String
-                   , offset :: Int
            }
           | NameTypeSym{ sym_scope :: Scope
                        , sym_Id :: Id

@@ -326,7 +326,7 @@ insertVarSym scope id pos oktype = do
   if sym_scope prevSym == scope
        then showVariableRedeclaredInScope id (fst pos) prevSym
        else  do symTable <- gets state_SymTable
-                let newSymTable = symTableInsert (VarSym scope id pos oktype 0) symTable
+                let newSymTable = symTableInsert (VarSym scope id pos oktype) symTable
                 modify (\s -> s{state_SymTable = newSymTable})
 
 
@@ -346,7 +346,7 @@ insertFuncSym id pos oktype@(OKFunc paramTypes _) paramIds defining = do
           Nothing -> do
               symTable <- gets state_SymTable
               labelid <- getNewFunctionLabelNumber
-              let newSymTable = symTableInsert (FuncSym 1 id pos oktype paramIds [] False (labelid++id) 0) symTable
+              let newSymTable = symTableInsert (FuncSym 1 id pos oktype paramIds [] False (labelid++id)) symTable
               modify (\s -> s{state_SymTable = newSymTable})
           Just FuncSym{sym_defined=def}
             | def -> showRedeclarationOfDefinedFunction id (fst pos) (head $ filter (sameParams paramTypes) syms) -- already defined with same arguments
