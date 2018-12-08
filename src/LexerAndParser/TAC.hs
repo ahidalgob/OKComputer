@@ -10,7 +10,7 @@ import Control.Monad.Writer.Lazy
 
 import Control.Exception.Base
 
-import Data.Map.Strict
+import Data.Map.Strict as Map
 
 type Scope = Int
 type SymId = (Id, Scope)
@@ -21,14 +21,16 @@ data X = Name SymId
        | FloatCons Float
        | BoolCons Bool
        | CharCons Char
-       | Temporal Int Width
+       | Temporal {tmp_number::Int, tmp_width::Width, tmp_scope::Scope}
 
+tmpToSymId :: X -> (String, Scope)
+tmpToSymId (Temporal n _ sc) = ("$t" ++ show n,sc)
 
 isCons IntCons{} = True
 isCons FloatCons{} = True
 isCons CharCons{} = True
 isCons BoolCons{} = True
-isCons (Temporal _ w) = w<=4
+isCons Temporal{tmp_width=w} = w<=4
 isCons _ = False
 
 is0Cons (IntCons 0) = True
@@ -71,7 +73,7 @@ instance Show X where
   show (FloatCons x) = show x
   show (BoolCons x) = show x
   show (CharCons x) = show x
-  show (Temporal x _) = "t"++show x
+  show (Temporal x _ sc) = "(t"++show x++","++show sc++")"
 
 
 instance Show Instruction where
@@ -123,21 +125,29 @@ data TACkerState = TACkerState { tmpCounter :: Int
                                , startLabels :: [Label]
                                , endLabels :: [Label]
                                , backPatchMap :: Map Label Label
+                               , currentScope :: Scope
+                               , state_scwidth :: Map.Map Scope Int
+                               , state_offset :: Map.Map (Id, Int) Int
                                }
-initTACkerState = TACkerState{ tmpCounter = 0
-                             , tmpWidths = []
-                             , labelCounter = 0
-                             , fakeLabelCounter = 0
-                             , startLabels = []
-                             , endLabels = []
-                             , backPatchMap = empty
-                             }
+initTACkerState scwidth offset = TACkerState{ tmpCounter = 0
+                                            , tmpWidths = []
+                                            , labelCounter = 0
+                                            , fakeLabelCounter = 0
+                                            , startLabels = []
+                                            , endLabels = []
+                                            , backPatchMap = empty
+                                            , currentScope = 1
+                                            , state_scwidth = scwidth
+                                            , state_offset = offset
+                                            }
+
 
 
 type TACkerM a = WriterT TAC (StateT TACkerState IO) a
 
-runTACkerM :: TACkerM a -> IO ((a, TAC), TACkerState)
-runTACkerM f = runStateT (runWriterT f) initTACkerState
+runTACkerM :: TACkerM a -> Map.Map Scope Int -> Map.Map (Id, Int) Int
+                        -> IO ((a, TAC), TACkerState)
+runTACkerM f scw off = runStateT (runWriterT f) $ initTACkerState scw off
 
 backPatch :: [Label] -> Label -> TACkerM ()
 backPatch [] _ = return ()
@@ -148,12 +158,27 @@ backPatch (fl:fls) l = do
   modify (\s -> s{backPatchMap=newMap})
   backPatch fls l
 
+setCurrentScope :: Scope -> TACkerM ()
+setCurrentScope sc = modify (\s -> s{currentScope = sc})
+
+getCurrentScope :: TACkerM Scope
+getCurrentScope = gets currentScope
+
 fresh :: Width -> TACkerM X
 fresh w = do
   tmpCnt <- gets tmpCounter
   tmpWs <- gets tmpWidths
-  modify (\s -> s{tmpCounter = tmpCnt+1, tmpWidths = w:tmpWs})
-  return $ Temporal tmpCnt w
+  sc <- getCurrentScope
+  let t = Temporal tmpCnt w sc
+  Just varOffset <- Map.lookup sc <$> gets state_scwidth
+  new_offset <- Map.insert (tmpToSymId t) varOffset <$> gets state_offset
+  new_scwidth <- Map.adjust (+ w) sc <$> gets state_scwidth
+  modify (\s -> s{ tmpCounter = tmpCnt+1
+                 , tmpWidths = w:tmpWs
+                 , state_offset = new_offset
+                 , state_scwidth = new_scwidth
+                 })
+  return t
 
 freshLabel :: String -> TACkerM Label
 freshLabel str = do
@@ -193,7 +218,7 @@ pushCycleLabel sl el = do
 
 
 -- tacStart{{{1
-tacStart (START outs) = mapM_ tacOutsides outs
+tacStart (START outs) = setCurrentScope 1 >> mapM_ tacOutsides outs
 tacOutsides (OUTASSIGN exps) = mapM_ tacExpression exps
 
 -- tacFuncs
@@ -201,6 +226,7 @@ tacFuncs :: [(Label, (Scope, [INSTRUCTION]))] -> TACkerM ()
 tacFuncs [] = return ()
 tacFuncs ((lab, (scope, instrs)):fs) = do
   tell [ PutLabel lab ]
+  setCurrentScope scope
   mapM_ tacInstruction instrs
   tacFuncs fs
 
@@ -209,6 +235,8 @@ tacFuncs ((lab, (scope, instrs)):fs) = do
 tacInstruction :: INSTRUCTION -> TACkerM ()
 tacInstruction (EXPRESSIONINST e) = void $ tacExpression e
 tacInstruction (IF exp (scope, instrs) ifelse) = do
+  prevScope <- getCurrentScope
+  setCurrentScope scope
   (tl, fl) <- tacBoolean exp
   trueLabel <- freshLabel "ifTrue"
   falseLabel <- freshLabel "ifFalse"
@@ -224,9 +252,12 @@ tacInstruction (IF exp (scope, instrs) ifelse) = do
   tell [ PutLabel falseLabel ]
   tacIfElse ifelse endLabel
   tell [ PutLabel endLabel ]
+  setCurrentScope prevScope
 
 
 tacInstruction (CANTSTOP exp (scope, instrs)) = do
+  prevScope <- getCurrentScope
+  setCurrentScope scope
   startLabel <- freshLabel "startCantStop"
   enterLabel <- freshLabel "enterCantStop"
   endLabel <- freshLabel "endCantStop"
@@ -245,9 +276,12 @@ tacInstruction (CANTSTOP exp (scope, instrs)) = do
 
   backPatch tl enterLabel
   backPatch fl endLabel
+  setCurrentScope prevScope
 
 
 tacInstruction (ONEMORETIME iniExps condExp stepExp (scope, instrs)) = do
+  prevScope <- getCurrentScope
+  setCurrentScope scope
   startLabel <- freshLabel "startOneMoreTime"
   enterLabel <- freshLabel "enterOneMoreTime"
   nextLabel <- freshLabel "nextOneMoreTime"
@@ -269,6 +303,8 @@ tacInstruction (ONEMORETIME iniExps condExp stepExp (scope, instrs)) = do
 
   backPatch tl enterLabel
   backPatch fl endLabel
+  setCurrentScope prevScope
+
 
 tacInstruction BREAKTHRU = do
   endLabel <- topEndCycleLabel
@@ -298,6 +334,8 @@ tacInstruction AMNESIAC{} = undefined
 tacIfElse :: IFELSE -> Label -> TACkerM ()
 tacIfElse IFELSEVOID endLabel = tell [ Goto endLabel ] -- Shouldn't be needed
 tacIfElse (IFASK exp (scope, instrs) ifelse) endLabel = do
+  prevScope <- getCurrentScope
+  setCurrentScope scope
   (tl, fl) <- tacBoolean exp
   trueLabel <- freshLabel "elseTrue"
   falseLabel <- freshLabel "elseFalse"
@@ -311,10 +349,14 @@ tacIfElse (IFASK exp (scope, instrs) ifelse) endLabel = do
   tell [ Goto endLabel ]
   tell [ PutLabel falseLabel ]
   tacIfElse ifelse endLabel
+  setCurrentScope prevScope
 
 tacIfElse (OTHERSIDE (scope, instrs)) endLabel = do
+  prevScope <- getCurrentScope
+  setCurrentScope scope
   mapM_ tacInstruction instrs
   tell [ Goto endLabel ]
+  setCurrentScope prevScope
 
 -- tacExpression {{{1
 

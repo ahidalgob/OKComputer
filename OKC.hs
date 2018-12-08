@@ -5,8 +5,9 @@ import AST
 import TAC
 import SymTable
 import qualified Data.HashMap.Strict as HM
-import qualified Data.Map.Strict as M
+import qualified Data.Map.Strict as Map
 import System.Environment
+import Data.List
 
 lexer code = do
   (alexed, state) <- runParseM alexMonadScan code
@@ -34,16 +35,18 @@ tac code = do
   let funcs' = filter isFuncSym $ concat.HM.elems $ state_SymTable parseState
   let funcs = map (\f -> (sym_label f, sym_AST f)) funcs'
 
-  ((_, tac), tacState) <- runTACkerM (tacStart ast >> tacFuncs funcs)
+  ((_, tac), tacState) <- runTACkerM (tacStart ast >> tacFuncs funcs) (ParseMonad.state_scwidth parseState) (ParseMonad.state_offset parseState)
   --((_,tac2), tacState) <- runTACkerMS (tacFuncs funcs) tacState'
   --let tac = tac1 ++ tac2
   let bp = backPatchMap tacState
   let bpmap = backPatcher bp tac
   mapM_ print bpmap
+  putStrLn "==="
+  mapM_ print $ map (sortOn snd) $ groupBy (\x y -> (snd.fst) x == (snd.fst) y) $ sortOn (snd.fst) $ Map.toList $ TAC.state_offset tacState
 
 
 
-backPatcher :: M.Map Label Label -> TAC -> TAC
+backPatcher :: Map.Map Label Label -> TAC -> TAC
 backPatcher _ [] = []
 backPatcher m (Goto lab : ls) = Goto (backPatchLabel m lab):
                                   backPatcher m ls
@@ -55,9 +58,9 @@ backPatcher m (IfRelGoto x op y lab : ls) = IfRelGoto x op y (backPatchLabel m l
 backPatcher m (i:ls) = i : backPatcher m ls
 
 
-backPatchLabel :: M.Map Label Label -> Label -> Label
+backPatchLabel :: Map.Map Label Label -> Label -> Label
 backPatchLabel m lab =
-  case M.lookup lab m of
+  case Map.lookup lab m of
     Nothing -> lab
     Just lab' -> lab'
 
