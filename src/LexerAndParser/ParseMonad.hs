@@ -89,6 +89,8 @@ data ParseState = ParseState {
         state_SymTable :: SymTable,           -- Sym table
 
         state_scparent :: Map.Map Scope Scope ,
+        state_scwidth :: Map.Map Scope Int,
+        state_offset :: Map.Map (Id, Int) Int,
 
         state_functionLabelNumber :: Int,
 
@@ -110,6 +112,8 @@ initParseState s = ParseState{ alex_inp = (alexStartPos, '\n', [], s)
                              , state_SymTable = emptySymTable
 
                              , state_scparent = Map.singleton 1 0
+                             , state_scwidth = Map.insert 1 0 $ Map.singleton 0 0
+                             , state_offset = Map.empty
 
                              , state_functionLabelNumber = 0
 
@@ -236,22 +240,20 @@ beginScope :: ParseM Scope
 beginScope = do
   nextScope <- gets state_NextScope
   topScope <- topScope
-  old_scpar <- gets state_scparent
-  let new_scpar = Map.insert nextScope topScope old_scpar
+  new_scpar <- Map.insert nextScope topScope <$> gets state_scparent
+  new_scwidth <- Map.insert nextScope 0 <$> gets state_scwidth
   pushScope nextScope
   insertScope nextScope
-  modify (\s -> s{state_NextScope = nextScope+1, state_scparent = new_scpar})
+  modify (\s -> s{state_NextScope = nextScope+1, state_scparent = new_scpar, state_scwidth = new_scwidth})
   return nextScope
 
 begin0Scope :: ParseM Scope
 begin0Scope = do
-  nextScope <- gets state_NextScope
+  scope <- beginScope
   old_scpar <- gets state_scparent
-  let new_scpar = Map.insert nextScope 0 old_scpar
-  pushScope nextScope
-  insertScope nextScope
-  modify (\s -> s{state_NextScope = nextScope+1, state_scparent = new_scpar})
-  return nextScope
+  let new_scpar = Map.insert scope 0 old_scpar
+  modify (\s -> s{state_scparent = new_scpar})
+  return scope
 
 -- exported
 endScope :: ParseM ()
@@ -345,7 +347,13 @@ insertVarSym scope id pos oktype = do
        then showVariableRedeclaredInScope id (fst pos) prevSym
        else  do symTable <- gets state_SymTable
                 let newSymTable = symTableInsert (VarSym scope id pos oktype) symTable
-                modify (\s -> s{state_SymTable = newSymTable})
+
+                Just varOffset <- Map.lookup scope <$> gets state_scwidth
+                new_offset <- Map.insert (id, scope) varOffset <$> gets state_offset
+
+                new_scwidth <- Map.adjust (+ type_width oktype) scope <$> gets state_scwidth
+
+                modify (\s -> s{state_SymTable = newSymTable, state_offset = new_offset, state_scwidth = new_scwidth})
 
 
 modifySymTableList :: Id -> [Sym] -> ParseM()
