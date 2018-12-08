@@ -327,8 +327,8 @@ tacExpression BOOLEANEXP{expBooleanVal = val}     = return $ BoolCons val
 
 -- e can be a simple value, an array, a tuple, a list, string
 tacExpression (ASSIGN le re t) = do
-  (base, tshift) <- tacLval le  -- a = {1}
   t1 <- tacExpression re
+  (base, tshift) <- tacLval le  -- a = {1}
   let width = type_width t
   if isSimpleType t
     then
@@ -464,6 +464,7 @@ booleanToTemporal e = do
 -- t = base[shift]
 copyFromShift :: X -> X -> Int -> TACkerM X
 copyFromShift base shift width
+  -- | width <= 4 && isCons base = assert (is0Cons shift) $ return base
   | width <= 4 = do
     t <- fresh width
     tell [ ArrayGetPos t base shift ]
