@@ -21,6 +21,7 @@ module ParseMonad(
 
                   -- Parser
                  , beginScope
+                 , begin0Scope
                  , endScope
                  , topScope
 
@@ -48,6 +49,7 @@ import OKTypes
 import SymTable
 import Scope
 
+import qualified Data.Map.Strict as Map
 
 import Data.Maybe
 
@@ -83,8 +85,10 @@ data ParseState = ParseState {
 
         state_ScopeStack :: ScopeStack,       -- Stack of scopes
         state_ScopeSet :: ScopeSet,           -- Set of scopes
-        state_NextScope :: Int,               -- Next scope
+        state_NextScope :: Scope,               -- Next scope
         state_SymTable :: SymTable,           -- Sym table
+
+        state_scparent :: Map.Map Scope Scope ,
 
         state_functionLabelNumber :: Int,
 
@@ -93,21 +97,24 @@ data ParseState = ParseState {
 
 
 initParseState :: String -> ParseState
-initParseState s = ParseState{alex_inp = (alexStartPos, '\n', [], s),
-                              alex_scd = 0,
-                              alex_invalidC = [],
-                              alex_strPos = (0,0),
-                              alex_str = "",
-                              last_new_line = True,
+initParseState s = ParseState{ alex_inp = (alexStartPos, '\n', [], s)
+                             , alex_scd = 0
+                             , alex_invalidC = []
+                             , alex_strPos = (0,0)
+                             , alex_str = ""
+                             , last_new_line = True
 
-                              state_ScopeStack = emptyScopeStack,
-                              state_ScopeSet = emptyScopeSet,
-                              state_NextScope = 2,
-                              state_SymTable = emptySymTable,
+                             , state_ScopeStack = emptyScopeStack
+                             , state_ScopeSet = emptyScopeSet
+                             , state_NextScope = 2
+                             , state_SymTable = emptySymTable
 
-                              state_functionLabelNumber = 0,
+                             , state_scparent = Map.singleton 1 0
 
-                              state_returnType = OKVoid}
+                             , state_functionLabelNumber = 0
+
+                             , state_returnType = OKVoid
+                             }
 
 --------------------------------------------------------
 ----------------- Error --------------------------------
@@ -228,17 +235,28 @@ deleteScope sc = do
 beginScope :: ParseM Scope
 beginScope = do
   nextScope <- gets state_NextScope
-  --liftIO $ putStrLn $ "Enter Scope: " ++ show nextScope
+  topScope <- topScope
+  old_scpar <- gets state_scparent
+  let new_scpar = Map.insert nextScope topScope old_scpar
   pushScope nextScope
   insertScope nextScope
-  modify (\s -> s{state_NextScope = nextScope+1})
+  modify (\s -> s{state_NextScope = nextScope+1, state_scparent = new_scpar})
+  return nextScope
+
+begin0Scope :: ParseM Scope
+begin0Scope = do
+  nextScope <- gets state_NextScope
+  old_scpar <- gets state_scparent
+  let new_scpar = Map.insert nextScope 0 old_scpar
+  pushScope nextScope
+  insertScope nextScope
+  modify (\s -> s{state_NextScope = nextScope+1, state_scparent = new_scpar})
   return nextScope
 
 -- exported
 endScope :: ParseM ()
 endScope = do
   topScope <- topScope
-  --liftIO $ putStrLn $ "Exit Scope: " ++ show topScope
   popScope
   deleteScope topScope
 

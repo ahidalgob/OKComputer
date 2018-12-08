@@ -1,4 +1,6 @@
 # Expresiones Aritmeticas Simples.
+
+Int a = 3
 dafunk maintheme(Int n) : Intothevoid
  youbegin
 

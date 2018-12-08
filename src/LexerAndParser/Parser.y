@@ -163,11 +163,11 @@ FUNCTION_DEF : FUNCTION_SIGN BLOCK MAYBELINE {% functionDefAction $1 $2}
 
 -- Creates the function symbol and inserts it to the sym table
 FUNCTION_SIGN :: { (Token, [Parameter], OKType) }
-FUNCTION_SIGN : dafunk BEGIN varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE MAYBELINE     {% functionSignAction $3 $5 $8 True }
+FUNCTION_SIGN : dafunk BEGIN0 varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE MAYBELINE     {% functionSignAction $3 $5 $8 True }
 
 -- Creates the function symbol and inserts it to the sym table
 FUNCTION_SIGN_DECL :: { (Token, [Parameter], OKType) }
-FUNCTION_SIGN_DECL : dafunk BEGIN varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE MAYBELINE END   {% functionSignAction $3 $5 $8 False }
+FUNCTION_SIGN_DECL : dafunk BEGIN0 varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE MAYBELINE END   {% functionSignAction $3 $5 $8 False }
 
 RETURNTYPE :: { OKType }
 RETURNTYPE: intothevoid                                                 { OKVoid }
@@ -192,6 +192,8 @@ BLOCK :: { [AST.INSTRUCTION] }
 BLOCK : youbegin MAYBELINE INSIDEFUNCTION whereiend END                   { reverse $3 }
 
 BEGIN : {-λ-}                                                       {% P.beginScope }
+
+BEGIN0 : {-λ-}                                                       {% P.begin0Scope }
 
 END : {-λ-}                                                           {% P.endScope }
 
@@ -224,7 +226,7 @@ TYPE : TYPE '^'                                                                 
      | boolean                                                                       { OKBoolean }
      | char                                                                          { OKChar }
      | string                                                                        { OKString }
-     | record BEGIN '{' MAYBELINE INSIDERECORD '}' END                               { OKRecord $2 }
+     | record BEGIN0 '{' MAYBELINE INSIDERECORD '}' END                               { OKRecord $2 }
      -- | union '{' MAYBELINE INSIDEUNION '}'                                           { OKUnion $2 }
      | tuple '(' TYPES ')'                                                           { OKTuple (reverse $3) }
      | list '(' TYPE ')'                                                             { OKList $3 }
