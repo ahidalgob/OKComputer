@@ -19,7 +19,7 @@ data Sym = VarSym{ sym_scope :: Scope
                    , sym_pos :: Pos -- declaration position
                    , sym_type :: OKType
                    , sym_argsId :: [SymId]
-                   , sym_AST :: [AST.INSTRUCTION]
+                   , sym_AST :: (Scope, [AST.INSTRUCTION])
                    , sym_defined :: Bool -- or only declared?
                    , sym_label :: String
            }

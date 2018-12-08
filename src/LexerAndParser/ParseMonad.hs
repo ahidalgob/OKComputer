@@ -372,7 +372,7 @@ insertFuncSym id pos oktype@(OKFunc paramTypes _) paramIds defining = do
           Nothing -> do
               symTable <- gets state_SymTable
               labelid <- getNewFunctionLabelNumber
-              let newSymTable = symTableInsert (FuncSym 1 id pos oktype paramIds [] False (labelid++id)) symTable
+              let newSymTable = symTableInsert (FuncSym 1 id pos oktype paramIds (0,[]) False (labelid++id)) symTable
               modify (\s -> s{state_SymTable = newSymTable})
           Just FuncSym{sym_defined=def}
             | def -> showRedeclarationOfDefinedFunction id (fst pos) (head $ filter (sameParams paramTypes) syms) -- already defined with same arguments
@@ -426,12 +426,12 @@ findFunction id pos paramTypes = do
 
 
 -- exported
-completeFunctionDef :: Id -> OKType -> [AST.INSTRUCTION] -> ParseM ()
+completeFunctionDef :: Id -> OKType -> (Scope, [AST.INSTRUCTION]) -> ParseM ()
 completeFunctionDef id oktype instrs = do
   newList <- updateFunc oktype instrs <$> findAllSyms id
   modifySymTableList id newList
   where
-        updateFunc :: OKType -> [AST.INSTRUCTION] -> [Sym] -> [Sym]
+        updateFunc :: OKType -> (Scope, [AST.INSTRUCTION]) -> [Sym] -> [Sym]
         updateFunc _ _ [] = []
         updateFunc funcType instrs (sym : syms) =
           (if funcType == sym_type sym

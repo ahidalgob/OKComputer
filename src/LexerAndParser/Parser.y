@@ -159,15 +159,15 @@ TYPEDEF : typedef typeId TYPE newline                          {% typedefAction 
 
 -- Completes the definition of the function
 FUNCTION_DEF :: { () }
-FUNCTION_DEF : FUNCTION_SIGN BLOCK MAYBELINE {% functionDefAction $1 $2}
+FUNCTION_DEF : FUNCTION_SIGN BLOCK MAYBELINE {% functionDefAction (snd $1) (fst $1, $2)}
 
 -- Creates the function symbol and inserts it to the sym table
-FUNCTION_SIGN :: { (Token, [Parameter], OKType) }
-FUNCTION_SIGN : dafunk BEGIN0 varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE MAYBELINE     {% functionSignAction $3 $5 $8 True }
+FUNCTION_SIGN :: { (Scope, (Token, [Parameter], OKType)) }
+FUNCTION_SIGN : dafunk BEGIN0 varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE MAYBELINE     {% functionSignAction $3 $5 $8 True $2 }
 
 -- Creates the function symbol and inserts it to the sym table
-FUNCTION_SIGN_DECL :: { (Token, [Parameter], OKType) }
-FUNCTION_SIGN_DECL : dafunk BEGIN0 varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE MAYBELINE END   {% functionSignAction $3 $5 $8 False }
+FUNCTION_SIGN_DECL :: { (Scope, (Token, [Parameter], OKType)) }
+FUNCTION_SIGN_DECL : dafunk BEGIN0 varId '(' LPARAMETERSFUNC ')' ':' RETURNTYPE MAYBELINE END   {% functionSignAction $3 $5 $8 False $2 }
 
 RETURNTYPE :: { OKType }
 RETURNTYPE: intothevoid                                                 { OKVoid }
@@ -251,9 +251,9 @@ INSTRUCTION : go '(' NONEMPTYEXPRESSIONS ')' newline                            
             | gomental '(' NONEMPTYEXPRESSIONS ')' newline                      { AST.GOINGMENTAL $ reverse $3 }
             | readmymind '(' LVALS ')' newline                                  { AST.READMYMIND $3 }
             | amnesiac '(' EXPRESSION ')' newline                               { AST.AMNESIAC $ $3 }
-            | if EXPRESSION BEGIN MAYBELINE BLOCK newline IFELSE                                  {% ifAction $1 $2 $5 $7 }
-            | cantstop EXPRESSION BEGIN MAYBELINE BLOCK newline                                  {% cantStopAction $1 $2 $5 }
-            | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION MAYBELINE BLOCK newline {% oneMoreTimeAction $1 $5 $3 $7 $9 }
+            | if EXPRESSION BEGIN MAYBELINE BLOCK newline IFELSE                                  {% ifAction $1 $2 ($3,$5) $7 }
+            | cantstop EXPRESSION BEGIN MAYBELINE BLOCK newline                                  {% cantStopAction $1 $2 ($3,$5) }
+            | onemoretime BEGIN DECLARATION ';' EXPRESSION ';' EXPRESSION MAYBELINE BLOCK newline {% oneMoreTimeAction $1 $5 $3 $7 ($2,$9) }
             | getback EXPRESSION newline                                        {% getBackAction $1 (Just $2) }
             | getback newline                                                   {% getBackAction $1 Nothing }
             | continue newline                                                  { AST.CONTINUE }
@@ -262,8 +262,8 @@ INSTRUCTION : go '(' NONEMPTYEXPRESSIONS ')' newline                            
             | EXPRESSION newline                                                { AST.EXPRESSIONINST $1 }
 
 
-IFELSE : ifyouhavetoask EXPRESSION BEGIN MAYBELINE BLOCK newline IFELSE                           {% ifYouHaveToAskAction $1 $2 $5 $7 }
-       | otherside BEGIN MAYBELINE BLOCK newline                                                { AST.OTHERSIDE $4 }
+IFELSE : ifyouhavetoask EXPRESSION BEGIN MAYBELINE BLOCK newline IFELSE                           {% ifYouHaveToAskAction $1 $2 ($3,$5) $7 }
+       | otherside BEGIN MAYBELINE BLOCK newline                                                { AST.OTHERSIDE ($2,$4) }
        | {-λ-}                                                                  { AST.IFELSEVOID }
 
 
@@ -345,21 +345,21 @@ typedefAction tkn_id oktype = do
 
 
 -- Adds the body of the function to the sym table
-functionDefAction :: (Token, [Parameter], OKType) -> [AST.INSTRUCTION] -> ParseM ()
+functionDefAction :: (Token, [Parameter], OKType) -> (Scope, [AST.INSTRUCTION]) -> ParseM ()
 functionDefAction (tkn, params, ret) instrs = do
         let oktype = OKFunc (map param_type params) ret
         P.completeFunctionDef (tkn_string tkn) oktype instrs
 
 -- Adds the function, without body, to the sym table
-functionSignAction :: Token -> [Parameter] -> OKType -> Bool -> ParseM (Token, [Parameter], OKType)
-functionSignAction tkn params retType defining = do
+functionSignAction :: Token -> [Parameter] -> OKType -> Bool -> Scope -> ParseM (Scope, (Token, [Parameter], OKType))
+functionSignAction tkn params retType defining insideScope = do
         let oktype = OKFunc (map param_type params) retType
             id = tkn_string tkn
             pos = tkn_pos tkn
             param_ids = map param_id params
         P.insertFuncSym id pos oktype param_ids defining
         P.setReturnType retType
-        return (tkn, params, retType)
+        return (insideScope, (tkn, params, retType))
 
 -- Adds parameter to the symtable
 functionParameterAction :: OKType -> Token -> ParseM Parameter
@@ -420,18 +420,18 @@ nameTypeAction tkn = do
       NameTypeSym{} -> return $ sym_type sym
       _ -> do return OKErrorT
 
-ifAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> AST.IFELSE -> ParseM AST.INSTRUCTION
+ifAction :: Token -> AST.EXPRESSION -> (Scope,[AST.INSTRUCTION]) -> AST.IFELSE -> ParseM AST.INSTRUCTION
 ifAction tkn condition blk ifelse = do
           checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) " for if condition"
           return $ AST.IF condition blk ifelse
 
-cantStopAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> ParseM AST.INSTRUCTION
+cantStopAction :: Token -> AST.EXPRESSION -> (Scope, [AST.INSTRUCTION]) -> ParseM AST.INSTRUCTION
 cantStopAction tkn condition blk = do
           checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) " for cantstop condition"
           return $ AST.CANTSTOP condition blk
 
 
-oneMoreTimeAction :: Token -> AST.EXPRESSION -> [AST.EXPRESSION] -> AST.EXPRESSION -> [AST.INSTRUCTION] -> ParseM AST.INSTRUCTION
+oneMoreTimeAction :: Token -> AST.EXPRESSION -> [AST.EXPRESSION] -> AST.EXPRESSION -> (Scope, [AST.INSTRUCTION]) -> ParseM AST.INSTRUCTION
 oneMoreTimeAction tkn condition init step blk = do
           checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) " for onemoretime condition"
           return $ AST.ONEMORETIME init condition step blk
@@ -447,7 +447,7 @@ getBackAction tkn Nothing = do
           return $ AST.GETBACK Nothing
 
 
-ifYouHaveToAskAction :: Token -> AST.EXPRESSION -> [AST.INSTRUCTION] -> AST.IFELSE -> ParseM AST.IFELSE
+ifYouHaveToAskAction :: Token -> AST.EXPRESSION -> (Scope, [AST.INSTRUCTION]) -> AST.IFELSE -> ParseM AST.IFELSE
 ifYouHaveToAskAction tkn condition blk ifelse = do
           checkExpectedType (tkn_pos tkn) OKBoolean (exp_type condition) " for ifyouhavetoask condition"
           return $ AST.IFASK condition blk ifelse

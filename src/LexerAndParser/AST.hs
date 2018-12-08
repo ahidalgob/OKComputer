@@ -20,9 +20,9 @@ data INSTRUCTION = GOING [EXPRESSION]                                  |
 
           AMNESIAC EXPRESSION                                          |
 
-          IF EXPRESSION [INSTRUCTION] IFELSE                           |
-          CANTSTOP EXPRESSION [INSTRUCTION]                            |
-          ONEMORETIME [EXPRESSION] EXPRESSION EXPRESSION [INSTRUCTION] |
+          IF EXPRESSION (Scope, [INSTRUCTION]) IFELSE                           |
+          CANTSTOP EXPRESSION (Scope, [INSTRUCTION])                            |
+          ONEMORETIME [EXPRESSION] EXPRESSION EXPRESSION (Scope, [INSTRUCTION]) |
           BREAKTHRU                                                    |
           CONTINUE                                                     |
 
@@ -33,8 +33,8 @@ data INSTRUCTION = GOING [EXPRESSION]                                  |
           deriving (Show, Eq)
 
 data IFELSE = IFELSEVOID                              |
-         IFASK EXPRESSION [INSTRUCTION] IFELSE        |
-         OTHERSIDE [INSTRUCTION]
+         IFASK EXPRESSION (Scope, [INSTRUCTION]) IFELSE        |
+         OTHERSIDE (Scope, [INSTRUCTION])
          deriving (Show, Eq)
 
 
@@ -323,7 +323,7 @@ printInstruction n (IF exps instrs elses) = do
   putStrLnWithIdent n "Conditional: "
   printExpN (n+2) exps
   putStrLnWithIdent n "Instructions list: "
-  mapM_ (printInstruction (n+2)) instrs
+  mapM_ (printInstruction (n+2)) $ snd instrs
   printIfelse n elses
 
 printInstruction n (CANTSTOP exps instrs) = do
@@ -331,7 +331,7 @@ printInstruction n (CANTSTOP exps instrs) = do
   putStrLnWithIdent n "Conditional: "
   printExpN (n+2) exps
   putStrLnWithIdent n "Instructions list: "
-  mapM_ (printInstruction (n+2)) instrs
+  mapM_ (printInstruction (n+2)) $ snd instrs
 
 --printInstruction n (ONEMORETIME declars exp2 exp3 instrs) = do
 printInstruction n (ONEMORETIME decls exp2 exp3 instrs) = do
@@ -343,7 +343,7 @@ printInstruction n (ONEMORETIME decls exp2 exp3 instrs) = do
   putStrLnWithIdent n "Pattern: "
   printExpN (n+2) exp3
   putStrLnWithIdent n "Instructions list: "
-  mapM_ (printInstruction (n+2)) instrs
+  mapM_ (printInstruction (n+2)) $ snd instrs
 
 
 
@@ -357,13 +357,13 @@ printIfelse n (IFASK exps instrs elses) = do
   putStrLnWithIdent n "Conditional: "
   printExpN (n+2) exps
   putStrLnWithIdent n "Instructions list: "
-  mapM_ (printInstruction (n+2)) instrs
+  mapM_ (printInstruction (n+2)) $ snd instrs
   printIfelse n elses
 
 printIfelse n (OTHERSIDE instrs) = do
   putStrLnWithIdent n "Otherside Instruction: "
   putStrLnWithIdent n "Instructions list: "
-  mapM_ (printInstruction (n+2)) instrs
+  mapM_ (printInstruction (n+2)) $ snd instrs
 
 
 --- 1}}}

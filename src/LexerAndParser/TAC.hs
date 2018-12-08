@@ -197,9 +197,9 @@ tacStart (START outs) = mapM_ tacOutsides outs
 tacOutsides (OUTASSIGN exps) = mapM_ tacExpression exps
 
 -- tacFuncs
-tacFuncs :: [(Label, [INSTRUCTION])] -> TACkerM ()
+tacFuncs :: [(Label, (Scope, [INSTRUCTION]))] -> TACkerM ()
 tacFuncs [] = return ()
-tacFuncs ((lab, instrs):fs) = do
+tacFuncs ((lab, (scope, instrs)):fs) = do
   tell [ PutLabel lab ]
   mapM_ tacInstruction instrs
   tacFuncs fs
@@ -208,7 +208,7 @@ tacFuncs ((lab, instrs):fs) = do
 
 tacInstruction :: INSTRUCTION -> TACkerM ()
 tacInstruction (EXPRESSIONINST e) = void $ tacExpression e
-tacInstruction (IF exp instrs ifelse) = do
+tacInstruction (IF exp (scope, instrs) ifelse) = do
   (tl, fl) <- tacBoolean exp
   trueLabel <- freshLabel "ifTrue"
   falseLabel <- freshLabel "ifFalse"
@@ -226,7 +226,7 @@ tacInstruction (IF exp instrs ifelse) = do
   tell [ PutLabel endLabel ]
 
 
-tacInstruction (CANTSTOP exp instrs) = do
+tacInstruction (CANTSTOP exp (scope, instrs)) = do
   startLabel <- freshLabel "startCantStop"
   enterLabel <- freshLabel "enterCantStop"
   endLabel <- freshLabel "endCantStop"
@@ -247,7 +247,7 @@ tacInstruction (CANTSTOP exp instrs) = do
   backPatch fl endLabel
 
 
-tacInstruction (ONEMORETIME iniExps condExp stepExp instrs) = do
+tacInstruction (ONEMORETIME iniExps condExp stepExp (scope, instrs)) = do
   startLabel <- freshLabel "startOneMoreTime"
   enterLabel <- freshLabel "enterOneMoreTime"
   nextLabel <- freshLabel "nextOneMoreTime"
@@ -297,7 +297,7 @@ tacInstruction AMNESIAC{} = undefined
 -- tacIfElse {{{2
 tacIfElse :: IFELSE -> Label -> TACkerM ()
 tacIfElse IFELSEVOID endLabel = tell [ Goto endLabel ] -- Shouldn't be needed
-tacIfElse (IFASK exp instrs ifelse) endLabel = do
+tacIfElse (IFASK exp (scope, instrs) ifelse) endLabel = do
   (tl, fl) <- tacBoolean exp
   trueLabel <- freshLabel "elseTrue"
   falseLabel <- freshLabel "elseFalse"
@@ -312,7 +312,7 @@ tacIfElse (IFASK exp instrs ifelse) endLabel = do
   tell [ PutLabel falseLabel ]
   tacIfElse ifelse endLabel
 
-tacIfElse (OTHERSIDE instrs) endLabel = do
+tacIfElse (OTHERSIDE (scope, instrs)) endLabel = do
   mapM_ tacInstruction instrs
   tell [ Goto endLabel ]
 
