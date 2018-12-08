@@ -327,29 +327,24 @@ tacExpression BOOLEANEXP{expBooleanVal = val}     = return $ BoolCons val
 
 -- e can be a simple value, an array, a tuple, a list, string
 tacExpression (ASSIGN le re t) = do
-  (base, tshift) <- tacLval le
+  (base, tshift) <- tacLval le  -- a = {1}
   t1 <- tacExpression re
   let width = type_width t
   if isSimpleType t
     then
       case tshift of
         Nothing -> tell [CopyInstr base t1]
-        Just shift -> tell $ if (isCons base && is0Cons shift) then [CopyInstr base t1] else [ArraySetPos base shift t1]
+        Just shift -> tell [ArraySetPos base shift t1]
     else
       case tshift of
         Nothing -> do copyToShift base 0 t1 width
-          --let setPos i = do
-                  --t <- fresh (type_width OKInt)
-                  --tell [ ArrayGetPos t t1 (IntCons i)
-                       --, ArraySetPos base (IntCons i) t]
-          --mapM_ setPos [0,4..(width-1)]
         Just shift -> do
           let setPos i = do
-                  t <- fresh (type_width OKInt)
+                  t3 <- fresh (type_width OKInt)
                   t2 <- fresh (type_width OKInt)
                   tell [ BinOpInstr t2 shift Add (IntCons i)
-                       , ArrayGetPos t t1 (IntCons i)
-                       , ArraySetPos base t2 t]
+                       , ArrayGetPos t3 t1 (IntCons i)
+                       , ArraySetPos base t2 t3]
           mapM_ setPos [0,4..(width-1)]
   return t1
 
@@ -461,13 +456,14 @@ booleanToTemporal e = do
 -- t[0] = base[shift]
 -- t[4] = base[shift+4]
 -- ...
+-- t[width-4] = base[shift+width-4]
+--
+-- or
+--
+-- t <- fresh
+-- t = base[shift]
 copyFromShift :: X -> X -> Int -> TACkerM X
 copyFromShift base shift width
-  | width <= 4 && isCons base = do
-    return $ assert (is0Cons shift) "pene"
-    t <- fresh width
-    tell [ CopyInstr t base ]
-    return t
   | width <= 4 = do
     t <- fresh width
     tell [ ArrayGetPos t base shift ]
@@ -477,8 +473,8 @@ copyFromShift base shift width
     let setPos i = do
           t1 <- fresh (type_width OKInt)
           t2 <- fresh (type_width OKInt)
-          tell [ BinOpInstr t1 shift Add (IntCons i)
-               , ArrayGetPos t2 base t1
+          tell [ BinOpInstr t1 shift Add (IntCons i) | i>0]
+          tell [  ArrayGetPos t2 base t1
                , ArraySetPos t (IntCons i) t2]
     mapM_ setPos [0,4..(width-1)]
     return t
@@ -487,20 +483,24 @@ copyFromShift base shift width
 -- t[shift] = t1[0]
 -- t[shift+4] = t1[4]
 -- ...
--- Very naive:
--- we do a t2 = shift+0
--- more...
+-- t[shift+width-4] = t1[width-4]
+--
+-- or
+--
+-- t = t1
+--
+-- or
+--
+-- t[shift] = t1
 copyToShift :: X -> Int -> X -> Int -> TACkerM ()
 copyToShift t shift t1 width
   | isCons t1 && isCons t = tell [ CopyInstr t t1 ]
   | isCons t1 = tell [ ArraySetPos t (IntCons shift) t1 ]
   | otherwise = do
   let setPos i = do
-          t2 <- fresh (type_width OKInt)
           t3 <- fresh (type_width OKInt)
-          tell [ BinOpInstr t2 (IntCons shift) Add (IntCons i)
-               , ArrayGetPos t3 t1 (IntCons i)
-               , ArraySetPos t t2 t3]
+          tell [ ArrayGetPos t3 t1 (IntCons i)
+               , ArraySetPos t (IntCons $ shift + i) t3]
   mapM_ setPos [0,4..(width-1)]
 
 -- Generate code for each expression and return a temporal
