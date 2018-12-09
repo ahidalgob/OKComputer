@@ -4,6 +4,7 @@ import Parser
 import AST
 import TAC
 import SymTable
+import Machine
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict as Map
 import System.Environment
@@ -62,6 +63,28 @@ tac code = do
   let offsets' = recomputeOffset (Map.toList offsets) sc_off
   mapM_ (print . sortOn snd) $ groupBy (\x y -> (snd.fst) x == (snd.fst) y) $ sortOn (snd.fst) $ Map.toList offsets'
 
+mips code = do
+  (Right ast, parseState) <- runParseM parse code
+  let funcs' = filter isFuncSym $ concat.HM.elems $ state_SymTable parseState
+  let funcs = map (\f -> (sym_label f, sym_AST f)) funcs'
+
+  ((_, tac), tacState) <- runTACkerM (tacStart ast >> tacFuncs funcs) (ParseMonad.state_scwidth parseState) (ParseMonad.state_offset parseState)
+  let bp = backPatchMap tacState
+  let tac' = backPatcher bp tac
+  putStrLn "TAC"
+  mapM_ print tac'
+
+  let offsets = TAC.state_offset tacState
+  let sc_widths = TAC.state_scwidth tacState
+  let sc_parent = ParseMonad.state_scparent parseState
+
+  let sc_off = computeScoff (Map.toAscList sc_parent) (Map.singleton 0 0) sc_widths
+  let offsets' = recomputeOffset (Map.toList offsets) sc_off
+
+  putStrLn "\n\nBlocks"
+  let mips_code = Machine.mipsCode tac' offsets'
+  mapM_ (\bl -> putStrLn ("+++++++++++++"++show (fst bl)) >> mapM_ print (snd bl)) mips_code
+
 
 computeScoff :: [(Scope, Scope)] -> Map.Map Scope Int -> Map.Map Scope Int -> Map.Map Scope Int
 computeScoff [] m _ = m
@@ -101,3 +124,4 @@ main = do
        "-p" -> readFile file >>= parser
        "-s" -> readFile file >>= sym
        "-t" -> readFile file >>= tac
+       "-m" -> readFile file >>= mips
