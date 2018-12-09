@@ -1,26 +1,27 @@
 # Expresiones Aritmeticas Simples.
 
 Int a = 3+2
-dafunk maintheme(Int n) : Intothevoid
+
+dafunk f(Int n) : Int
+ youbegin
+    getback f(n+1)
+ whereiend
+
+dafunk maintheme() : Intothevoid
  youbegin
 
+ Int n
  Int[2] a
  a = {4,5}
- if ok youbegin
+ if 42 > 3 youbegin
     a[0] = 69 + 7
-    if notok youbegin
-      a[0] = 0+0
+    n = f(n+1)
+    cantstop 12 < 14 youbegin
+        n = n+1
     whereiend
  whereiend
- otherside youbegin
-    a[0] = 4+20
- whereiend
+ maintheme()
 
- a[0] = 42 * 10
 
- whereiend
-
-dafunk f(Int n, Int x) : Intothevoid
- youbegin
-    a = 4
+ getback
  whereiend

@@ -13,13 +13,36 @@ data MIPSInstruction = F deriving Show
 --mipsCode :: TAC ->  Map.Map (String, Scope) Int -> MIPSCode
 mipsCode tac offset =
   let (nBlocks, block, blockOfLabel) = buildBlock 0 tac
-      graph = graphFromEdges nBlocks (getEdges (Map.assocs block) blockOfLabel)
-   in Map.assocs block
+      graph = buildGraph nBlocks block blockOfLabel
+   in (graph, Map.assocs block)
+
+
+-- BuildGraph {{{1
+buildGraph :: Int -> Map.Map Int TAC -> Map.Map String Int -> Graph
+buildGraph nBlocks block blockOfLabel = graphFromEdges nBlocks $ getEdges (Map.assocs block) blockOfLabel
 
 getEdges :: [(Int, TAC)] -> Map.Map String Int -> [(Int, Int)]
-getEdges = undefined
+getEdges [] _ = []
+getEdges ((v,tac):ls) blockOfLabel
+  | isIfGoto (last tac) = if null ls then (v, nodeOfLabel (last tac)):restOfEdges else (v,nodeOfLabel (last tac)):(v, v+1):restOfEdges
+  | isGoto (last tac) = (v, nodeOfLabel (last tac)):restOfEdges
+  | isReturn (last tac) = restOfEdges
+  | otherwise = (v, v+1):restOfEdges
+  where isIfGoto IfGoto{} = True
+        isIfGoto IfRelGoto{} = True
+        isIfGoto _ = False
+        isGoto Goto{} = True
+        isGoto _ = False
+        isReturn Return{} = True
+        isReturn ReturnVoid = True
+        isReturn _ = False
+        nodeOfLabel (IfGoto _ label) = nodeOfLabel (Goto label)
+        nodeOfLabel (IfRelGoto _ _ _ label) = nodeOfLabel (Goto label)
+        nodeOfLabel (Goto label) = fromJust $ Map.lookup label blockOfLabel
+        restOfEdges = getEdges ls blockOfLabel
 
 
+-- buildBlock {{{2
 buildBlock :: Int -> TAC -> (Int, Map.Map Int TAC, Map.Map String Int)
 buildBlock n [] = (n, Map.empty, Map.empty)
 buildBlock n (ins:tac) =
@@ -39,7 +62,10 @@ buildBlock n (ins:tac) =
         isLabel _ = False
         isJump Goto{} = True
         isJump IfGoto{} = True
+        isJump IfRelGoto{} = True
         isJump Return{} = True
         isJump ReturnVoid{} = True
+        isJump Call{} = True
+        isJump CallAssign{} = True
         isJump _ = False
 

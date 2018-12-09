@@ -82,7 +82,8 @@ mips code = do
   let offsets' = recomputeOffset (Map.toList offsets) sc_off
 
   putStrLn "\n\nBlocks"
-  let mips_code = Machine.mipsCode tac' offsets'
+  let (graph, mips_code) = Machine.mipsCode tac' offsets'
+  print graph
   mapM_ (\bl -> putStrLn ("+++++++++++++"++show (fst bl)) >> mapM_ print (snd bl)) mips_code
 
 
