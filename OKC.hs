@@ -41,10 +41,38 @@ tac code = do
   let bp = backPatchMap tacState
   let bpmap = backPatcher bp tac
   mapM_ print bpmap
+
   putStrLn "==="
-  mapM_ print $ map (sortOn snd) $ groupBy (\x y -> (snd.fst) x == (snd.fst) y) $ sortOn (snd.fst) $ Map.toList $ TAC.state_offset tacState
+  let offsets = TAC.state_offset tacState
+  mapM_ (print . sortOn snd) $ groupBy (\x y -> (snd.fst) x == (snd.fst) y) $ sortOn (snd.fst) $ Map.toList offsets
+
+  let sc_widths = TAC.state_scwidth tacState
+  let sc_parent = ParseMonad.state_scparent parseState
+
+  putStrLn "=== widths"
+  mapM_ print $ Map.toList sc_widths
+  putStrLn "=== parents"
+  mapM_ print $ Map.toList sc_parent
+
+  let sc_off = computeScoff (Map.toAscList sc_parent) (Map.singleton 0 0) sc_widths
+  putStrLn "=== sc offs"
+  mapM_ print $ Map.toList sc_off
+
+  putStrLn "=== final offset"
+  let offsets' = recomputeOffset (Map.toList offsets) sc_off
+  mapM_ (print . sortOn snd) $ groupBy (\x y -> (snd.fst) x == (snd.fst) y) $ sortOn (snd.fst) $ Map.toList offsets'
 
 
+computeScoff :: [(Scope, Scope)] -> Map.Map Scope Int -> Map.Map Scope Int -> Map.Map Scope Int
+computeScoff [] m _ = m
+computeScoff ((sc, par_sc):ls) scoff widths = computeScoff ls (Map.insert sc (par_scoff + par_width) scoff) widths
+  where Just par_scoff = Map.lookup par_sc scoff
+        Just par_width = Map.lookup par_sc widths
+
+recomputeOffset :: [((String, Scope), Int)] -> Map.Map Scope Int -> Map.Map (String, Scope) Int
+recomputeOffset [] _ = Map.empty
+recomputeOffset (((id, sc), off1):ls) sc_off = Map.insert (id, sc) (off1 + scope_off) $ recomputeOffset ls sc_off
+  where Just scope_off = Map.lookup sc sc_off
 
 backPatcher :: Map.Map Label Label -> TAC -> TAC
 backPatcher _ [] = []
