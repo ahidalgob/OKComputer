@@ -5,6 +5,7 @@ import TAC
 import qualified Data.Map.Strict as Map
 import Data.Maybe
 import Data.List
+import Graph
 
 type MIPSCode = [MIPSInstruction]
 data MIPSInstruction = F deriving Show
@@ -12,7 +13,12 @@ data MIPSInstruction = F deriving Show
 --mipsCode :: TAC ->  Map.Map (String, Scope) Int -> MIPSCode
 mipsCode tac offset =
   let (nBlocks, block, blockOfLabel) = buildBlock 0 tac
+      graph = graphFromEdges nBlocks (getEdges (Map.assocs block) blockOfLabel)
    in Map.assocs block
+
+getEdges :: [(Int, TAC)] -> Map.Map String Int -> [(Int, Int)]
+getEdges = undefined
+
 
 buildBlock :: Int -> TAC -> (Int, Map.Map Int TAC, Map.Map String Int)
 buildBlock n [] = (n, Map.empty, Map.empty)
