@@ -18,12 +18,15 @@ type BlockId = Int
 
 --mipsCode :: TAC ->  Map Variable Int -> MIPSCode
 mipsCode tac offset =
-  let (nBlocks, block, blockOfLabel) = buildBlock 0 tac
-      graph = buildGraph nBlocks block blockOfLabel
-   in (graph, Map.assocs block)
+  let (nBlocks, tacOfBlock, blockOfLabel) = buildBlock 0 tac
+      graph = buildGraph nBlocks tacOfBlock blockOfLabel
+      emptyVariableSet = Map.fromAscList [(i, Set.empty) | i <- [0..(nBlocks-1)]]
+      (ins, outs) = iterateFindSets graph tacOfBlock (emptyVariableSet, emptyVariableSet)
+   in (graph, Map.assocs tacOfBlock, Map.assocs ins, Map.assocs outs)
 
 
 -- BuildGraph {{{1
+-- build graph from blocks {{{2
 buildGraph :: Int -> Map BlockId TAC -> Map String BlockId -> Graph
 buildGraph nBlocks block blockOfLabel = graphFromEdges nBlocks $ getEdges (Map.assocs block) blockOfLabel
 
@@ -77,12 +80,14 @@ buildBlock n (ins:tac) =
 
 -- Alive variables {{{1
 
-type VariableSet = Set Variable
-type BlockVariableSet = Map BlockId VariableSet
+type IN = Set Variable
+type OUT = Set Variable
+type INS = Map BlockId IN
+type OUTS = Map BlockId OUT
 
-inFromOut :: VariableSet -> TAC -> VariableSet
+inFromOut :: OUT -> TAC -> IN
 inFromOut inSet tac = foldr f inSet tac
-  where f :: Instruction -> VariableSet -> VariableSet
+  where f :: Instruction -> OUT -> OUT
         f (BinOpInstr x y _ z) = insert' z . insert' y . delete' x
         f (UnOpInstr x _ y) = insert' y . delete' x
         f (CopyInstr x y) = insert' y . delete' x
@@ -98,12 +103,24 @@ inFromOut inSet tac = foldr f inSet tac
         f (Print x) = insert' x
         f _ = id
 
-        insert' :: X -> VariableSet -> VariableSet
+        insert' :: X -> OUT -> OUT
         insert' (Name symId) = Set.insert symId
         insert' t@Temporal{} = Set.insert (tmpToSymId t)
         insert' _ = id
 
-        delete' :: X -> VariableSet -> VariableSet
+        delete' :: X -> OUT -> OUT
         delete' (Name symId) = Set.delete symId
         delete' t@Temporal{} = Set.delete (tmpToSymId t)
         delete' _ = id
+
+outFromSuccessors :: INS -> Graph -> BlockId -> OUT
+outFromSuccessors ins graph id = foldl Set.union Set.empty [fromJust $ Map.lookup s ins | s <- successors graph id]
+
+iterateFindSets :: Graph -> Map BlockId TAC -> (INS, OUTS) -> (INS,OUTS)
+iterateFindSets graph tacOfBlock (ins, outs) = if ins==ins' && outs==outs' then (ins,outs) else iterateFindSets graph tacOfBlock (ins', outs')
+  where newIn :: BlockId -> IN
+        newIn id = inFromOut (fromJust $ Map.lookup id outs) (fromJust $ Map.lookup id tacOfBlock)
+        ins' = Map.fromAscList $ zip [0..(n-1)] $ map newIn [0..(n-1)]
+        outs' = Map.fromAscList $ zip [0..(n-1)] $ map (outFromSuccessors ins' graph) [0..(n-1)]
+
+        n = Map.size ins

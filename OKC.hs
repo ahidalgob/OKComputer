@@ -10,6 +10,7 @@ import qualified Data.Map.Strict as Map
 import System.Environment
 import Data.List
 
+-- front {{{1
 lexer code = do
   (alexed, state) <- runParseM alexMonadScan code
   case alexed of
@@ -31,6 +32,7 @@ sym code = do
         (\(id, lst) -> (putStrLn id >> (mapM_ print lst))) (HM.toList (state_SymTable st))
     Left algomas -> putStrLn $ show algomas
 
+-- tac{{{1
 tac code = do
   (Right ast, parseState) <- runParseM parse code
   let funcs' = filter isFuncSym $ concat.HM.elems $ state_SymTable parseState
@@ -63,6 +65,7 @@ tac code = do
   let offsets' = recomputeOffset (Map.toList offsets) sc_off
   mapM_ (print . sortOn snd) $ groupBy (\x y -> (snd.fst) x == (snd.fst) y) $ sortOn (snd.fst) $ Map.toList offsets'
 
+-- mips{{{1
 mips code = do
   (Right ast, parseState) <- runParseM parse code
   let funcs' = filter isFuncSym $ concat.HM.elems $ state_SymTable parseState
@@ -82,11 +85,15 @@ mips code = do
   let offsets' = recomputeOffset (Map.toList offsets) sc_off
 
   putStrLn "\n\nBlocks"
-  let (graph, mips_code) = Machine.mipsCode tac' offsets'
+  let (graph, mips_code, ins, outs) = Machine.mipsCode tac' offsets'
   print graph
-  mapM_ (\bl -> putStrLn ("+++++++++++++"++show (fst bl)) >> mapM_ print (snd bl)) mips_code
+  mapM_ (\(id, bl) -> putStrLn ("+++++++++++++"++show id) >> mapM_ print bl) mips_code
 
 
+  mapM_ (\(id, set) -> putStrLn ("+++++++++++++"++show id) >> mapM_ print set) ins
+  mapM_ (\(id, set) -> putStrLn ("+++++++++++++"++show id) >> mapM_ print set) outs
+
+-- aux{{{1
 computeScoff :: [(Scope, Scope)] -> Map.Map Scope Int -> Map.Map Scope Int -> Map.Map Scope Int
 computeScoff [] m _ = m
 computeScoff ((sc, par_sc):ls) scoff widths = computeScoff ls (Map.insert sc (par_scoff + par_width) scoff) widths
@@ -118,6 +125,7 @@ backPatchLabel m lab =
 
 
 
+-- main{{{1
 main = do
   [option, file] <- getArgs
   case option of

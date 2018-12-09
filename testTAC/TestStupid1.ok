@@ -8,11 +8,9 @@ dafunk f(Int n) : Int
  whereiend
 
 dafunk maintheme() : Intothevoid
- youbegin
+youbegin
 
  Int n
- Int[2] a
- a = {4,5}
  if 42 > 3 youbegin
     a[0] = 69 + 7
     n = f(n+1)
@@ -21,7 +19,5 @@ dafunk maintheme() : Intothevoid
     whereiend
  whereiend
  maintheme()
-
-
  getback
- whereiend
+whereiend

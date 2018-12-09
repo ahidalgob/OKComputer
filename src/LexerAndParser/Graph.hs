@@ -32,5 +32,5 @@ graphFromEdges n = foldl (flip addEdge) (emptyGraph n)
 predecessors :: Graph -> Int -> [Int]
 predecessors g v = fromMaybe [] $ Map.lookup v (graph_revadj g)
 
-successor :: Graph -> Int -> [Int]
-successor g v = fromMaybe [] $ Map.lookup v (graph_adj g)
+successors :: Graph -> Int -> [Int]
+successors g v = fromMaybe [] $ Map.lookup v (graph_adj g)
