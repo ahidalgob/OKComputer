@@ -1,6 +1,7 @@
 module Machine where
 
-import TAC
+import TAC(TAC)
+import qualified TAC
 
 import Data.Set(Set)
 import qualified Data.Set as Set
@@ -16,7 +17,7 @@ type MIPSCode = [MIPSInstruction]
 
 type BlockId = Int
 
-newtype Register = Register Int deriving (Eq, Ord)
+data Register = Register Int | DummyRegister deriving (Eq, Ord)
 type Variable = (String, Int)
 data Location = Mem | Reg Register
 
@@ -47,6 +48,31 @@ runMachineM :: MachineM a -> Int -> Map Variable Int -> Set Variable
 runMachineM f nR varOff aliveAtEnd = evalStateT (execWriterT f) $ initMachineMState nR varOff aliveAtEnd
 
 tac2mips :: TAC -> MachineM ()
-tac2mips tac = undefined
+tac2mips tac = mapM_ tacInstruction2mipsInstruction tac
+
+tacInstruction2mipsInstruction :: TAC.Instruction -> MachineM ()
+tacInstruction2mipsInstruction instr@(TAC.BinOpInstr x y op z) = do
+    Registers3 r1 r2 r3 <- getReg instr
+    checkVarInReg x r1
+    checkVarInReg y r2
+    checkVarInReg z r3
+    case op of
+         TAC.Add -> tell [""]
+         TAC.Sub -> tell [""]
+         TAC.Mul -> tell [""]
+         TAC.Div -> tell [""]
+         TAC.Mod -> tell [""]
+    return ()
+
+checkVarInReg :: TAC.X -> Register -> MachineM ()
+checkVarInReg x r = undefined
+
+
+data RegAssign = Registers1 Register
+               | Registers2 Register Register
+               | Registers3 Register Register Register
+
+getReg :: TAC.Instruction -> MachineM RegAssign
+getReg instr = undefined
 
 
