@@ -372,8 +372,9 @@ functionParameterAction oktype id = do
 -- Takes a type and a list of ids with maybe expressions, adds the ids to the table
 -- and builds the expression nodes.
 declarationAction :: OKType -> [(Token, Maybe AST.EXPRESSION)] -> ParseM [AST.EXPRESSION]
-declarationAction oktype l = do
-    let assigns = filter (isJust . snd) l
+declarationAction oktype l' = do
+    let l = map (\(tok, maybe_exp) -> (tok, substituteNothing maybe_exp (default_val oktype))) l'
+        assigns = filter (isJust . snd) l
         ids = map (\x -> (tkn_string.fst $ x, tkn_pos.fst $ x)) l :: [(Id, Pos)]
         tkn = fst.head $ l
 
@@ -383,6 +384,11 @@ declarationAction oktype l = do
     idExps <- mapM idAction $ map fst assigns
     let exps = map (fromJust . snd) assigns
     zipWithM (assignAction tkn) idExps exps
+  where default_val OKInt = Just $ AST.INTEXP 0 OKInt
+        default_val OKFloat = Just $ AST.FLOATEXP 0.0 OKFloat
+        default_val _ = Nothing
+        substituteNothing Nothing a = a
+        substituteNothing just _ = just
 
 
 

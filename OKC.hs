@@ -5,10 +5,16 @@ import AST
 import TAC
 import SymTable
 import Machine
+import BlockGraph
+
+import Control.Monad.Extra
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict as Map
+import Data.Map.Strict(Map)
+import Data.Set(Set)
 import System.Environment
 import Data.List
+import Data.Maybe
 
 -- front {{{1
 lexer code = do
@@ -74,8 +80,8 @@ mips code = do
   ((_, tac), tacState) <- runTACkerM (tacStart ast >> tacFuncs funcs) (ParseMonad.state_scwidth parseState) (ParseMonad.state_offset parseState)
   let bp = backPatchMap tacState
   let tac' = backPatcher bp tac
-  putStrLn "TAC"
-  mapM_ print tac'
+  --putStrLn "TAC"
+  --mapM_ print tac'
 
   let offsets = TAC.state_offset tacState
   let sc_widths = TAC.state_scwidth tacState
@@ -84,14 +90,34 @@ mips code = do
   let sc_off = computeScoff (Map.toAscList sc_parent) (Map.singleton 0 0) sc_widths
   let offsets' = recomputeOffset (Map.toList offsets) sc_off
 
-  putStrLn "\n\nBlocks"
-  let (graph, mips_code, ins, outs) = Machine.mipsCode tac' offsets'
-  print graph
-  mapM_ (\(id, bl) -> putStrLn ("+++++++++++++"++show id) >> mapM_ print bl) mips_code
+  --putStrLn "\n\nBlocks"
+  --let (graph, mips_code, ins, outs) = Machine.mipsCode tac' offsets'
+  --print graph
+  --mapM_ (\(id, bl) -> putStrLn ("+++++++++++++"++show id) >> mapM_ print bl) mips_code
 
 
-  mapM_ (\(id, set) -> putStrLn ("+++++++++++++"++show id) >> mapM_ print set) ins
-  mapM_ (\(id, set) -> putStrLn ("+++++++++++++"++show id) >> mapM_ print set) outs
+  --mapM_ (\(id, set) -> putStrLn ("+++++++++++++"++show id) >> mapM_ print set) ins
+  --mapM_ (\(id, set) -> putStrLn ("+++++++++++++"++show id) >> mapM_ print set) outs
+  --
+
+  let (nBlocks, tacOfBlock, aliveOfBlock) = BlockGraph.getBlocksWithAliveVariables tac' :: (Int, Map BlockGraph.BlockId TAC, Map BlockGraph.BlockId (Set BlockGraph.Variable))
+  mips <- concatMapM (blockId2mips offsets' aliveOfBlock tacOfBlock) [0..(nBlocks-1)]
+  mapM_ print mips
+
+
+  where blockId2mips :: Map Machine.Variable Int ->
+                        Map Machine.BlockId (Set Machine.Variable) ->
+                        Map Machine.BlockId TAC ->
+                        Machine.BlockId ->
+                        IO MIPSCode
+        blockId2mips offsets aliveOfBlock tacOfBlock i =
+                                 let aliveAtEnd = fromJust $ Map.lookup i aliveOfBlock
+                                     tac = fromJust $ Map.lookup i tacOfBlock
+                                  in runMachineM (tac2mips tac) 18 offsets aliveAtEnd
+
+
+
+
 
 -- aux{{{1
 computeScoff :: [(Scope, Scope)] -> Map.Map Scope Int -> Map.Map Scope Int -> Map.Map Scope Int
