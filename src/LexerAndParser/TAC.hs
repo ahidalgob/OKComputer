@@ -19,7 +19,7 @@ type Width = Int
 data X = Name SymId
        | IntCons Int
        | FloatCons Float
-       | BoolCons Bool
+       | BoolCons Int
        | CharCons Char
        | Temporal {tmp_number::Int, tmp_width::Width, tmp_scope::Scope}
 
@@ -48,21 +48,24 @@ data Instruction =
   -- | IfFalseGoto X Label       -- ifFalse X goto Label
   | IfRelGoto X RelOp X Label -- if X relop Y goto Label (6)
   | Param X                   -- param X                 (7)
-  | PopParam X                -- popParam X                 (7)
+  -- | PopParam X                -- popParam X                 (7)
   | Call Label Int            -- call p, n
   | CallAssign X Label Int    -- X = call p, n
   | ReturnVoid                -- return
   | Return X                  -- return X
   | ArrayGetPos X X X         -- x = y[i]                (8)
   | ArraySetPos X X X         -- x[i] = y
-  | GetAddress X X            -- x = &y                  (9)
-  | GetContents X X           -- x = *y
   | Print X                   -- print x
   | PutLabel Label            -- Label:
 
+  | SaveRA
+
+  | GetAddress X X            -- x = &y                  (9)
+  | GetContents X X           -- x = *y
+
 
 data BinOp = Add | Sub | Mul | Div | Mod
-data UnOp = Not | Minus
+data UnOp = {-- Not |--} Minus
 data RelOp = LTOET | LT2 | GTOET | GT2 | ET | NET
 
 
@@ -85,7 +88,7 @@ instance Show Instruction where
   --show (IfFalseGoto x label) = "iffalse " ++ show x ++ " goto " ++ label
   show (IfRelGoto x relop y label) = "    " ++ "if " ++ show x ++ show relop ++ show y ++ " goto " ++ label
   show (Param x) = "    " ++ "param " ++ show x
-  show (PopParam x) = "    " ++ "popparam " ++ show x
+  --show (PopParam x) = "    " ++ "popparam " ++ show x
   show (Call label x) = "    " ++ "call " ++ label ++ " " ++ show x
   show (CallAssign x label n) = "    " ++ show x ++ " = call " ++ label ++ " " ++ show n
   show (ReturnVoid) = "    " ++ "return"
@@ -106,7 +109,7 @@ instance Show BinOp where
   show Mod = "%"
 
 instance Show UnOp where
-  show Not = "¬"
+  --show Not = "¬"
   show Minus = "-"
 
 instance Show RelOp where
@@ -365,7 +368,7 @@ tacExpression IDEXPRESSION{expId = symId}         = return $ Name symId
 tacExpression INTEXP{expInt = val}                = return $ IntCons val
 tacExpression FLOATEXP{expFloat = val}            = return $ FloatCons val
 tacExpression CHAREXP{expChar = val}              = return $ CharCons val
-tacExpression BOOLEANEXP{expBooleanVal = val}     = return $ BoolCons val
+tacExpression BOOLEANEXP{expBooleanVal = val}     = return $ BoolCons (if val then 1 else 0)
 
 -- e can be a simple value, an array, a tuple, a list, string
 tacExpression (ASSIGN le re t) = do
@@ -434,12 +437,12 @@ tacExpression (FUNCTIONCALL _ label args tpe) = do
   case tpe of
     OKVoid -> do
       tell [ Call label n ]
-      mapM_ (\t -> tell [ PopParam t ]) (reverse ts)
+      --mapM_ (\t -> tell [ PopParam t ]) (reverse ts)
       return (IntCons 0)
     retT -> do
       t <- fresh (type_width retT)
       tell [ CallAssign t label n ]
-      mapM_ (\t -> tell [ PopParam t ]) (reverse ts)
+      --mapM_ (\t -> tell [ PopParam t ]) (reverse ts)
       return t
 
 
@@ -487,10 +490,10 @@ booleanToTemporal e = do
   backPatch trueList trueLabel
   backPatch falseList falseLabel
   tell [ PutLabel trueLabel
-       , CopyInstr t (BoolCons True)
+       , CopyInstr t (BoolCons 1)
        , Goto exitLabel
        , PutLabel falseLabel
-       , CopyInstr t (BoolCons False)
+       , CopyInstr t (BoolCons 0)
        , PutLabel exitLabel ]
   return t
 

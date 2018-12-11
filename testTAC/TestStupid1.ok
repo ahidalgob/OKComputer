@@ -1,23 +1,9 @@
 # Expresiones Aritmeticas Simples.
 
-Int a = 3+2
-
 dafunk f(Int n) : Int
  youbegin
-    getback f(n+1)
- whereiend
+    Boolean b = ok
+    if b youbegin
 
-dafunk maintheme() : Intothevoid
-youbegin
-
- Int n
- if 42 > 3 youbegin
-    a[0] = 69 + 7
-    n = f(n+1)
-    cantstop 12 < 14 youbegin
-        n = n+1
     whereiend
- whereiend
- maintheme()
- getback
 whereiend

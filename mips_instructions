@@ -1,7 +1,6 @@
 basic{{{1
 abs.d $f2,$f4           Floating point absolute value double precision : Set $f2 to absolute value of $f4, double precision
 abs.s $f0,$f1           Floating point absolute value single precision : Set $f0 to absolute value of $f1, single precision
-add $t1,$t2,$t3         Addition with overflow : set $t1 to ($t2 plus $t3)
 add.d $f2,$f4,$f6       Floating point addition double precision : Set $f2 to double-precision floating point value of $f4 plus $f6
 add.s $f0,$f1,$f3       Floating point addition single precision : Set $f0 to single-precision floating point value of $f1 plus $f3
 addi $t1,$t2,-100       Addition immediate with overflow : set $t1 to ($t2 plus signed 16-bit immediate)
@@ -13,14 +12,12 @@ bc1f 1,label            Branch if specified FP condition flag false (BC1F, not B
 bc1f label              Branch if FP condition flag 0 false (BC1F, not BCLF) : If Coprocessor 1 condition flag 0 is false (zero) then branch to statement at label's address
 bc1t 1,label            Branch if specified FP condition flag true (BC1T, not BCLT) : If Coprocessor 1 condition flag specified by immediate is true (one) then branch to statement at label's address
 bc1t label              Branch if FP condition flag 0 true (BC1T, not BCLT) : If Coprocessor 1 condition flag 0 is true (one) then branch to statement at label's address
-beq $t1,$t2,label       Branch if equal : Branch to statement at label's address if $t1 and $t2 are equal
 bgez $t1,label          Branch if greater than or equal to zero : Branch to statement at label's address if $t1 is greater than or equal to zero
 bgezal $t1,label        Branch if greater then or equal to zero and link : If $t1 is greater than or equal to zero, then set $ra to the Program Counter and branch to statement at label's address
 bgtz $t1,label          Branch if greater than zero : Branch to statement at label's address if $t1 is greater than zero
 blez $t1,label          Branch if less than or equal to zero : Branch to statement at label's address if $t1 is less than or equal to zero
 bltz $t1,label          Branch if less than zero : Branch to statement at label's address if $t1 is less than zero
 bltzal $t1,label        Branch if less than zero and link : If $t1 is less than or equal to zero, then set $ra to the Program Counter and branch to statement at label's address
-bne $t1,$t2,label       Branch if not equal : Branch to statement at label's address if $t1 and $t2 are not equal
 break                   Break execution : Terminate program execution with exception
 break 100               Break execution with code : Terminate program execution with specified exception code
 c.eq.d $f2,$f4          Compare equal double precision : If $f2 is equal to $f4 (double-precision), set Coprocessor 1 condition flag 0 true else set it false
@@ -100,11 +97,7 @@ mtc0 $t1,$8             Move to Coprocessor 0 : Set Coprocessor 0 register $8 to
 mtc1 $t1,$f1            Move to Coprocessor 1 (FPU) : Set Coprocessor 1 register $f1 to value in $t1
 mthi $t1                Move to HI registerr : Set HI to contents of $t1 (see multiply and divide operations)
 mtlo $t1                Move to LO register : Set LO to contents of $t1 (see multiply and divide operations)
-mul $t1,$t2,$t3         Multiplication without overflow  : Set HI to high-order 32 bits, LO and $t1 to low-order 32 bits of the product of $t2 and $t3 (use mfhi to access HI, mflo to access LO)
-mul.d $f2,$f4,$f6       Floating point multiplication double precision : Set $f2 to double-precision floating point value of $f4 times $f6
-mul.s $f0,$f1,$f3       Floating point multiplication single precision : Set $f0 to single-precision floating point value of $f1 times $f3
-mult $t1,$t2            Multiplication : Set hi to high-order 32 bits, lo to low-order 32 bits of the product of $t1 and $t2 (use mfhi to access hi, mflo to access lo)
-multu $t1,$t2           Multiplication unsigned : Set HI to high-order 32 bits, LO to low-order 32 bits of the product of unsigned $t1 and $t2 (use mfhi to access HI, mflo to access LO)
+
 neg.d $f2,$f4           Floating point negate double precision : Set double precision $f2 to negation of double precision value in $f4
 neg.s $f0,$f1           Floating point negate single precision : Set single precision $f0 to negation of single precision value in $f1
 nop                     Null operation : machine code is all zeroes
@@ -129,7 +122,6 @@ sra $t1,$t2,10          Shift right arithmetic : Set $t1 to result of sign-exten
 srav $t1,$t2,$t3        Shift right arithmetic variable : Set $t1 to result of sign-extended shifting $t2 right by number of bits specified by value in low-order 5 bits of $t3
 srl $t1,$t2,10          Shift right logical : Set $t1 to result of shifting $t2 right by number of bits specified by immediate
 srlv $t1,$t2,$t3        Shift right logical variable : Set $t1 to result of shifting $t2 right by number of bits specified by value in low-order 5 bits of $t3
-sub $t1,$t2,$t3         Subtraction with overflow : set $t1 to ($t2 minus $t3)
 sub.d $f2,$f4,$f6       Floating point subtraction double precision : Set $f2 to double-precision floating point value of $f4 minus $f6
 sub.s $f0,$f1,$f3       Floating point subtraction single precision : Set $f0 to single-precision floating point value of $f1  minus $f3
 subu $t1,$t2,$t3        Subtraction unsigned without overflow : set $t1 to ($t2 minus $t3), no overflow
@@ -305,12 +297,15 @@ swr $t1,label+100000($t2)Store Word Right : Store low-order 1 to 4 bytes of $t1 
 
 arith {{{2
 abs $t1,$t2             ABSolute value : Set $t1 to absolute value of $t2 (algorithm from Hacker's Delight)
+
+add $t1,$t2,$t3         Addition with overflow : set $t1 to ($t2 plus $t3)
 add $t1,$t2,-100        ADDition : set $t1 to ($t2 plus 16-bit immediate)
 add $t1,$t2,100000      ADDition : set $t1 to ($t2 plus 32-bit immediate)
 addi $t1,$t2,100000     ADDition Immediate : set $t1 to ($t2 plus 32-bit immediate)
 addiu $t1,$t2,100000    ADDition Immediate Unsigned: set $t1 to ($t2 plus 32-bit immediate), no overflow
 addu $t1,$t2,100000     ADDition Unsigned : set $t1 to ($t2 plus 32-bit immediate), no overflow
 
+sub $t1,$t2,$t3         Subtraction with overflow : set $t1 to ($t2 minus $t3)
 sub $t1,$t2,-100        SUBtraction : set $t1 to ($t2 minus 16-bit immediate)
 sub $t1,$t2,100000      SUBtraction : set $t1 to ($t2 minus 32-bit immediate)
 subi $t1,$t2,-100       SUBtraction Immediate : set $t1 to ($t2 minus 16-bit immediate)
@@ -329,6 +324,13 @@ mulou $t1,$t2,100000    MULtiplication with Overflow Unsigned : Set $t1 to low-o
 mulu $t1,$t2,$t3        MULtiplication Unsigned : Set HI to high-order 32 bits, LO and $t1 to low-order 32 bits of ($t2 multiplied by $t3, unsigned multiplication)
 mulu $t1,$t2,-100       MULtiplication Unsigned :  Set HI to high-order 32 bits, LO and $t1 to low-order 32 bits of ($t2 multiplied by 16-bit immediate, unsigned multiplication)
 mulu $t1,$t2,100000     MULtiplication Unsigned :  Set HI to high-order 32 bits, LO and $t1 to low-order 32 bits of ($t2 multiplied by 32-bit immediate, unsigned multiplication)
+
+mul $t1,$t2,$t3         Multiplication without overflow  : Set HI to high-order 32 bits, LO and $t1 to low-order 32 bits of the product of $t2 and $t3 (use mfhi to access HI, mflo to access LO)
+mul.d $f2,$f4,$f6       Floating point multiplication double precision : Set $f2 to double-precision floating point value of $f4 times $f6
+mul.s $f0,$f1,$f3       Floating point multiplication single precision : Set $f0 to single-precision floating point value of $f1 times $f3
+mult $t1,$t2            Multiplication : Set hi to high-order 32 bits, lo to low-order 32 bits of the product of $t1 and $t2 (use mfhi to access hi, mflo to access lo)
+multu $t1,$t2           Multiplication unsigned : Set HI to high-order 32 bits, LO to low-order 32 bits of the product of unsigned $t1 and $t2 (use mfhi to access HI, mflo to access LO)
+
 
 div $t1,$t2,$t3         DIVision : Set $t1 to ($t2 divided by $t3, integer division)
 div $t1,$t2,-100        DIVision : Set $t1 to ($t2 divided by 16-bit immediate, integer division)
@@ -349,6 +351,7 @@ branch {{{2
 b label                 Branch : Branch to statement at label unconditionally
 beq $t1,-100,label      Branch if EQual : Branch to statement at label if $t1 is equal to 16-bit immediate
 beq $t1,100000,label    Branch if EQual : Branch to statement at label if $t1 is equal to 32-bit immediate
+beq $t1,$t2,label       Branch if equal : Branch to statement at label's address if $t1 and $t2 are equal
 beqz $t1,label          Branch if EQual Zero : Branch to statement at label if $t1 is equal to zero
 bge $t1,$t2,label       Branch if Greater or Equal : Branch to statement at label if $t1 is greater or equal to $t2
 bge $t1,-100,label      Branch if Greater or Equal : Branch to statement at label if $t1 is greater or equal to 16-bit immediate
@@ -374,6 +377,7 @@ blt $t1,100000,label    Branch if Less Than : Branch to statement at label if $t
 bltu $t1,$t2,label      Branch if Less Than Unsigned : Branch to statement at label if $t1 is less than $t2
 bltu $t1,-100,label     Branch if Less Than Unsigned : Branch to statement at label if $t1 is less than 16-bit immediate
 bltu $t1,100000,label   Branch if Less Than Unsigned : Branch to statement at label if $t1 is less than 32-bit immediate
+bne $t1,$t2,label       Branch if not equal : Branch to statement at label's address if $t1 and $t2 are not equal
 bne $t1,-100,label      Branch if Not Equal : Branch to statement at label if $t1 is not equal to 16-bit immediate
 bne $t1,100000,label    Branch if Not Equal : Branch to statement at label if $t1 is not equal to 32-bit immediate
 bnez $t1,label          Branch if Not Equal Zero : Branch to statement at label if $t1 is not equal to zero
@@ -402,6 +406,7 @@ rol $t1,$t2,$t3         ROtate Left : Set $t1 to ($t2 rotated left by number of 
 rol $t1,$t2,10          ROtate Left : Set $t1 to ($t2 rotated left by number of bit positions specified in 5-bit immediate)
 ror $t1,$t2,$t3         ROtate Right : Set $t1 to ($t2 rotated right by number of bit positions specified in $t3)
 ror $t1,$t2,10          ROtate Right : Set $t1 to ($t2 rotated right by number of bit positions specified in 5-bit immediate)
+
 seq $t1,$t2,$t3         Set EQual : if $t2 equal to $t3 then set $t1 to 1 else 0
 seq $t1,$t2,-100        Set EQual : if $t2 equal to 16-bit immediate then set $t1 to 1 else 0
 seq $t1,$t2,100000      Set EQual : if $t2 equal to 32-bit immediate then set $t1 to 1 else 0
