@@ -68,7 +68,7 @@ tac2mips tac = mapM_ tacInstruction2mipsInstruction tac
 tacInstruction2mipsInstruction :: TAC.Instruction -> MachineM ()
 -- BinOpInstr {{{2
 tacInstruction2mipsInstruction instr@(TAC.BinOpInstr x y op z) = do
-    Registers3 rx ry rz <- getReg instr
+    [rx, ry, rz] <- getReg instr
     checkVarInReg x rx -- TODO Fix
     checkVarInReg y ry
     checkVarInReg z rz
@@ -102,7 +102,7 @@ tacInstruction2mipsInstruction instr@(TAC.BinOpInstr x y op z) = do
 
 -- UnOpInstr {{{2
 tacInstruction2mipsInstruction instr@(TAC.UnOpInstr x op y) = do
-    Registers2 rx ry <- getReg instr
+    [rx, ry] <- getReg instr
     checkVarInReg x rx -- TODO FIX
     checkVarInReg y ry
     case op of
@@ -113,7 +113,7 @@ tacInstruction2mipsInstruction instr@(TAC.UnOpInstr x op y) = do
 
 -- CopyInstr {{{2
 tacInstruction2mipsInstruction instr@(TAC.CopyInstr x y) = do
-    Registers2 rx ry <- getReg instr
+    [rx, ry] <- getReg instr
     checkVarInReg x rx -- TODO FIX
     checkVarInReg y ry
     case ry of
@@ -128,14 +128,14 @@ tacInstruction2mipsInstruction (TAC.Goto label) = do
 
 -- IfGoto {{{2
 tacInstruction2mipsInstruction instr@(TAC.IfGoto x label) = do
-    Registers1 rx <- getReg instr
+    [rx] <- getReg instr
     checkVarInReg x rx
     spillAtEnd
     tell [ printInstr "bnez" [rx, Label label] ]
 
 -- IfRelGoto {{{2
 tacInstruction2mipsInstruction instr@(TAC.IfRelGoto x op y label) = do
-    Registers2 rx ry <- getReg instr
+    [rx, ry] <- getReg instr
     checkVarInReg x rx
     checkVarInReg y ry
     spillAtEnd
@@ -228,7 +228,7 @@ tacInstruction2mipsInstruction instr@(TAC.ReturnVoid) = do
 -- reload fp (fp-8)
 -- br ra
 tacInstruction2mipsInstruction instr@(TAC.Return x) = do
-  Registers1 rx <- getReg instr
+  [rx] <- getReg instr
   checkVarInReg x rx
   tell [ "lw $ra -4($fp)", "lw $fp -8($fp)"]
   tell [ "sw "++show rx++" -12($fp)" ] -- TODO REAL COPY OF ARBITRARY WIDTH
@@ -240,7 +240,7 @@ tacInstruction2mipsInstruction instr@(TAC.ArraySetPos x y z) = undefined
 
 -- print {{{2
 tacInstruction2mipsInstruction instr@(TAC.Print x) = do
-  Registers1 rx <- getReg instr
+  [rx] <- getReg instr
   checkVarInReg x rx
   tell [ "la $a0 ("++show rx++")" ]
   tell [ "li $v0 1" ]
@@ -276,11 +276,7 @@ varOrTempToMachineVar (TAC.Name s) = s
 varOrTempToMachineVar (TAC.Temporal i _ s) = ("$t"++show i, s)
 varOrTempToMachineVar _ = undefined
 
-data RegAssign = Registers1 Operand
-               | Registers2 Operand Operand
-               | Registers3 Operand Operand Operand
-
-getReg :: TAC.Instruction -> MachineM RegAssign
+getReg :: TAC.Instruction -> MachineM [Operand]
 getReg (TAC.BinOpInstr x y _ z) = undefined
 getReg (TAC.UnOpInstr x _ y) = undefined
 getReg (TAC.CopyInstr x y ) = undefined
