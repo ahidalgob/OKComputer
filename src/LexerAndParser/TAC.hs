@@ -59,6 +59,7 @@ data Instruction =
   | PutLabel Label            -- Label:
 
   | SaveRA
+  | Exit
 
   | GetAddress X X            -- x = &y                  (9)
   | GetContents X X           -- x = *y
@@ -225,7 +226,8 @@ pushCycleLabel sl el = do
 tacStart (START outs) = setCurrentScope 1 >> mapM_ tacOutsides outs
 tacOutsides (OUTASSIGN exps) = do
   mapM_ tacExpression exps
-  -- TODO add call to main
+  tell [ Call "1maintheme" 0 ]
+  tell [ Exit ]
   -- TODO exit
 
 -- tacFuncs

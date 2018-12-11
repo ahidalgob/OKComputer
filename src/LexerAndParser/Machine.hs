@@ -9,6 +9,8 @@ import qualified Data.Set as Set
 import Data.Map(Map)
 import qualified Data.Map as Map
 
+
+import Control.Monad
 import Control.Monad.State.Lazy
 import Control.Monad.Writer.Lazy
 
@@ -34,6 +36,7 @@ data Location = Mem | Reg Int
 data MachineMState = MachineMState { regHas :: Map Operand (Set Variable)
                                    , varIsIn :: Map Variable (Set Location)
                                    , newSPOffset :: Int
+                                   , argStack :: [TAC.X]
 
                                    , varOffset :: Map Variable Int
                                    , aliveAtEndOfBlock :: Set Variable
@@ -43,6 +46,7 @@ initMachineMState :: Int -> Map Variable Int -> Set Variable -> MachineMState
 initMachineMState nR varOff aliveAtEnd = MachineMState { regHas = emptyRegHas nR
                                                        , varIsIn = Map.empty
                                                        , newSPOffset = 0
+                                                       , argStack = []
 
                                                        , varOffset = varOff
                                                        , aliveAtEndOfBlock = aliveAtEnd
@@ -65,7 +69,7 @@ tacInstruction2mipsInstruction :: TAC.Instruction -> MachineM ()
 -- BinOpInstr {{{2
 tacInstruction2mipsInstruction instr@(TAC.BinOpInstr x y op z) = do
     Registers3 rx ry rz <- getReg instr
-    checkVarInReg x rx
+    checkVarInReg x rx -- TODO Fix
     checkVarInReg y ry
     checkVarInReg z rz
     case op of
@@ -99,7 +103,7 @@ tacInstruction2mipsInstruction instr@(TAC.BinOpInstr x y op z) = do
 -- UnOpInstr {{{2
 tacInstruction2mipsInstruction instr@(TAC.UnOpInstr x op y) = do
     Registers2 rx ry <- getReg instr
-    checkVarInReg x rx
+    checkVarInReg x rx -- TODO FIX
     checkVarInReg y ry
     case op of
          TAC.Minus -> case ry of
@@ -110,7 +114,7 @@ tacInstruction2mipsInstruction instr@(TAC.UnOpInstr x op y) = do
 -- CopyInstr {{{2
 tacInstruction2mipsInstruction instr@(TAC.CopyInstr x y) = do
     Registers2 rx ry <- getReg instr
-    checkVarInReg x rx
+    checkVarInReg x rx -- TODO FIX
     checkVarInReg y ry
     case ry of
       (Register _) -> tell [ printInstr "la" [rx, Parent ry]]
@@ -118,13 +122,15 @@ tacInstruction2mipsInstruction instr@(TAC.CopyInstr x y) = do
       _ -> undefined
 
 -- Goto {{{2
-tacInstruction2mipsInstruction (TAC.Goto label) =
+tacInstruction2mipsInstruction (TAC.Goto label) = do
+    spillAtEnd
     tell [ printInstr "b" [Label label]]
 
 -- IfGoto {{{2
 tacInstruction2mipsInstruction instr@(TAC.IfGoto x label) = do
     Registers1 rx <- getReg instr
     checkVarInReg x rx
+    spillAtEnd
     tell [ printInstr "bnez" [rx, Label label] ]
 
 -- IfRelGoto {{{2
@@ -132,6 +138,7 @@ tacInstruction2mipsInstruction instr@(TAC.IfRelGoto x op y label) = do
     Registers2 rx ry <- getReg instr
     checkVarInReg x rx
     checkVarInReg y ry
+    spillAtEnd
     case op of
       TAC.LTOET -> case (rx, ry) of
                      (Register _, _) -> tell [ printInstr "ble" [rx, ry, Label label] ]
@@ -172,7 +179,9 @@ tacInstruction2mipsInstruction instr@(TAC.IfRelGoto x op y label) = do
 
 -- Param {{{2
 -- Push operand to state
-tacInstruction2mipsInstruction instr@(TAC.Param x) = undefined
+tacInstruction2mipsInstruction instr@(TAC.Param x) = do
+  stk <- gets argStack
+  modify (\s -> s{argStack = x : stk})
 
 -- Call {{{2
 -- get new fp = (minimum offset not used)
@@ -181,7 +190,13 @@ tacInstruction2mipsInstruction instr@(TAC.Param x) = undefined
 -- pop arguments into stack, starting at the new fp
 -- spill all the alive at end values
 -- jal
-tacInstruction2mipsInstruction instr@(TAC.Call label i) = undefined
+tacInstruction2mipsInstruction instr@(TAC.Call label i) = do
+  newfpoff <- gets newSPOffset
+  tell [ "sw $fp "++show newfpoff++"($fp)" ]
+  let newfpoff' = newfpoff+8
+  storeArgsFrom newfpoff'
+  spillAtEnd
+  tell [ "jal " ++ label ]
 
 -- CallAssign {{{2
 -- count temporal to compute fp
@@ -191,14 +206,20 @@ tacInstruction2mipsInstruction instr@(TAC.Call label i) = undefined
 -- pop arguments into stack, starting at the new fp
 -- spill all the alive at end values
 -- jal
-tacInstruction2mipsInstruction instr@(TAC.CallAssign x label i) = undefined
-
+tacInstruction2mipsInstruction instr@(TAC.CallAssign x label i) = do
+  newfpoff <- (+ getWidth x)  <$> gets newSPOffset
+  tell [ "sw $fp "++show newfpoff++"($fp)" ]
+  let newfpoff' = newfpoff+8
+  storeArgsFrom newfpoff'
+  spillAtEnd
+  tell [ "jal " ++ label ]
 
 -- ReturnVoid {{{2
 -- reload ra (fp-4)
 -- reload fp (fp-8)
 -- br ra
-tacInstruction2mipsInstruction instr@(TAC.ReturnVoid) = undefined
+tacInstruction2mipsInstruction instr@(TAC.ReturnVoid) = do
+  tell [ "lw $ra -4($fp)", "lw $fp -8($fp)", "jr $ra" ]
 
 
 -- Return {{{2
@@ -206,20 +227,34 @@ tacInstruction2mipsInstruction instr@(TAC.ReturnVoid) = undefined
 -- reload ra (fp-4)
 -- reload fp (fp-8)
 -- br ra
-tacInstruction2mipsInstruction instr@(TAC.Return x) = undefined
+tacInstruction2mipsInstruction instr@(TAC.Return x) = do
+  Registers1 rx <- getReg instr
+  checkVarInReg x rx
+  tell [ "lw $ra -4($fp)", "lw $fp -8($fp)"]
+  tell [ "sw "++show rx++" -12($fp)" ] -- TODO REAL COPY OF ARBITRARY WIDTH
+  tell [ "jr $ra" ]
 
 -- array {{{2
 tacInstruction2mipsInstruction instr@(TAC.ArrayGetPos x y z) = undefined
 tacInstruction2mipsInstruction instr@(TAC.ArraySetPos x y z) = undefined
 
 -- print {{{2
-tacInstruction2mipsInstruction instr@(TAC.Print x) = undefined
+tacInstruction2mipsInstruction instr@(TAC.Print x) = do
+  Registers1 rx <- getReg instr
+  checkVarInReg x rx
+  tell [ "la $a0 ("++show rx++")" ]
+  tell [ "li $v0 1" ]
+  tell [ "syscall " ]
 
 -- putLabel {{{2
 tacInstruction2mipsInstruction instr@(TAC.PutLabel label) = tell [ label ++ ":" ]
 
 -- saveRA {{{2
-tacInstruction2mipsInstruction instr@(TAC.SaveRA) = undefined
+tacInstruction2mipsInstruction instr@(TAC.SaveRA) = tell [ "sw $ra -4($fp)" ]
+
+-- Exit {{{2
+tacInstruction2mipsInstruction instr@(TAC.Exit) =
+    tell [ "li $v0 10" , "syscall" ]
 
 -- printInstr {{{2
 printInstr :: String -> [Operand] -> String
@@ -234,17 +269,48 @@ printInstr o os = error $ "alo? " ++ show o ++ " " ++ show os
 checkVarInReg :: TAC.X -> Operand -> MachineM ()
 checkVarInReg (TAC.IntCons _) _ = return ()
 checkVarInReg (varOrTemp) (Register i) = return ()
-  where varOrTempToMachineVar :: TAC.X -> Variable
-        varOrTempToMachineVar (TAC.Name s) = s
-        varOrTempToMachineVar (TAC.Temporal i _ s) = ("$t"++show i, s)
-        varOrTempToMachineVar _ = undefined
 
+
+varOrTempToMachineVar :: TAC.X -> Variable
+varOrTempToMachineVar (TAC.Name s) = s
+varOrTempToMachineVar (TAC.Temporal i _ s) = ("$t"++show i, s)
+varOrTempToMachineVar _ = undefined
 
 data RegAssign = Registers1 Operand
                | Registers2 Operand Operand
                | Registers3 Operand Operand Operand
 
 getReg :: TAC.Instruction -> MachineM RegAssign
-getReg instr = undefined
+getReg (TAC.BinOpInstr x y _ z) = undefined
+getReg (TAC.UnOpInstr x _ y) = undefined
+getReg (TAC.CopyInstr x y ) = undefined
+getReg (TAC.IfGoto x _) = undefined
+getReg (TAC.IfRelGoto x _ y _) = undefined
+getReg (TAC.Return x) = undefined
+getReg (TAC.ArrayGetPos x y i) = undefined
+getReg (TAC.ArraySetPos x i y) = undefined
+getReg (TAC.Print x) = undefined
+getReg _ = undefined
+
+getReg2 :: TAC.X -> MachineM (Operand)
+getReg2 = undefined
+
+-- spill everything just before a jump
+spillAtEnd :: MachineM ()
+spillAtEnd = undefined
 
 
+getWidth :: TAC.X -> Int
+getWidth _ = 4
+
+
+
+storeArgsFrom :: Int -> MachineM ()
+storeArgsFrom off = do
+  args <- reverse <$> gets argStack
+  foldM_ f off args
+  where f off x = do
+          rx <- getReg2 x
+          checkVarInReg x rx
+          tell [ "sw "++show rx++" "++show off++"($fp)" ]
+          return $ off+4
