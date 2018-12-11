@@ -232,7 +232,12 @@ printInstr o os = error $ "alo? " ++ show o ++ " " ++ show os
 
 -- checkVarInReg {{{1
 checkVarInReg :: TAC.X -> Operand -> MachineM ()
-checkVarInReg x r = undefined
+checkVarInReg (TAC.IntCons _) _ = return ()
+checkVarInReg (varOrTemp) (Register i) = return ()
+  where varOrTempToMachineVar :: TAC.X -> Variable
+        varOrTempToMachineVar (TAC.Name s) = s
+        varOrTempToMachineVar (TAC.Temporal i _ s) = ("$t"++show i, s)
+        varOrTempToMachineVar _ = undefined
 
 
 data RegAssign = Registers1 Operand
