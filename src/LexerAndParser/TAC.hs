@@ -99,6 +99,7 @@ instance Show Instruction where
   show (GetContents x y) = "    " ++ show x ++ " = *" ++ show y
   show (Print x) = "    " ++ "print " ++ show x
   show (PutLabel label) = label ++ ":"
+  show (SaveRA) = "prologue"
 
 
 instance Show BinOp where
@@ -222,13 +223,17 @@ pushCycleLabel sl el = do
 
 -- tacStart{{{1
 tacStart (START outs) = setCurrentScope 1 >> mapM_ tacOutsides outs
-tacOutsides (OUTASSIGN exps) = mapM_ tacExpression exps
+tacOutsides (OUTASSIGN exps) = do
+  mapM_ tacExpression exps
+  -- TODO add call to main
+  -- TODO exit
 
 -- tacFuncs
 tacFuncs :: [(Label, (Scope, [INSTRUCTION]))] -> TACkerM ()
 tacFuncs [] = return ()
 tacFuncs ((lab, (scope, instrs)):fs) = do
   tell [ PutLabel lab ]
+  tell [ SaveRA ]
   setCurrentScope scope
   mapM_ tacInstruction instrs
   tacFuncs fs
