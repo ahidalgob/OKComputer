@@ -250,8 +250,8 @@ tacInstruction2mipsInstruction instr@(TAC.ArrayGetPos x y i) = do
   let y' = varOrTempToMachineVar y
   [rx, ri] <- getReg instr
   off <- fromJust' "F69" . Map.lookup y' <$> gets varOffset
-  tell [ "add $a3,$fp,"++show off ]
-  tell [ "add $a3,$a3,"++show ri ]
+  tell [ "add $a3,$sp,-"++show off ]
+  tell [ "sub $a3,$a3,"++show ri ]
   tell [ "lw "++show rx++",($a3)" ]
   return ()
 
@@ -262,8 +262,8 @@ tacInstruction2mipsInstruction instr@(TAC.ArraySetPos x i y) = do
   let x' = varOrTempToMachineVar x
   [ri, ry] <- getReg instr
   off <- fromJust' "F69" . Map.lookup x' <$> gets varOffset
-  tell [ "add $a3,$fp,"++show off ]
-  tell [ "add $a3,$a3,"++show ri ]
+  tell [ "add $a3,$sp,-"++show off ]
+  tell [ "sub $a3,$a3,"++show ri ]
   tell [ "sw "++show ry++",($a3)" ] -- maybe don't work with immediates
   return ()
 
