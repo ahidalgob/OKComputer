@@ -1,0 +1,38 @@
+# Expresiones Aritmeticas Simples.
+
+
+dafunk maintheme() : Intothevoid
+
+dafunk par(Int n) : Int
+dafunk impar(Int n): Int
+
+dafunk par(Int n) : Int
+youbegin
+    if n==0 youbegin
+        getback 1
+    whereiend
+    ifyouhavetoask n==1 youbegin
+        getback 0
+    whereiend
+    getback impar(n-1)
+whereiend
+
+
+dafunk impar(Int n) : Int
+youbegin
+    if n==0 youbegin
+        getback 0
+    whereiend
+    ifyouhavetoask n==1 youbegin
+        getback 1
+    whereiend
+    getback par(n-1)
+whereiend
+
+dafunk maintheme() : Intothevoid
+youbegin
+    onemoretime Int i = 0; i<10; i = i+1 youbegin
+        go(par(i))
+    whereiend
+    getback
+whereiend

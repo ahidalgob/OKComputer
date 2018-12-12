@@ -102,7 +102,8 @@ mips code = do
 
   let (nBlocks, tacOfBlock, aliveOfBlock) = BlockGraph.getBlocksWithAliveVariables tac' :: (Int, Map BlockGraph.BlockId TAC, Map BlockGraph.BlockId (Set BlockGraph.Variable))
   mips <- concatMapM (blockId2mips offsets' aliveOfBlock tacOfBlock) [0..(nBlocks-1)]
-  mapM_ print mips
+  putStrLn ".text\n\n"
+  mapM_ putStrLn mips
 
 
   where blockId2mips :: Map Machine.Variable Int ->

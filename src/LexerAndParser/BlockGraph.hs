@@ -18,6 +18,10 @@ type OUT = Set Variable
 type INS = Map BlockId IN
 type OUTS = Map BlockId OUT
 
+fromJust' :: String -> Maybe a -> a
+fromJust' _ (Just x) = x
+fromJust' s Nothing = error s
+
 getBlocksWithAliveVariables :: TAC -> (Int, Map BlockId TAC, OUTS)
 getBlocksWithAliveVariables tac =
   let (nBlocks, tacOfBlock, blockOfLabel) = buildBlock 0 tac
@@ -31,7 +35,7 @@ getBlocksWithAliveVariables tac =
 -- BuildGraph {{{1
 -- build graph from blocks {{{2
 buildGraph :: Int -> Map BlockId TAC -> Map String BlockId -> Graph
-buildGraph nBlocks block blockOfLabel = graphFromEdges nBlocks $ filter (\(x,y) -> x/=0 && y/=0) $ getEdges (Map.assocs block) blockOfLabel
+buildGraph nBlocks block blockOfLabel = graphFromEdges nBlocks $ filter (\(x,y) -> x/=0 && y/=0 && x<nBlocks && y<nBlocks) $ getEdges (Map.assocs block) blockOfLabel
 
 getEdges :: [(BlockId, TAC)] -> Map String BlockId -> [(BlockId, BlockId)]
 getEdges [] _ = []
@@ -50,7 +54,7 @@ getEdges ((v,tac):ls) blockOfLabel
         isReturn _ = False
         nodeOfLabel (IfGoto _ label) = nodeOfLabel (Goto label)
         nodeOfLabel (IfRelGoto _ _ _ label) = nodeOfLabel (Goto label)
-        nodeOfLabel (Goto label) = fromJust $ Map.lookup label blockOfLabel
+        nodeOfLabel (Goto label) = fromJust' "F9" $ Map.lookup label blockOfLabel
         restOfEdges = getEdges ls blockOfLabel
 
 
@@ -112,12 +116,12 @@ inFromOut inSet tac = foldr f inSet tac
         delete' _ = id
 
 outFromSuccessors :: INS -> Graph -> BlockId -> OUT
-outFromSuccessors ins graph id = foldl Set.union Set.empty [fromJust $ Map.lookup s ins | s <- successors graph id]
+outFromSuccessors ins graph id = foldl Set.union Set.empty [fromJust' ("F10,"++show s++","++show(graph_size graph)) $ Map.lookup s ins | s <- successors graph id]
 
 iterateFindSets :: Graph -> Map BlockId TAC -> (INS, OUTS) -> (INS,OUTS)
 iterateFindSets graph tacOfBlock (ins, outs) = if ins==ins' && outs==outs' then (ins,outs) else iterateFindSets graph tacOfBlock (ins', outs')
   where newIn :: BlockId -> IN
-        newIn id = inFromOut (fromJust $ Map.lookup id outs) (fromJust $ Map.lookup id tacOfBlock)
+        newIn id = inFromOut (fromJust' "F11" $ Map.lookup id outs) (fromJust' "F12" $ Map.lookup id tacOfBlock)
         ins' = Map.fromAscList $ zip [0..(n-1)] $ map newIn [0..(n-1)]
         outs' = Map.fromAscList $ zip [0..(n-1)] $ map (outFromSuccessors ins' graph) [0..(n-1)]
 

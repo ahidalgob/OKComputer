@@ -9,6 +9,7 @@ import qualified Data.Set as Set
 import Data.Map(Map)
 import qualified Data.Map as Map
 
+import Data.Maybe
 
 import Control.Monad
 import Control.Monad.State.Lazy
@@ -29,7 +30,7 @@ instance Show Operand where
   show (Parent op) = "(" ++ show op ++ ")"
 
 type Variable = (String, Int)
-data Location = Mem | Reg Int
+data Location = Mem | Reg Operand deriving (Eq, Ord)
 
 -- MachineM Monad{{{1
 data MachineMState = MachineMState { regHas :: Map Operand (Set Variable) -- what variables does each register has
@@ -60,30 +61,31 @@ runMachineM :: MachineM a -> Int -> Map Variable Int -> Set Variable
                           -> IO MIPSCode
 runMachineM f nR varOff aliveAtEnd = evalStateT (execWriterT f) $ initMachineMState nR varOff aliveAtEnd
 
+fromJust' :: String -> Maybe a -> a
+fromJust' _ (Just x) = x
+fromJust' s Nothing = error s
 
+updateNewSP :: TAC.X -> MachineM ()
+updateNewSP TAC.IntCons{} = return ()
+updateNewSP v =
+  case varOrTempToMachineVar v of
+    (_, 0) -> return ()
+    var -> do
+      old <- gets newSPOffset
+      off <- (fromJust' "F1") . Map.lookup var <$> gets varOffset
+      modify (\s -> s{newSPOffset = old `max` off+4})
 
 -- tacInstruction2mipsInstruction  {{{1
 tac2mips :: TAC -> MachineM ()
-tac2mips tac = mapM_ tacInstruction2mipsInstruction tac
-
--- ######### getReg ############
--- gets a list of registers to use in the instruction
--- it should be safe to use the registers after the call to getReg, this is:
---  for operands: either the register already has the variable or
---                we can load it to the register and add it to the set, in this case
---                the set should be already empty
---  for result:
---
--- ###########################
--- For noncopy instructions, the result register has only the result, no other value
+tac2mips tac = mapM_ tacInstruction2mipsInstruction (tac ++ [TAC.Spill])
 
 tacInstruction2mipsInstruction :: TAC.Instruction -> MachineM ()
 -- BinOpInstr {{{2
 tacInstruction2mipsInstruction instr@(TAC.BinOpInstr x y op z) = do
-
+    updateNewSP x
+    updateNewSP y
+    updateNewSP z
     [rx, ry, rz] <- getReg instr
-    checkVarInReg y ry
-    checkVarInReg z rz
     case op of
          TAC.Add -> case (ry, rz) of
                       (Register _, _) -> tell [ printInstr "add" [rx, ry, rz] ]
@@ -110,24 +112,23 @@ tacInstruction2mipsInstruction instr@(TAC.BinOpInstr x y op z) = do
                       (Immediate _, Register _) -> undefined
                       (Immediate i1, Immediate i2) -> tell [ printInstr "li" [rx, Immediate (i1 `mod` i2)] ]
                       _ -> undefined
-    setVarInReg x rx
 
 -- UnOpInstr {{{2
 tacInstruction2mipsInstruction instr@(TAC.UnOpInstr x op y) = do
+    updateNewSP x
+    updateNewSP y
     [rx, ry] <- getReg instr
-    checkVarInReg y ry
     case op of
          TAC.Minus -> case ry of
                       (Register _) -> tell [ printInstr "neg" [rx, ry] ]
                       (Immediate i) -> tell [ printInstr "li" [rx, Immediate (-i)] ]
                       _ -> undefined
-    setVarInReg x rx
 
 -- CopyInstr {{{2
 tacInstruction2mipsInstruction instr@(TAC.CopyInstr x y) = do
+    updateNewSP x
+    updateNewSP y
     [rx, ry] <- getReg instr
-    checkVarInReg y ry
-    addVarInReg x ry
     case ry of
       (Register _) -> tell [ printInstr "la" [rx, Parent ry]]
       (Immediate _) -> tell [ printInstr "li" [rx, ry]]
@@ -140,16 +141,16 @@ tacInstruction2mipsInstruction (TAC.Goto label) = do
 
 -- IfGoto {{{2
 tacInstruction2mipsInstruction instr@(TAC.IfGoto x label) = do
+    updateNewSP x
     [rx] <- getReg instr
-    checkVarInReg x rx
     spillAtEnd
     tell [ printInstr "bnez" [rx, Label label] ]
 
 -- IfRelGoto {{{2
 tacInstruction2mipsInstruction instr@(TAC.IfRelGoto x op y label) = do
+    updateNewSP x
+    updateNewSP y
     [rx, ry] <- getReg instr
-    checkVarInReg x rx
-    checkVarInReg y ry
     spillAtEnd
     case op of
       TAC.LTOET -> case (rx, ry) of
@@ -192,6 +193,7 @@ tacInstruction2mipsInstruction instr@(TAC.IfRelGoto x op y label) = do
 -- Param {{{2
 -- Push operand to state
 tacInstruction2mipsInstruction instr@(TAC.Param x) = do
+  updateNewSP x
   stk <- gets argStack
   modify (\s -> s{argStack = x : stk})
 
@@ -204,38 +206,41 @@ tacInstruction2mipsInstruction instr@(TAC.Param x) = do
 -- jal
 tacInstruction2mipsInstruction instr@(TAC.Call label i) = do
   newfpoff <- gets newSPOffset
-  tell [ "sw $fp -"++show newfpoff++"($fp)" ]
   let newfpoff' = newfpoff+8
   storeArgsStarting newfpoff'
   spillAtEnd
+  tell [ "sw $sp,-"++show newfpoff++"($sp)" ]
+  tell [ "add $sp,$sp,-"++show newfpoff' ]
   tell [ "jal " ++ label ]
 
 -- CallAssign {{{2
 tacInstruction2mipsInstruction instr@(TAC.CallAssign x label i) = do
-  newfpoff <- (+ getWidth x)  <$> gets newSPOffset
-  modify (\s -> s{newSPOffset = newfpoff})
+  let x' = varOrTempToMachineVar x
+  off <- fromJust' "F420" . Map.lookup x' <$> gets varOffset
+  modify (\s -> s{newSPOffset = off+12-8})
   tacInstruction2mipsInstruction (TAC.Call label i)
 
 -- ReturnVoid {{{2
--- reload ra (fp-4)
--- reload fp (fp-8)
+-- reload ra (fp+4)
+-- reload fp (fp+8)
 -- br ra
 tacInstruction2mipsInstruction instr@(TAC.ReturnVoid) = do
-  tell [ "lw $ra 4($fp)", "lw $fp 8($fp)", "jr $ra" ]
+  tell [ "lw $ra,4($sp)", "lw $sp,8($sp)", "jr $ra" ]
 
 
 -- Return {{{2
--- copy return value at fp-8-width
--- reload ra (fp-4)
--- reload fp (fp-8)
+-- copy return value at fp+8+width
+-- reload ra (fp+4)
+-- reload fp (fp+8)
 -- br ra
 tacInstruction2mipsInstruction instr@(TAC.Return x) = do
+  updateNewSP x
   [rx] <- getReg instr
-  checkVarInReg x rx
-  tell [ "lw $ra 4($fp)", "lw $fp 8($fp)"]
-  tell [ "sw "++show rx++" 12($fp)" ] -- TODO REAL COPY OF ARBITRARY WIDTH
+  case rx of
+    Immediate _ -> tell [ "li $fp,"++show rx, "sw $fp,12($sp)" ]
+    _ ->  tell [ "sw "++show rx++",12($sp)" ]
+  tell [ "lw $ra,4($sp)", "lw $sp,8($sp)"]
   tell [ "jr $ra" ]
-  setVarInReg x rx
 
 -- array {{{2
 tacInstruction2mipsInstruction instr@(TAC.ArrayGetPos x y z) = undefined
@@ -243,21 +248,24 @@ tacInstruction2mipsInstruction instr@(TAC.ArraySetPos x y z) = undefined
 
 -- print {{{2
 tacInstruction2mipsInstruction instr@(TAC.Print x) = do
+  updateNewSP x
   [rx] <- getReg instr
-  checkVarInReg x rx
-  tell [ "la $a0 ("++show rx++")" ]
-  tell [ "li $v0 1" ]
-  tell [ "syscall " ]
+  tell [ "la $a0,("++show rx++")" ]
+  tell [ "li $v0,1" ]
+  tell [ "syscall" ]
 
 -- putLabel {{{2
 tacInstruction2mipsInstruction instr@(TAC.PutLabel label) = tell [ label ++ ":" ]
 
 -- saveRA {{{2
-tacInstruction2mipsInstruction instr@(TAC.SaveRA) = tell [ "sw $ra 4($fp)" ]
+tacInstruction2mipsInstruction instr@(TAC.SaveRA) = tell [ "sw $ra,4($sp)" ]
+
+tacInstruction2mipsInstruction (TAC.Spill) = do
+    spillAtEnd
 
 -- Exit {{{2
 tacInstruction2mipsInstruction instr@(TAC.Exit) =
-    tell [ "li $v0 10" , "syscall" ]
+    tell [ "li $v0,10" , "syscall" ]
 
 -- printInstr {{{2
 printInstr :: String -> [Operand] -> String
@@ -265,10 +273,10 @@ printInstr oper [] = oper
 printInstr oper [o1] = oper ++ " " ++ show o1
 printInstr oper [o1,o2] = oper ++ " " ++ show o1 ++ "," ++ show o2
 printInstr oper [o1,o2,o3] = oper ++ " " ++ show o1 ++ "," ++ show o2 ++ "," ++ show o3
-printInstr o os = error $ "alo? " ++ show o ++ " " ++ show os
+printInstr o os = error $ "alo? FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF" ++ show o ++ " " ++ show os
 
 
--- checkVarInReg, getReg... {{{1
+-- getReg... {{{1
 
 -- getReg {{{2
 getReg :: TAC.Instruction -> MachineM [Operand]
@@ -290,6 +298,9 @@ getReg (TAC.CopyInstr x y ) =
       return [rx, Immediate i]
     _ -> do
       ry <- findBestOperandReg y []
+      let x' = varOrTempToMachineVar x
+      removeVarEverywhere x'
+      insertVarInRegister x' ry
       return [ry, ry]
 
 getReg (TAC.IfGoto y _) = do
@@ -315,21 +326,9 @@ getReg _ = undefined
 
 -- getReg helpers {{{2
 
-findBestResultReg :: TAC.X -> MachineM Operand
-findBestResultReg (TAC.IntCons i) = return $ Immediate i
-findBestResultReg x' = do
-  let x = varOrTempToMachineVar x'
-  maybeR1 <- findRegisterWithOnly x
-  case maybeR1 of
-    Just r -> return r
-    Nothing -> do
-      maybeR2 <- findEmptyRegister
-      case maybeR2 of
-        Just r -> return r
-        Nothing -> findRegisterWithout []
-
 
 findBestOperandReg :: TAC.X -> [TAC.X] -> MachineM Operand
+findBestOperandReg (TAC.IntCons i) _ = return $ Immediate i
 findBestOperandReg x' l' = do
   let x = varOrTempToMachineVar x'
       l = map varOrTempToMachineVar (filter tmpOrVar l')
@@ -339,34 +338,150 @@ findBestOperandReg x' l' = do
     Nothing -> do
       maybeR2 <- findEmptyRegister
       case maybeR2 of
-        Just r -> return r
-        Nothing -> findRegisterWithout l
+        Just r -> do
+          loadVarInReg x r
+          return r
+        Nothing -> do
+          rx <- findRegisterWithout l
+          cleanRegister rx
+          loadVarInReg x rx
+          return rx
+
+findBestResultReg :: TAC.X -> MachineM Operand
+findBestResultReg x' = do
+  let x = varOrTempToMachineVar x'
+  maybeR1 <- findRegisterWithOnly x
+  case maybeR1 of
+    Just r -> do
+      removeVarEverywhere x
+      insertVarInRegister x r
+      return r
+    Nothing -> do
+      maybeR2 <- findEmptyRegister
+      case maybeR2 of
+        Just r -> do
+          removeVarEverywhere x
+          insertVarInRegister x r
+          return r
+        Nothing -> do
+          r <- findRegisterWithout []
+          removeVarEverywhere x
+          cleanRegister r
+          insertVarInRegister x r
+          return r
+
+
+-- x always end only at r after this
+insertVarInRegister :: Variable -> Operand -> MachineM ()
+insertVarInRegister x r = do
+  regHas' <- Map.adjust (Set.insert x) r <$> gets regHas
+  varIsIn' <- Map.insert x (Set.singleton (Reg r)) <$> gets varIsIn
+  modify (\s -> s{regHas = regHas', varIsIn = varIsIn'})
+
+removeVarEverywhere :: Variable -> MachineM ()
+removeVarEverywhere x = do
+  xIsIn <- Set.toAscList <$> Map.findWithDefault (Set.empty) x <$> gets varIsIn
+  mapM_ (removeVarFrom x) xIsIn
+  varIsIn' <- Map.insert x (Set.empty) <$> gets varIsIn
+  modify (\s -> s{varIsIn = varIsIn'})
+
+removeVarFrom :: Variable -> Location -> MachineM ()
+removeVarFrom x (Mem) = return ()
+removeVarFrom x (Reg r) = do
+  regHas' <- Map.adjust (Set.delete x) r <$> gets regHas
+  modify (\s -> s{regHas = regHas'})
+
+removeRegFrom :: Location -> Variable -> MachineM ()
+removeRegFrom loc x = do
+  varIsIn' <- Map.adjust (Set.delete loc) x <$> gets varIsIn
+  modify (\s -> s{varIsIn = varIsIn'})
+
+initializeMapWith :: Ord k => k -> a -> Map k a -> Map k a
+initializeMapWith k a s =
+  case Map.lookup k s of
+    Just _ -> s
+    Nothing -> Map.insert k a s
+
+
+-- just writes the code, adds r to x and x to r
+loadVarInReg :: Variable -> Operand -> MachineM ()
+loadVarInReg x r = do
+  regHas' <- Map.insert r (Set.singleton x) <$> gets regHas
+  varIsIn' <- Map.insert x (Set.fromList [Mem, Reg r]) <$> gets varIsIn
+  modify (\s -> s{regHas = regHas', varIsIn = varIsIn'})
+  case x of
+    (_, 0) -> undefined
+    _ -> do
+      off <- (fromJust' "F2") . Map.lookup x <$> gets varOffset
+      tell ["lw "++show r++",-"++show off++"($sp)"]
+
+-- removes all variables for r
+cleanRegister :: Operand -> MachineM ()
+cleanRegister r = do
+  rHas <- Set.toList . (fromJust' "F3") . Map.lookup r <$> gets regHas
+  toSpill <- filterM (variableOnlyIn r) rHas
+  mapM_ (spillVariableInRegister r) toSpill
+  mapM_ (removeRegFrom $ Reg r) rHas
+  regHas' <- Map.insert r Set.empty <$> gets regHas
+  modify (\s -> s{regHas = regHas'})
+  where
+    variableOnlyIn :: Operand -> Variable -> MachineM Bool
+    variableOnlyIn r x = (== Set.singleton (Reg r)) . (fromJust' "F4") . Map.lookup x <$> gets varIsIn
+
+
+spillVariableInRegister :: Operand -> Variable -> MachineM ()
+spillVariableInRegister r var@(id, 0) = do
+  tell ["sw "++show r++","++id]
+  varIsIn' <- Map.adjust (Set.insert Mem) var <$> gets varIsIn
+  modify (\s -> s{varIsIn = varIsIn'})
+spillVariableInRegister r var = do
+  off <- (fromJust' "F5") . Map.lookup var <$> gets varOffset
+  tell ["sw "++show r++",-"++show off++"($sp)"]
+  varIsIn' <- Map.adjust (Set.insert Mem) var <$> gets varIsIn
+  modify (\s -> s{varIsIn = varIsIn'})
+
 
 findRegisterWithOnly :: Variable -> MachineM (Maybe Operand)
-findRegisterWithOnly = undefined
+findRegisterWithOnly x = do
+  regs <- Map.toList . Map.filter (== Set.singleton x) <$> gets regHas
+  case regs of
+    [] -> return Nothing
+    r:_ -> return $ Just $ fst r
 
 findRegisterWith :: Variable -> MachineM (Maybe Operand)
-findRegisterWith = undefined
+findRegisterWith x = do
+  regs <- Map.toList . Map.filter (Set.member x) <$> gets regHas
+  case regs of
+    [] -> return Nothing
+    r:_ -> return $ Just $ fst r
 
 findEmptyRegister :: MachineM (Maybe Operand)
-findEmptyRegister = undefined
+findEmptyRegister = do
+  regs <- Map.toList . Map.filter (== Set.empty) <$> gets regHas
+  case regs of
+    [] -> return Nothing
+    r:_ -> return $ Just $ fst r
 
 findRegisterWithout :: [Variable] -> MachineM Operand
-findRegisterWithout = undefined
-
-checkVarInReg :: TAC.X -> Operand -> MachineM ()
-checkVarInReg (TAC.IntCons _) _ = return ()
-checkVarInReg (varOrTemp) (Register i) = return ()
-
-setVarInReg :: TAC.X -> Operand -> MachineM ()
-setVarInReg = undefined
-
-addVarInReg :: TAC.X -> Operand -> MachineM ()
-addVarInReg = undefined
-
+findRegisterWithout [] = return (Register 0)
+findRegisterWithout [x] = do
+  regs <- Map.toList . Map.filter (Set.notMember x) <$> gets regHas
+  case regs of
+    r:_ -> return $ fst r
+    _ -> error "F"
 
 spillAtEnd :: MachineM ()
-spillAtEnd = undefined
+spillAtEnd = do
+  toSpill <- Set.toList <$> gets aliveAtEndOfBlock
+  mapM_ spillIfNeed toSpill
+
+spillIfNeed :: Variable -> MachineM ()
+spillIfNeed x = do
+  xIsIn <- (fromJust' "F6") . Map.lookup x . initializeMapWith x (Set.singleton Mem)  <$> gets varIsIn
+  case Set.member Mem xIsIn of
+    True -> return ()
+    False -> let Reg r = Set.findMin xIsIn
+              in spillVariableInRegister r x
 
 getWidth :: TAC.X -> Int
 getWidth _ = 4
@@ -377,8 +492,9 @@ storeArgsStarting off = do
   foldM_ f off args
   where f off x = do
           rx <- findBestOperandReg x []
-          checkVarInReg x rx
-          tell [ "sw "++show rx++" -"++show off++"($fp)" ] -- Don't work for constants
+          case rx of
+            Immediate _ -> tell [ "li $fp,"++show rx, "sw $fp,-"++show off++"($sp)" ]
+            _ ->  tell [ "sw "++show rx++",-"++show off++"($sp)" ]
           return $ off+4
 
 varOrTempToMachineVar :: TAC.X -> Variable

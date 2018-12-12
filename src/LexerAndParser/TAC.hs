@@ -60,6 +60,7 @@ data Instruction =
 
   | SaveRA
   | Exit
+  | Spill
 
   | GetAddress X X            -- x = &y                  (9)
   | GetContents X X           -- x = *y
@@ -100,7 +101,8 @@ instance Show Instruction where
   show (GetContents x y) = "    " ++ show x ++ " = *" ++ show y
   show (Print x) = "    " ++ "print " ++ show x
   show (PutLabel label) = label ++ ":"
-  show (SaveRA) = "prologue"
+  show SaveRA = " -- prologue"
+  show Exit = "    " ++ "exit_program"
 
 
 instance Show BinOp where
@@ -223,18 +225,15 @@ pushCycleLabel sl el = do
 
 
 -- tacStart{{{1
-tacStart (START outs) = setCurrentScope 1 >> mapM_ tacOutsides outs
+tacStart (START outs) = setCurrentScope 1 >> mapM_ tacOutsides outs >> tell [ Call "ok1maintheme" 0, Exit ]
 tacOutsides (OUTASSIGN exps) = do
   mapM_ tacExpression exps
-  tell [ Call "1maintheme" 0 ]
-  tell [ Exit ]
-  -- TODO exit
 
 -- tacFuncs
 tacFuncs :: [(Label, (Scope, [INSTRUCTION]))] -> TACkerM ()
 tacFuncs [] = return ()
 tacFuncs ((lab, (scope, instrs)):fs) = do
-  tell [ PutLabel lab ]
+  tell [ PutLabel $ "ok"++lab ]
   tell [ SaveRA ]
   setCurrentScope scope
   mapM_ tacInstruction instrs
@@ -443,12 +442,12 @@ tacExpression (FUNCTIONCALL _ label args tpe) = do
   mapM_ (\t -> tell [ Param t]) ts
   case tpe of
     OKVoid -> do
-      tell [ Call label n ]
+      tell [ Call ("ok"++label) n ]
       --mapM_ (\t -> tell [ PopParam t ]) (reverse ts)
       return (IntCons 0)
     retT -> do
       t <- fresh (type_width retT)
-      tell [ CallAssign t label n ]
+      tell [ CallAssign t ("ok"++label) n ]
       --mapM_ (\t -> tell [ PopParam t ]) (reverse ts)
       return t
 
