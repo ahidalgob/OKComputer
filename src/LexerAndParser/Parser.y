@@ -315,7 +315,7 @@ LVAL :: { AST.EXPRESSION }
 LVAL :  varId                                         {% idAction $1 }
        | EXPRESSION '[' EXPRESSION ']'                {% arrayOrListAccessAction (tkn_pos $2) $1 $3 }
        | EXPRESSION '.' varId                         {% recordMemberAction $1 $3 }
-       | '^' EXPRESSION                               {% pointerAction $1 $2 }
+       | '^' '(' EXPRESSION ')'                              {% pointerAction $1 $3 }
        | EXPRESSION '._' n                            {% tupleAccessAction $2 $1 (read $ tkn_string $3) }
 
 

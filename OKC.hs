@@ -7,7 +7,7 @@ import SymTable
 import Machine
 import BlockGraph
 
-import Control.Monad.Extra
+--import Control.Monad.Extra
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict(Map)
@@ -101,7 +101,7 @@ mips code = do
   --
 
   let (nBlocks, tacOfBlock, aliveOfBlock) = BlockGraph.getBlocksWithAliveVariables tac' :: (Int, Map BlockGraph.BlockId TAC, Map BlockGraph.BlockId (Set BlockGraph.Variable))
-  mips <- concatMapM (blockId2mips offsets' aliveOfBlock tacOfBlock) [0..(nBlocks-1)]
+  mips <- concat <$> mapM (blockId2mips offsets' aliveOfBlock tacOfBlock) [0..(nBlocks-1)]
   putStrLn ".text\n\n"
   mapM_ putStrLn mips
 
