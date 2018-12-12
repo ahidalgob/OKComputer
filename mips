@@ -13,10 +13,96 @@ syscall
 ok1maintheme:
 sw $ra,4($sp)
 li $t0,0
+sw $t0,-52($sp)
+startOneMoreTimeL0:
+lw $t0,-52($sp)
+blt $t0,10,enterOneMoreTimeL0
+b endOneMoreTimeL0
+enterOneMoreTimeL0:
+li $t0,0
 li $v0,5
 syscall
 move $t0,$v0
+lw $t1,-52($sp)
+mul $t2,$t1,4
+add $a3,$sp,-0
+sub $a3,$a3,$t2
+sw $t0,($a3)
+nextOneMoreTimeL0:
+lw $t0,-52($sp)
+add $t1,$t0,1
+la $t1,($t1)
+sw $t1,-52($sp)
+b startOneMoreTimeL0
+endOneMoreTimeL0:
+li $t0,-1000000
+la $t0,($t0)
+li $t1,1000000
+li $t2,0
+sw $t2,-52($sp)
+sw $t0,-40($sp)
+sw $t1,-44($sp)
+startOneMoreTimeL1:
+lw $t0,-52($sp)
+blt $t0,10,enterOneMoreTimeL1
+b endOneMoreTimeL1
+enterOneMoreTimeL1:
+lw $t0,-52($sp)
+mul $t1,$t0,4
+add $a3,$sp,-0
+sub $a3,$a3,$t1
+lw $t2,($a3)
+lw $t3,-40($sp)
+blt $t3,$t2,ifTrueL2
+b ifFalseL2
+ifTrueL2:
+lw $t0,-52($sp)
+mul $t1,$t0,4
+add $a3,$sp,-0
+sub $a3,$a3,$t1
+lw $t2,($a3)
+la $t2,($t2)
+sw $t2,-40($sp)
+b ifEndL2
+ifFalseL2:
+b ifEndL2
+ifEndL2:
+lw $t0,-52($sp)
+mul $t1,$t0,4
+add $a3,$sp,-0
+sub $a3,$a3,$t1
+lw $t2,($a3)
+lw $t3,-44($sp)
+bgt $t3,$t2,ifTrueL3
+b ifFalseL3
+ifTrueL3:
+lw $t0,-52($sp)
+mul $t1,$t0,4
+add $a3,$sp,-0
+sub $a3,$a3,$t1
+lw $t2,($a3)
+la $t2,($t2)
+sw $t2,-44($sp)
+b ifEndL3
+ifFalseL3:
+b ifEndL3
+ifEndL3:
+nextOneMoreTimeL1:
+lw $t0,-52($sp)
+add $t1,$t0,1
+la $t1,($t1)
+sw $t1,-52($sp)
+b startOneMoreTimeL1
+endOneMoreTimeL1:
+lw $t0,-44($sp)
 la $a0,($t0)
+li $v0,1
+syscall
+la $a0,newline
+li $v0,4
+syscall
+lw $t1,-40($sp)
+la $a0,($t1)
 li $v0,1
 syscall
 la $a0,newline
