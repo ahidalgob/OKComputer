@@ -23,9 +23,12 @@ whereiend
 
 dafunk maintheme() : Intothevoid
 youbegin
-    onemoretime Int i = 0; i<10; i = i+1 youbegin
-        go(iterativo(i))
-        go(recursivo(i))
+    Int a=0
+    readmymind(a)
+    cantstop a!=-1 youbegin
+        go(iterativo(a))
+        go(recursivo(a))
+        readmymind(a)
     whereiend
     getback
 whereiend

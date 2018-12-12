@@ -31,8 +31,11 @@ whereiend
 
 dafunk maintheme() : Intothevoid
 youbegin
-    onemoretime Int i = 0; i<10; i = i+1 youbegin
-        go(par(i))
+    Int a=0
+    readmymind(a)
+    cantstop a!=-1 youbegin
+        go(par(a))
+        readmymind(a)
     whereiend
     getback
 whereiend

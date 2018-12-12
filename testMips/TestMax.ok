@@ -1,0 +1,25 @@
+dafunk maintheme() : Intothevoid
+
+
+dafunk maintheme() : Intothevoid
+youbegin
+    Int[10] a
+    onemoretime Int i = 0; i<10; i = i+1 youbegin
+            Int x
+            readmymind(x)
+            a[i] = x
+    whereiend
+    Int max = -1000000
+    Int min = 1000000
+    onemoretime Int i = 0; i<10; i = i+1 youbegin
+            if max < a[i] youbegin
+                max = a[i]
+            whereiend
+            if min > a[i] youbegin
+                min = a[i]
+            whereiend
+    whereiend
+    go(min)
+    go(max)
+    getback
+whereiend
