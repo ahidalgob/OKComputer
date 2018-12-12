@@ -275,6 +275,9 @@ tacInstruction2mipsInstruction instr@(TAC.Print x) = do
   tell [ "la $a0,("++show rx++")" ]
   tell [ "li $v0,1" ]
   tell [ "syscall" ]
+  tell [ "la $a0,newline" ]
+  tell [ "li $v0,4" ]
+  tell [ "syscall" ]
 
 -- putLabel {{{2
 tacInstruction2mipsInstruction instr@(TAC.PutLabel label) = tell [ label ++ ":" ]

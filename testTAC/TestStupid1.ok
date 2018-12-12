@@ -3,9 +3,16 @@ dafunk maintheme() : Intothevoid
 
 dafunk maintheme() : Intothevoid
 youbegin
-    Tuple(Int, Int, Tuple(Int, Int)) t
-    Int i = 1
-    t._2._0 = i
-    go(t._2._0)
+    Int[10][10] a
+    onemoretime Int i = 0; i<10; i = i+1 youbegin
+        onemoretime Int j = 0; j<10; j = j+1 youbegin
+            a[i][j] = i*10  + j
+        whereiend
+    whereiend
+    onemoretime Int i = 0; i<10; i = i+1 youbegin
+        onemoretime Int j = 0; j<10; j = j+1 youbegin
+            go(a[i][j])
+        whereiend
+    whereiend
     getback
 whereiend

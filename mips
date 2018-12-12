@@ -1,3 +1,7 @@
+.data
+
+newline: .asciiz "\n"
+
 .text
 
 
@@ -8,18 +12,78 @@ li $v0,10
 syscall
 ok1maintheme:
 sw $ra,4($sp)
-li $t0,1
-li $t1,8
-add $a3,$sp,-0
-sub $a3,$a3,$t1
-sw $t0,($a3)
-li $t2,8
-add $a3,$sp,-0
-sub $a3,$a3,$t2
-lw $t3,($a3)
-la $a0,($t3)
+li $t0,0
+sw $t0,-0($sp)
+startOneMoreTimeL0:
+lw $t0,-0($sp)
+blt $t0,10,enterOneMoreTimeL0
+b endOneMoreTimeL0
+enterOneMoreTimeL0:
+lw $t0,-0($sp)
+sw $t0,-16($sp)
+sw $sp,-8($sp)
+add $sp,$sp,-16
+jal ok2f
+lw $t0,-4($sp)
+la $a0,($t0)
 li $v0,1
 syscall
+la $a0,newline
+li $v0,4
+syscall
+nextOneMoreTimeL0:
+lw $t0,-0($sp)
+add $t1,$t0,1
+la $t1,($t1)
+sw $t1,-0($sp)
+b startOneMoreTimeL0
+endOneMoreTimeL0:
+lw $ra,4($sp)
+lw $sp,8($sp)
+jr $ra
+ok2f:
+sw $ra,4($sp)
+lw $t0,-0($sp)
+beq $t0,0,ifTrueL1
+b ifFalseL1
+ifTrueL1:
+li $fp,0
+sw $fp,12($sp)
+lw $ra,4($sp)
+lw $sp,8($sp)
+jr $ra
+b ifEndL1
+ifFalseL1:
+lw $t0,-0($sp)
+beq $t0,1,elseTrueL2
+b elseFalseL2
+elseTrueL2:
+li $fp,1
+sw $fp,12($sp)
+lw $ra,4($sp)
+lw $sp,8($sp)
+jr $ra
+b ifEndL1
+elseFalseL2:
+b ifEndL1
+ifEndL1:
+lw $t0,-0($sp)
+sub $t1,$t0,1
+sw $t1,-24($sp)
+sw $sp,-16($sp)
+add $sp,$sp,-24
+jal ok2f
+lw $t0,-0($sp)
+sub $t1,$t0,2
+sw $t1,-32($sp)
+sw $sp,-24($sp)
+add $sp,$sp,-32
+jal ok2f
+lw $t0,-12($sp)
+lw $t1,-20($sp)
+add $t2,$t0,$t1
+la $t2,($t2)
+sw $t2,12($sp)
 lw $ra,4($sp)
 lw $sp,8($sp)
 jr $ra
