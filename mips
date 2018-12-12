@@ -8,83 +8,18 @@ li $v0,10
 syscall
 ok1maintheme:
 sw $ra,4($sp)
-li $t0,0
-sw $t0,-400($sp)
-startOneMoreTimeL0:
-lw $t0,-400($sp)
-blt $t0,10,enterOneMoreTimeL0
-b endOneMoreTimeL0
-enterOneMoreTimeL0:
-li $t0,0
-sw $t0,-408($sp)
-startOneMoreTimeL1:
-lw $t0,-408($sp)
-blt $t0,10,enterOneMoreTimeL1
-b endOneMoreTimeL1
-enterOneMoreTimeL1:
-lw $t0,-400($sp)
-mul $t1,$t0,10
-lw $t2,-408($sp)
-add $t3,$t1,$t2
-mul $t4,$t0,40
-mul $t5,$t2,4
-add $t6,$t5,$t4
+li $t0,1
+li $t1,8
 add $a3,$sp,-0
-sub $a3,$a3,$t6
-sw $t3,($a3)
-nextOneMoreTimeL1:
-lw $t0,-408($sp)
-add $t1,$t0,1
-la $t1,($t1)
-sw $t1,-408($sp)
-b startOneMoreTimeL1
-endOneMoreTimeL1:
-nextOneMoreTimeL0:
-lw $t0,-400($sp)
-add $t1,$t0,1
-la $t1,($t1)
-sw $t1,-400($sp)
-b startOneMoreTimeL0
-endOneMoreTimeL0:
-li $t0,0
-sw $t0,-400($sp)
-startOneMoreTimeL2:
-lw $t0,-400($sp)
-blt $t0,10,enterOneMoreTimeL2
-b endOneMoreTimeL2
-enterOneMoreTimeL2:
-li $t0,0
-sw $t0,-408($sp)
-startOneMoreTimeL3:
-lw $t0,-408($sp)
-blt $t0,10,enterOneMoreTimeL3
-b endOneMoreTimeL3
-enterOneMoreTimeL3:
-lw $t0,-400($sp)
-mul $t1,$t0,40
-lw $t2,-408($sp)
-mul $t3,$t2,4
-add $t4,$t3,$t1
+sub $a3,$a3,$t1
+sw $t0,($a3)
+li $t2,8
 add $a3,$sp,-0
-sub $a3,$a3,$t4
-lw $t5,($a3)
-la $a0,($t5)
+sub $a3,$a3,$t2
+lw $t3,($a3)
+la $a0,($t3)
 li $v0,1
 syscall
-nextOneMoreTimeL3:
-lw $t0,-408($sp)
-add $t1,$t0,1
-la $t1,($t1)
-sw $t1,-408($sp)
-b startOneMoreTimeL3
-endOneMoreTimeL3:
-nextOneMoreTimeL2:
-lw $t0,-400($sp)
-add $t1,$t0,1
-la $t1,($t1)
-sw $t1,-400($sp)
-b startOneMoreTimeL2
-endOneMoreTimeL2:
 lw $ra,4($sp)
 lw $sp,8($sp)
 jr $ra
