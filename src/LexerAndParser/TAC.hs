@@ -56,6 +56,7 @@ data Instruction =
   | ArrayGetPos X X X         -- x = y[i]                (8)
   | ArraySetPos X X X         -- x[i] = y
   | Print X                   -- print x
+  | Read X                   -- print x
   | PutLabel Label            -- Label:
 
   | SaveRA
@@ -100,6 +101,7 @@ instance Show Instruction where
   show (GetAddress x y) = "    " ++ show x ++ " = &" ++ show y
   show (GetContents x y) = "    " ++ show x ++ " = *" ++ show y
   show (Print x) = "    " ++ "print " ++ show x
+  show (Read x) = "    " ++ "read " ++ show x
   show (PutLabel label) = label ++ ":"
   show SaveRA = " -- prologue"
   show Exit = "    " ++ "exit_program"
@@ -335,7 +337,8 @@ tacInstruction (GOING es) = do
   mapM_ (tacExpression >=> (\t -> tell [ Print t ])) es
 tacInstruction (GOINGSLOWLY es) = tacInstruction $ GOING es
 tacInstruction (GOINGMENTAL es) = tacInstruction $ GOING es
-tacInstruction READMYMIND{} = undefined
+tacInstruction (READMYMIND es) = do
+  mapM_ (tacExpression >=> (\t -> tell [ Read t ])) es
 tacInstruction AMNESIAC{} = undefined
 
 

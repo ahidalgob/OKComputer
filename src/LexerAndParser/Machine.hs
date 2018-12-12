@@ -279,6 +279,13 @@ tacInstruction2mipsInstruction instr@(TAC.Print x) = do
   tell [ "li $v0,4" ]
   tell [ "syscall" ]
 
+tacInstruction2mipsInstruction instr@(TAC.Read x) = do
+  updateNewSP x
+  [rx] <- getReg instr
+  tell [ "li $v0,5" ]
+  tell [ "syscall" ]
+  tell [ "move "++show rx++",$v0" ]
+
 -- putLabel {{{2
 tacInstruction2mipsInstruction instr@(TAC.PutLabel label) = tell [ label ++ ":" ]
 
@@ -343,6 +350,10 @@ getReg (TAC.Return y) = do
 
 getReg (TAC.Print y) = do
       ry <- findBestOperandReg y []
+      return [ry]
+
+getReg (TAC.Read y) = do
+      ry <- findBestResultReg y
       return [ry]
 
 -- x = y[i]
