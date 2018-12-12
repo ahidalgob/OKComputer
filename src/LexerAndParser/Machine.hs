@@ -243,8 +243,30 @@ tacInstruction2mipsInstruction instr@(TAC.Return x) = do
   tell [ "jr $ra" ]
 
 -- array {{{2
-tacInstruction2mipsInstruction instr@(TAC.ArrayGetPos x y z) = undefined
-tacInstruction2mipsInstruction instr@(TAC.ArraySetPos x y z) = undefined
+-- x = y[i]
+tacInstruction2mipsInstruction instr@(TAC.ArrayGetPos x y i) = do
+  updateNewSP x
+  updateNewSP i
+  let y' = varOrTempToMachineVar y
+  [rx, ri] <- getReg instr
+  off <- fromJust' "F69" . Map.lookup y' <$> gets varOffset
+  tell [ "add $a3,$fp,"++show off ]
+  tell [ "add $a3,$a3,"++show ri ]
+  tell [ "lw "++show rx++",($a3)" ]
+  return ()
+
+-- x[i] = y
+tacInstruction2mipsInstruction instr@(TAC.ArraySetPos x i y) = do
+  updateNewSP i
+  updateNewSP y
+  let x' = varOrTempToMachineVar x
+  [ri, ry] <- getReg instr
+  off <- fromJust' "F69" . Map.lookup x' <$> gets varOffset
+  tell [ "add $a3,$fp,"++show off ]
+  tell [ "add $a3,$a3,"++show ri ]
+  tell [ "sw "++show ry++",($a3)" ] -- maybe don't work with immediates
+  return ()
+
 
 -- print {{{2
 tacInstruction2mipsInstruction instr@(TAC.Print x) = do
@@ -320,8 +342,18 @@ getReg (TAC.Print y) = do
       ry <- findBestOperandReg y []
       return [ry]
 
-getReg (TAC.ArrayGetPos x y i) = undefined
-getReg (TAC.ArraySetPos x i y) = undefined
+-- x = y[i]
+getReg (TAC.ArrayGetPos x y i) = do
+      ri <- findBestOperandReg i []
+      rx <- findBestResultReg x
+      return [rx, ri]
+
+-- x[i] = y
+getReg (TAC.ArraySetPos x i y) = do
+      ri <- findBestOperandReg i []
+      ry <- findBestOperandReg y []
+      return [ri, ry]
+
 getReg _ = undefined
 
 -- getReg helpers {{{2

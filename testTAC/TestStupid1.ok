@@ -1,31 +1,14 @@
-# Expresiones Aritmeticas Simples.
+dafunk maintheme() : Intothevoid
 
 
 dafunk maintheme() : Intothevoid
-
-dafunk iterativo(Int x) : Int
 youbegin
-	Int res = 1
-	onemoretime Int i = 2; i <= x; i = i + 1
-	youbegin
-		res = res*i
-	whereiend
-	getback(res)
-whereiend
-
-dafunk recursivo(Int x) : Int
-youbegin
-    if x == 0 youbegin
-        getback(1)
-    whereiend
-    getback(x*recursivo(x-1))
-whereiend
-
-dafunk maintheme() : Intothevoid
-youbegin
+    Int[10] a
     onemoretime Int i = 0; i<10; i = i+1 youbegin
-        go(iterativo(i))
-        go(recursivo(i))
+        a[i] = i*2
+    whereiend
+    onemoretime Int i = 0; i<10; i = i+1 youbegin
+        go(a[i])
     whereiend
     getback
 whereiend
