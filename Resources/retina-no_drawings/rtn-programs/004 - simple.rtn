@@ -1,8 +1,0 @@
-program
-    for k from 3 to 12 do
-        for i from 1 to k do
-            forward(60);
-            rotatel(360/k);
-        end;
-    end;
-end;
